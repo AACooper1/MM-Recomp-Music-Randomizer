@@ -7,14 +7,15 @@
                 "${workspaceFolder}/include/dummy_headers",
                 "${workspaceFolder}/mm-decomp/include",
                 "${workspaceFolder}/mm-decomp/src",
-                "${workspaceFolder}/mm-decomp/extracted/n64-us"
+                "/usr/include",
+                "/usr/include/clang"
             ],
             "defines": [
                 "F3DEX_GBI_2",
                 "_LANGUAGE_C",
                 "MIPS"
             ],
-            "compilerPath": "clang",
+            "compilerPath": "/usr/bin/clang",
             "cStandard": "c99",
             "intelliSenseMode": "clang-x86"
         }
