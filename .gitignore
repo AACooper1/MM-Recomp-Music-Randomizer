@@ -17,6 +17,8 @@ MM-recomp
 Legend of Zelda, The - Majora's Mask (U) \[!].z64
 .gitignore
 mm-decomp
-include/debug_util.h
 .gitignore
 src/debug_util.c
+music/
+.vs
+.vscode

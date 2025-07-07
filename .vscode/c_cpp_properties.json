@@ -8,6 +8,7 @@
                 "${workspaceFolder}/mm-decomp/include",
                 "${workspaceFolder}/mm-decomp/src",
                 "/usr/include/",
+                "/usr/local/lib",
                 "/usr/lib/llvm-18/lib/clang/18/include"
             ],
             "defines": [
@@ -15,7 +16,7 @@
                 "_LANGUAGE_C",
                 "MIPS"
             ],
-            "compilerPath": "/usr/bin/clang",
+            "compilerPath": "/usr/bin/gcc",
             "cStandard": "c99",
             "intelliSenseMode": "linux-clang-x64"
         }
