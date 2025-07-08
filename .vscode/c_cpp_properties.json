@@ -3,21 +3,27 @@
         {
             "name": "Mod",
             "includePath": [
-                "${workspaceFolder}/include",
-                "${workspaceFolder}/include/dummy_headers",
+                "${workspaceFolder}",
+                "${workspaceFolder}/src/mod",
+                "${workspaceFolder}/src/extlib",
+                "${workspaceFolder}/include/mod",
+                "${workspaceFolder}/include/extlib",
+                "${workspaceFolder}/include/mod/dummy_headers",
                 "${workspaceFolder}/mm-decomp/include",
                 "${workspaceFolder}/mm-decomp/src",
                 "/usr/include/",
                 "/usr/local/lib",
-                "/usr/lib/llvm-18/lib/clang/18/include"
+                "/usr/lib/llvm-18/lib/clang/18/include",
+                "/usr/local/include"
             ],
             "defines": [
                 "F3DEX_GBI_2",
                 "_LANGUAGE_C",
                 "MIPS"
             ],
-            "compilerPath": "/usr/bin/gcc",
+            "compilerPath": "/usr/bin/g++",
             "cStandard": "c99",
+            "cppStandard": "c++23",
             "intelliSenseMode": "linux-clang-x64"
         }
     ],

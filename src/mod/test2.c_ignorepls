@@ -1,0 +1,10 @@
+#include "read_mmrs.h"
+#include "stdbool.h"
+
+    extern MMRS* read_seq_directory();
+
+int main()
+{
+    MMRS* test = read_seq_directory();
+    return 0;
+}
