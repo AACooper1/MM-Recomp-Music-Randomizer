@@ -1,3 +1,4 @@
 target_sources(${TARGET_NAME} PUBLIC
-    "lib_main.cpp"
+    "read_mmrs.cpp"
+    "miniz.c"
 )

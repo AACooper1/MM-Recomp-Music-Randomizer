@@ -23,3 +23,4 @@ user_build_config.json
 CMakeUserPresets.json
 MM-recomp/
 N64Recomp/
+src/mod/test2.c_ignorepls

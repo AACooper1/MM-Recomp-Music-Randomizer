@@ -6,5 +6,9 @@
 int main()
 {
     MMRS* test = read_seq_directory();
+    
+
+    // printf("%d\n", get_mmrs_size());
+
     return 0;
 }

@@ -10,9 +10,9 @@
     #include <iostream>
     #include <string>
     #include <cstring>
-    #include "libzippp.h"
+    #include "lib_recomp.hpp"
+    #include "miniz.h"
     namespace fs = std::filesystem;
-    namespace lz = libzippp;
 #endif
 
 #ifndef __cplusplus
@@ -21,49 +21,37 @@
 
 typedef struct Zseq_t {
     int size;
-    void* data;
+    unsigned char data[32768];
     int bankNo;
-    #ifdef __cplusplus
-        bool formmask[16] = {0};
-    #endif
-    #ifndef __cplusplus
-        bool formmask[16];
-    #endif
+    bool formmask[16];
 } Zseq;
 
 
 typedef struct Zbank_t{
     int bankSize;
-    void* bankData;
+    unsigned char bankData[32768];
     int MetaSize;
-    void* MetaData;
+    unsigned char metaData[32768];
 } Zbank;
 
 
 typedef struct Zsound_t {
-    char *size;
-    void* data;
+    int size;
+    unsigned char data[32768];
 } Zsound;
 
 
 typedef struct MMRSFileType {
-    char* songName;
-    #ifdef __cplusplus
-        bool categories[256] = {0};
-    #endif
-    #ifndef __cplusplus
-        bool categories[256];
-    #endif
-    Zseq *zseq;
-    Zbank *bankInfo;
-    Zsound *soundInfo;
+    char songName[256];
+    bool categories[256];
+    Zseq zseq;
+    Zbank bankInfo;
+    Zsound soundInfo;
 } MMRS;
 
 #ifdef __cplusplus
     extern "C" {
 #endif
-
-MMRS* read_seq_directory();
 
 #ifdef __cplusplus
     }

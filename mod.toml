@@ -5,24 +5,21 @@
 
 # Unique ID of this mod. Pick something long enough that it'll never be the same as any other mod.
 # The name displayed in the mod management menu is separate from this so this doesn't need to be human readable.
-id = "mm_recomp_mod_template"
+id = "mm_music_rando_miser"
 
 # Version of this mod.
-version = "1.0.0"
+version = "1.0.1"
 
 # The name that will show up for this mod in the mod menu. This should be human readable.
-display_name = "MM Recomp Mod Template"
+display_name = "mm_music_rando_miser"
 
 # The description that will show up when this mod is displayed in the mod menu. This should be human readable.
 description =  """
-This is an example mod for Majora's Mask: Recompiled that can be used as a template for creating mods. \
-When this mod is enabled, you will always perform a quickspin when swinging your sword.
-
-For more details, see https://github.com/Zelda64Recomp/MMRecompModTemplate."""
+Te saluto."""
 
 # A short description that will show up in this mod's entry in the mod list. This should be human readable and kept short
 # to prevent it from being cut off due to the limited space.
-short_description = "This is an example mod for Majora's Mask: Recompiled."
+short_description = "Yeah!!!"
 
 # Authors of this mod.
 authors = [ "Asticky" ]
@@ -35,14 +32,13 @@ minimum_recomp_version = "1.2.0"
 
 # Dependency mods. Each entry is the mod's ID and then an optional minimum version of the dependency mod.
 dependencies = [
-# Example dependency:
-#    "magemods_audio_api"
+   "magemods_audio_api"
 ]
 
 # Native libraries (e.g. DLLs) and the functions they export.
 native_libraries = [
 # Example native library:
-   { name = "mm_recomp_mod_template_extlib", funcs = ["native_lib_test"] }
+   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["get_num_mmrs", "read_mmrs_files"] }
 ]
 
 # Inputs to the mod tool.
@@ -52,7 +48,7 @@ native_libraries = [
 elf_path = "build/mod.elf"
 
 # Output mod filename.
-mod_filename = "mm_recomp_mod_template"
+mod_filename = "mm_music_rando_miser"
 
 # Reference symbol files.
 func_reference_syms_file = "Zelda64RecompSyms/mm.us.rev1.syms.toml"
@@ -67,7 +63,7 @@ additional_files = [ ]
 [extlib_compiling]
 
 # # Name of the extlib. This information is passed to CMake as the target name for the extlib.
-library_name = "mm_recomp_mrrs_reader_extlib"
+library_name = "mm_recomp_mmrs_reader_extlib"
 
 # Your CMake presets in this file should be designed to handle cross-compilation (using the provided
 # Zig toolchain is recommended). When building the mod, CMake will be invoked 3 times to build

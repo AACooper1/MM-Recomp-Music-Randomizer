@@ -11,10 +11,12 @@
                 "${workspaceFolder}/include/mod/dummy_headers",
                 "${workspaceFolder}/mm-decomp/include",
                 "${workspaceFolder}/mm-decomp/src",
+                "${workspaceFolder}/offline_build",
                 "/usr/include/",
                 "/usr/local/lib",
                 "/usr/lib/llvm-18/lib/clang/18/include",
-                "/usr/local/include"
+                "/usr/local/include",
+                "${workspaceFolder}/include/shared"
             ],
             "defines": [
                 "F3DEX_GBI_2",
