@@ -14,13 +14,14 @@ extern "C" {
 
 void read_mmrs(fs::path in_path, MMRS* mmrs, uint8_t* rdram)
 {
+    printf("\n\nCalled read_mmrs() on file %s.\n", in_path.string().c_str());
     int fsize = fs::file_size(in_path);
     const char* mmrsPathCstr = in_path.string().c_str();
     
     mz_zip_archive mmrsArchive;
 
-    printf("kdpasokdpoaskdaospdkapsdko!!!!!!!!!!\n");
-    printf("MMRS at address %p\n\n", mmrs);
+    printf("==READING FILE %s==\n", mmrsPathCstr);
+    printf("MMRS at address %p\n", mmrs);
 
     memset(&mmrsArchive, 0, sizeof(mmrsArchive));
     const char* filename = in_path.filename().stem().string().c_str();
@@ -34,6 +35,10 @@ void read_mmrs(fs::path in_path, MMRS* mmrs, uint8_t* rdram)
     {
         printf("Could not init file %s stats.\n", mmrsPathCstr);
         return;
+    }
+    else
+    {
+        printf("Successfully initiated file %s stats!\n", mmrsPathCstr);
     }
     printf("we ");
 
@@ -67,7 +72,7 @@ void read_mmrs(fs::path in_path, MMRS* mmrs, uint8_t* rdram)
         int size = stat.m_comp_size;
 
         // Should be different if categories.txt
-        if (filename.ends_with(".zseq"))
+        if (filename.ends_with(".zseq") || filename.ends_with(".seq"))
         {
             printf("Reading %s from archive.\n", filename.c_str());
 
@@ -110,7 +115,7 @@ void read_mmrs(fs::path in_path, MMRS* mmrs, uint8_t* rdram)
             printf("Data starts with %hhx\n", mmrs->zseq.data[0]);
         }
 
-        if (filename == "categories.txt")
+        else if (filename == "categories.txt")
         {
             printf("Reading categories.txt.\n");
             std::string categories = (std::string)(char*)file;
@@ -157,10 +162,10 @@ extern "C" int read_seq_directory(MMRS* mmrsTable, uint8_t* rdram)
                 try {
                     read_mmrs(entry.path(), &mmrsTable[i], rdram);
 
-                } catch (const std:: runtime_error &e)
+                } catch (const std:: exception &e)
                 {
-                    printf("Could not read file %s", entry.path().filename().string().c_str());
-                    return -1;
+                    printf("Could not read file %s.", entry.path().filename().string().c_str());
+                    continue;
                 }
 
                 printf("Successfully read file %s\n", entry.path().filename().string().c_str());
