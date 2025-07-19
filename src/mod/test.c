@@ -35,7 +35,8 @@ void print_bytes(void *ptr, int size)
     // recomp_printf("\n");
 }
 
-RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) void my_mod_on_init() {
+RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) void my_mod_on_init() 
+{
 
     // recomp_printf("grahg\n");
 
@@ -75,11 +76,13 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) void my_mod_on_init() {
     for (int i = 0; i < numMmrs; i++)
     {
         recomp_printf("\nSize is %d", allMmrs[i].zseq.size);
-        if (allMmrs[i].zseq.size == 0) {
+        if (allMmrs[i].zseq.size == 0) 
+        {
             continue;
         }
 
-        AudioTableEntry mySeq = {
+        AudioTableEntry mySeq = 
+        {
             (uintptr_t) &allMmrs[i].zseq.data[0],
             allMmrs[i].zseq.size,
             MEDIUM_CART,
@@ -105,15 +108,6 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) void my_mod_on_init() {
             recomp_printf("Replaced sequence successfully!\n");
             AudioApi_ReplaceSequenceFont(NA_BGM_FILE_SELECT, 0, allMmrs[i].zseq.bankNo);
             recomp_printf("Replaced sequence font successfully! (bank %x)\n", allMmrs[i].zseq.bankNo);
-        }
-        if (!strcmp(allMmrs[i].songName, "snd_ominous"))
-        {
-            AudioApi_ReplaceSequence(NA_BGM_GET_ITEM, &mySeq);
-            AudioApi_ReplaceSequenceFont(NA_BGM_GET_ITEM, 0, allMmrs[i].zseq.bankNo);
-            AudioApi_ReplaceSequence(NA_BGM_GET_NEW_MASK, &mySeq);
-            AudioApi_ReplaceSequenceFont(NA_BGM_GET_NEW_MASK, 0, allMmrs[i].zseq.bankNo);
-            AudioApi_ReplaceSequence(NA_BGM_GET_SMALL_ITEM, &mySeq);
-            AudioApi_ReplaceSequenceFont(NA_BGM_GET_SMALL_ITEM, 0, allMmrs[i].zseq.bankNo);
         }
     }
 }
