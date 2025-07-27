@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(recomp_mod_native_lib)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(DZLIB_LIBRARY="/usr/local/lib")
 
@@ -12,6 +12,7 @@ include_directories("./include/extlib")
 include_directories("./include/shared")
 include_directories("./src/extlib")
 include_directories("/usr/local/include")
+include_directories("lib/spdlog/include")
 
 add_library(${TARGET_NAME} SHARED)
 

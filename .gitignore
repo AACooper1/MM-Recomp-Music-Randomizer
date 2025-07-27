@@ -24,3 +24,5 @@ CMakeUserPresets.json
 MM-recomp/
 N64Recomp/
 src/mod/test2.c_ignorepls
+unit_tests/
+.vscode/c_cpp_properties.json

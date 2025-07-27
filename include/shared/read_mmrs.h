@@ -12,7 +12,11 @@
     #include <cstring>
     #include "lib_recomp.hpp"
     #include "miniz.h"
+    #include "util.h"
+    #include "sqlite3.h"
+
     namespace fs = std::filesystem;
+    extern sqlite3 *db;
 #endif
 
 #ifndef __cplusplus
@@ -40,7 +44,6 @@ typedef struct Zsound_t {
     unsigned char data[32768];
 } Zsound;
 
-
 typedef struct MMRSFileType {
     char songName[256];
     bool categories[256];
@@ -52,7 +55,6 @@ typedef struct MMRSFileType {
 #ifdef __cplusplus
     extern "C" {
 #endif
-
 #ifdef __cplusplus
     }
 #endif
