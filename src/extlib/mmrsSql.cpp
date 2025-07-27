@@ -72,7 +72,7 @@ bool check_mmrs_exists(fs::directory_entry file)
 
     if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
     {
-        sqlite3_bind_text(statement, 1, filepath, strlen(filepath), SQLITE_TRANSIENT);
+        sqlite3_bind_text(statement, 1, filepath, strlen(filepath), SQLITE_STATIC);
         sqlite3_bind_int64(statement, 2, timestamp);
     }
     SQL_ERR_CHECK("Error preparing MMRS SELECT statement", "Successfully prepared MMRS SELECT statement!");
@@ -126,14 +126,14 @@ bool insert_mmrs(MMRS mmrs, fs::directory_entry file)
     int id;
     if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
     {
-        sqlite3_bind_text(statement, 1, filepath, strlen(filepath), SQLITE_TRANSIENT);
+        sqlite3_bind_text(statement, 1, filepath, strlen(filepath), SQLITE_STATIC);
         sqlite3_bind_int64(statement, 2, timestamp);
-        sqlite3_bind_text(statement, 3, mmrs.songName, strlen(mmrs.songName), SQLITE_TRANSIENT);
-        sqlite3_bind_blob(statement, 4, mmrs.categories, sizeof(bool) * 256, SQLITE_TRANSIENT);
+        sqlite3_bind_text(statement, 3, mmrs.songName, strlen(mmrs.songName), SQLITE_STATIC);
+        sqlite3_bind_blob(statement, 4, mmrs.categories, sizeof(bool) * 256, SQLITE_STATIC);
 
         sqlite3_bind_int64(statement, 5, timestamp);
-        sqlite3_bind_text(statement, 6, mmrs.songName, strlen(mmrs.songName), SQLITE_TRANSIENT);
-        sqlite3_bind_blob(statement, 7, mmrs.categories, sizeof(bool) * 256, SQLITE_TRANSIENT);
+        sqlite3_bind_text(statement, 6, mmrs.songName, strlen(mmrs.songName), SQLITE_STATIC);
+        sqlite3_bind_blob(statement, 7, mmrs.categories, sizeof(bool) * 256, SQLITE_STATIC);
     }
 
     SQL_ERR_CHECK("Error preparing MMRS UPSERT statement", "Successfully prepared MMRS UPSERT statement!");
