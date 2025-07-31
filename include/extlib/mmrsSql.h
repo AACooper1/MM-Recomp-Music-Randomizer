@@ -3,7 +3,6 @@
     {                                                                                \
         mmrs_util::error() << errMsg << ": " << sqlite3_errmsg(db) << std::endl;     \
         mmrs_util::error() << "Error code is " << rc << std::endl;                   \
-        sqlite3_close(db);                                                           \
         return false;                                                                \
     }                                                                                \
     else                                                                             \
@@ -15,4 +14,8 @@ bool init_mmrs_cache(const char* dbPath);
 
 bool check_mmrs_exists(fs::directory_entry file);
 
-bool insert_mmrs(MMRS mmrs, fs::directory_entry file);
+bool insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file);
+
+bool _load_mmrs_table(const char *dbPath, MMRS* allMmrs);
+
+bool _load_zseq(const char *dbPath, Zseq* zseqAddr, int zseqId);

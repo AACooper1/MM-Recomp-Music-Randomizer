@@ -21,7 +21,7 @@ extern "C"
     DLLEXPORT uint32_t recomp_api_version = 1;
 }
 
-bool read_mmrs(fs::directory_entry file, MMRS* mmrs, uint8_t* rdram)
+bool read_mmrs(fs::directory_entry file)
 {
     mmrs_util::debug() << START_PARA;
     mmrs_util::debug() << "Calling read_mmrs on file " << file.path().string() << "!";
@@ -32,10 +32,17 @@ bool read_mmrs(fs::directory_entry file, MMRS* mmrs, uint8_t* rdram)
     mz_zip_error mz_error;
     mz_bool mz_status;
 
-    // Did this function succeed?
     bool success;
 
     fs::path in_path = file.path();
+
+    MMRS mmrs;
+    Zseq zseq;
+
+    for (int i = 0; i < 32768; i++)
+    {
+        zseq.data[i] = 0xFF;
+    }
 
     try 
     {
@@ -43,19 +50,21 @@ bool read_mmrs(fs::directory_entry file, MMRS* mmrs, uint8_t* rdram)
         std::string zip_filename = in_path.filename().stem().string();
 
         mmrs_util::debug() << "File size: " << zip_filesize << "\n";
-        mmrs_util::debug() << "MMRS at address: " << &mmrs << "\n";
 
-        // Write filename to mod memory
         for (int i = 0; i < zip_filename.length(); i++) 
         {
-            mmrs->songName[i ^ 3] = zip_filename[i];
+            mmrs.songName[i] = zip_filename[i];
         }
+
+        mmrs.songName[zip_filename.length()] = '\0';
 
         // Clear the mz_zip_archive struct then try to read file
         memset(&mz_archive, 0, sizeof(mz_archive));
 
+        std::string inpathStr = in_path.string();
+
         // Try to read the ZIP file
-        mz_status = mz_zip_reader_init_file(&mz_archive, in_path.string().c_str(), 0);
+        mz_status = mz_zip_reader_init_file(&mz_archive, inpathStr.c_str(), 0);
         if (!mz_status)
         {
             throw std::runtime_error("Could not init zip file");
@@ -77,7 +86,7 @@ bool read_mmrs(fs::directory_entry file, MMRS* mmrs, uint8_t* rdram)
             }
 
             // Create a new buffer instead of extracting to heap so that the memory will automatically be freed
-            size_t filesize = (size_t)stat.m_uncomp_size;
+            int filesize = stat.m_uncomp_size;
             std::vector<char> filebuffer(filesize);
 
             std::string filename = stat.m_filename;
@@ -89,7 +98,6 @@ bool read_mmrs(fs::directory_entry file, MMRS* mmrs, uint8_t* rdram)
                 throw std::runtime_error("mz_zip_reader_extract_to_mem() failed");
             }
 
-            // Should be different if categories.txt
             if (filename.ends_with(".zseq") || filename.ends_with(".seq")) 
             {
                 mmrs_util::debug() << "Reading sequence file\n";
@@ -108,41 +116,38 @@ bool read_mmrs(fs::directory_entry file, MMRS* mmrs, uint8_t* rdram)
                     throw std::runtime_error("Invalid zseq header");
                 }
 
-                if (filesize > 32768) 
+                if (filesize > 32768)
                 {
                     throw std::runtime_error("File is too large - max 32 KiB");
                 }
 
-                mmrs_util::debug() << "Copying from file at address " << &filebuffer;
-                mmrs_util::debug() << " into zseq at address " << &mmrs->zseq.data[0] << "\n";
-
                 for (int j = 0; j < filesize; j++) 
                 {
-                    // memcpy(mmrs->zseq.data, (unsigned char*)file, sizeof(unsigned char) * stat.m_uncomp_size);
-                    mmrs->zseq.data[j ^ 3] = (unsigned char)filebuffer[j];
+                    zseq.data[j] = (unsigned char)filebuffer[j];
                 }
 
-                mmrs_util::debug() << "Successfully wrote!\n";
+                mmrs_util::debug() << "Successfully read!\n";
 
-                mmrs->zseq.bankNo = std::stoi(filename, 0, 16);
-                mmrs->zseq.size = filesize;
-
-                mmrs_util::debug() << "Zseq is at " << &mmrs->zseq << "\n";
-                mmrs_util::debug() << "Size is " << mmrs->zseq.size << " at " << &mmrs->zseq.size << "\n";
-
-                printf("Data starts with %hhx\n", mmrs->zseq.data[0]);
+                mmrs.bankNo = std::stoi(filename, 0, 16);
+                zseq.size = filesize;
             }
             else if (filename == "categories.txt") {
                 mmrs_util::debug() << "Reading categories.txt file\n";
                 mmrs_util::debug() << "Categories: ";
 
                 char* c = std::strtok(filebuffer.data(), ",");
+
+                for(int j = 0; j < 256; j++)
+                {
+                    mmrs.categories[j] = false;
+                }
+
                 while (c != nullptr) 
                 {
                     int cat = std::stoi(std::string(c));
                     if (cat < 256) 
                     {
-                        mmrs->categories[cat] = true;
+                        mmrs.categories[cat] = true;
                         mmrs_util::debug() << cat << " ";
                     }
                     c = std::strtok(nullptr, ",");
@@ -157,7 +162,7 @@ bool read_mmrs(fs::directory_entry file, MMRS* mmrs, uint8_t* rdram)
 
         success = true;
         // Update the database
-        insert_mmrs(*mmrs, file);
+        insert_mmrs(mmrs, zseq, file);
 
     } 
     catch (const std::exception &e) 
@@ -186,7 +191,7 @@ bool read_mmrs(fs::directory_entry file, MMRS* mmrs, uint8_t* rdram)
     return success;
 }
 
-extern "C" int read_seq_directory(MMRS* mmrsTable, uint8_t* rdram, const char* dbPath)
+extern "C" int read_seq_directory(const char* dbPath)
 {
     mmrs_util::debug() << START_PARA;
     mmrs_util::debug() << "Calling read_seq_directory!";
@@ -210,7 +215,8 @@ extern "C" int read_seq_directory(MMRS* mmrsTable, uint8_t* rdram, const char* d
             printf("i: %d\n\n", i);
 
             std::string filename = entry.path().filename().string();
-            const char* songName = entry.path().filename().stem().string().c_str();
+            std::string songNameStr = entry.path().filename().stem().string();
+            const char* songName = songNameStr.c_str();
 
             // If file has an extension other than .mmrs, print that to the console and continue
             if (entry.path().extension() != ".mmrs") 
@@ -221,13 +227,14 @@ extern "C" int read_seq_directory(MMRS* mmrsTable, uint8_t* rdram, const char* d
             {
                 if (check_mmrs_exists(entry))
                 {
+                    i++;
                     continue;
                 }
                 else 
                 {
                     mmrs_util::debug() << fs::absolute(entry.path()) << std::endl;
 
-                    bool success = read_mmrs(entry, &mmrsTable[i], rdram);
+                    bool success = read_mmrs(entry);
 
                     if (!success) 
                     {
@@ -236,13 +243,11 @@ extern "C" int read_seq_directory(MMRS* mmrsTable, uint8_t* rdram, const char* d
                     }
 
                     mmrs_util::debug() << "Successfully read file " << entry.path().filename().string() << std::endl;
-                    mmrs_util::debug() << "Zseq pointer is" << &mmrsTable[i].zseq << std::endl;
-                    mmrs_util::debug() << "Size is " << mmrsTable[i].zseq.size << std::endl;
-
-                    i++;
                 }
             }
+            i++;
         }
+        return i;
     } 
     else 
     {
@@ -250,27 +255,20 @@ extern "C" int read_seq_directory(MMRS* mmrsTable, uint8_t* rdram, const char* d
         return -2;
     }
 
-    return 0;
+    return -1;
 }
 
-RECOMP_DLL_FUNC(get_num_mmrs)
-{
-    int ct = 0;
-    const fs::path dir = "music";
+/*
+    read_mmrs_files():
+        Reads the music directory and updates the database.
+        Does not fill the mod RAM table, which is handled by load_mmrs_table.
 
-    if(fs::exists(dir)) 
-    {
-        for(const fs::directory_entry entry: fs::directory_iterator(dir)) {
-            // If file has an extension other than .mmrs, print that to the console and continue
-            if (entry.path().extension() == ".mmrs") 
-            {
-                ct++;
-            }
-        }
-    }
+        Parameters:
+            const char* dbPath: The path of the database to update.
 
-    RECOMP_RETURN(int, ct);
-}
+        Returns:
+            int numMmrs:        The number of entries in the MMRS table.
+*/
 
 RECOMP_DLL_FUNC(read_mmrs_files)
 {
@@ -283,11 +281,11 @@ RECOMP_DLL_FUNC(read_mmrs_files)
         printf(END_PARA);
     }
 
-    MMRS *mmrsTable = RECOMP_ARG(MMRS*, 0);
-
+    std::string dbPathStr = RECOMP_ARG_STR(0);
+    const char *dbPath = dbPathStr.c_str();
+    
     bool initDb = false;
-    const char *dbPath = "assets/musicDB.db";
-
+    
     if (mmrs_util::gLogLevel >= mmrs_util::LOG_DEBUG) { printf("Calling init_mmrs_cache!");}
     try
     {
@@ -298,57 +296,75 @@ RECOMP_DLL_FUNC(read_mmrs_files)
         if (mmrs_util::gLogLevel >= mmrs_util::LOG_ERROR) 
         { 
             printf("Error initalizing music DB: %s\n", e.what());
-            return;
         }
+        RECOMP_RETURN(int, -1);
     }
-
-    // if(mmrs_util::gLogLevel >= mmrs_util::LOG_DEBUG)
-    // {
-        printf("\nBefore read_seq_directory, MMRS table was:\n");
-        sqlite3_stmt *statement;
-        const char* query = "SELECT * FROM mmrs;";
-
-        int rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr);
-
-        while ((rc = sqlite3_step(statement)) == SQLITE_ROW)
-        {
-            printf("%s, timestamp %lli\n", sqlite3_column_text(statement, 1), sqlite3_column_int64(statement, 2));
-        }
-        if (rc != SQLITE_ROW)
-        {
-            printf("Returned code %i", rc);
-        }
-    // }
-    // printf("\nwoag !! it made it through the thing??!?!?!?!?\n");            PRESERVED FOR FUTURE GENERATIONS
     
-
-    int numMmrs = read_seq_directory(mmrsTable, rdram, dbPath);
-
-    printf("\nAfter read_seq_directory, MMRS table was:\n");
-        query = "SELECT * FROM mmrs;";
-
-        rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr);
-
-        while ((rc = sqlite3_step(statement)) == SQLITE_ROW)
-        {
-            printf("%s, timestamp %lli\n", sqlite3_column_text(statement, 1), sqlite3_column_int64(statement, 2));
-        }
-        if (rc != SQLITE_ROW)
-        {
-            printf("Returned code %i", rc);
-        }
-
-    sqlite3_close(db);
-
-    for (int q = 0; q < 16; q++) 
-    {
-        if (mmrs_util::gLogLevel >= mmrs_util::LOG_DEBUG){   printf("%02X", mmrsTable[1].zseq.data[q]);}
-    }
+    int numMmrs = read_seq_directory(dbPath);
 
     if (mmrs_util::gLogLevel >= mmrs_util::LOG_DEBUG)
     {
-        printf(START_PARA);
-        printf("END EXTLIB");
+        printf("Completed extlib function read_mmrs_files(). Number of MMRSes: %i", numMmrs);
         printf(END_PARA);
+    }
+
+    RECOMP_RETURN(int, numMmrs);
+}
+
+/*
+    load_mmrs_table()
+        Loads the MMRS table into mod memory from the DB.
+        Does not load Zseq and Zbank info, which are only pulled when necessary.
+
+        Parameters:
+            const char* dbPath  :   Path to the database.
+            MMRS* allMmrs       :   Address of the MMRS table in mod memory.
+            int numMmrs         :   Number of entries in the MMRS table.
+
+        Returns:
+            bool success        :   Whether the load succeeded.
+*/
+
+RECOMP_DLL_FUNC(load_mmrs_table)
+{
+    std::string dbPathStr = RECOMP_ARG_STR(0);
+    const char *dbPath = dbPathStr.c_str();
+
+    MMRS* allMmrs = RECOMP_ARG(MMRS*, 1);
+
+    bool success = _load_mmrs_table(dbPath, allMmrs);
+
+    if(success)
+    {
+        for (int n = 0; n < strlen(allMmrs[0].songName); n++)
+        {
+            std::cout << allMmrs[0].songName[n];
+        }
+        std::cout << std::endl;
+        RECOMP_RETURN(bool, false);
+    }
+    else
+    {
+        RECOMP_RETURN(bool, true);
+    }
+}
+
+RECOMP_DLL_FUNC(load_zseq)
+{
+    std::string dbPathStr = RECOMP_ARG_STR(0);
+    const char *dbPath = dbPathStr.c_str();
+
+    Zseq* zseqAddr = RECOMP_ARG(Zseq*, 1);
+    int zseqId = RECOMP_ARG(int, 2);
+
+    bool success = _load_zseq(dbPath, zseqAddr, zseqId);
+
+    if(success)
+    {
+        RECOMP_RETURN(bool, true);
+    }
+    else
+    {
+        RECOMP_RETURN(bool, false);
     }
 }

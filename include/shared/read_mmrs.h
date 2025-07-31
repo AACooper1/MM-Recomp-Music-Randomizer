@@ -26,8 +26,6 @@
 typedef struct Zseq_t {
     int size;
     unsigned char data[32768];
-    int bankNo;
-    bool formmask[16];
 } Zseq;
 
 
@@ -45,16 +43,18 @@ typedef struct Zsound_t {
 } Zsound;
 
 typedef struct MMRSFileType {
+    int id;
     char songName[256];
     bool categories[256];
-    Zseq zseq;
-    Zbank bankInfo;
-    Zsound soundInfo;
+    int bankNo;
+    int formmask;
+    int zseqId;
+    int bankInfoId;
 } MMRS;
 
-#ifdef __cplusplus
-    extern "C" {
-#endif
-#ifdef __cplusplus
-    }
-#endif
+// #ifdef __cplusplus
+//     extern "C" {
+// #endif
+// #ifdef __cplusplus
+//     }
+// #endif

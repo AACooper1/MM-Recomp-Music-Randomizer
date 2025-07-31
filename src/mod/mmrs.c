@@ -19,72 +19,61 @@
 // RECOMP_IMPORT("magemods_audio_api", void AudioApi_ReplaceSequence(AudioTableEntry entry, s32 seqId));
 // RECOMP_IMPORT("magemods_audio_api", void AudioApi_ReplaceSequenceFont(s32 seqId, s32 fontNum, s32 fontId));
 
-RECOMP_IMPORT(".", int get_num_mmrs());
-RECOMP_IMPORT(".", void read_mmrs_files(MMRS* mmrsAddr));
+RECOMP_IMPORT(".", int read_mmrs_files(const char *dbPath));
+RECOMP_IMPORT(".", bool load_mmrs_table(const char *dbPath, MMRS* allMmrs));
+RECOMP_IMPORT(".", bool load_zseq(const char *dbPath, Zseq* zseqAddr, int zseqId));
 
 MMRS *allMmrs;
+int numMmrs;
 
-// Stolen from magemods, who didn't export this function
-void print_bytes(void *ptr, int size)
+
+/*
+    mmrs_loader_init()
+        Initialize, update, and load the MMRS database.
+*/
+RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) void mmrs_loader_init() 
 {
-    unsigned char *p = ptr;
-    int i;
-    for (i = 0; i < size; i++) {
-        // recomp_printf("%02X ", p[i]);
-    }
-    // recomp_printf("\n");
-}
+    const char *dbPath = "assets/musicDB.db";
 
-RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) void my_mod_on_init() 
-{
-
-    // recomp_printf("grahg\n");
-
-    int numMmrs = get_num_mmrs();
-    // recomp_printf("\nTotal no. MMRS: %i\n", numMmrs);
+    numMmrs = read_mmrs_files(dbPath);
 
     allMmrs = recomp_alloc(sizeof(MMRS) * numMmrs);
+    recomp_printf("NUMBER OF MMRS: %i", numMmrs);
     Lib_MemSet(allMmrs, 0, sizeof(MMRS) * numMmrs);
 
-    for (int i = 0; i < numMmrs; i++)
-    {
-        allMmrs[i].zseq.bankNo = 0x24;
-        recomp_printf("sizeof(MMRS) = %i\n", sizeof(MMRS));
-        recomp_printf("Created zseq at address %p\n", &allMmrs[i].zseq);
-        recomp_printf("==Data spans from %p to %p==\n", &allMmrs[i].zseq.data, &allMmrs[i].zseq.data[32767]);
-    }
+    load_mmrs_table(dbPath, allMmrs);
 
-    recomp_printf("\nReading MMRS files into address %p\n", &allMmrs[0]);
-    read_mmrs_files(allMmrs);
-    recomp_printf("\nRead MMRS files into address %p!\n", &allMmrs);
-    recomp_printf("Songname at entry 0: %s\n", allMmrs[0].songName);
-    recomp_printf("Songname at entry 1: %s\n", allMmrs[1].songName);
-    recomp_printf("Example zseq data at entry 1: ");
+    // Testing - Remove later
+    Zseq *zseq = recomp_alloc(sizeof(Zseq) * numMmrs);
 
-    for (int q = 0; q < 16; q++)
-    {
-        recomp_printf("%02x ", allMmrs[1].zseq.data[q]);
-    }
-    recomp_printf("...\n");
-
-    recomp_printf("...\n");
-
-    recomp_printf("\nWriting...\n");
+    recomp_printf("%s\n", allMmrs[0].songName);
 
     AudioTableEntry mySeq;
 
     for (int i = 0; i < numMmrs; i++)
     {
-        recomp_printf("\nSize is %d", allMmrs[i].zseq.size);
-        if (allMmrs[i].zseq.size == 0) 
+        bool loaded = load_zseq(dbPath, zseq, i + 1);
+        recomp_printf("%s\n", allMmrs[i].songName);
+
+        if (!loaded)
+        {
+            recomp_printf("Failed to load zseq.\n");
+        }
+        else
+        {
+            recomp_printf("Did the thing\n");
+        }
+
+        // recomp_printf("\nSize is %d", allMmrs[i].zseq.size);
+        if (zseq->size == 0) 
         {
             continue;
         }
 
         AudioTableEntry mySeq = 
         {
-            (uintptr_t) &allMmrs[i].zseq.data[0],
-            allMmrs[i].zseq.size,
+            (uintptr_t) &zseq->data[0],
+            zseq->size,
             MEDIUM_CART,
             CACHE_EITHER,
             0, 0, 0,
@@ -106,8 +95,8 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) void my_mod_on_init()
         {
             AudioApi_ReplaceSequence(NA_BGM_FILE_SELECT, &mySeq);
             recomp_printf("Replaced sequence successfully!\n");
-            AudioApi_ReplaceSequenceFont(NA_BGM_FILE_SELECT, 0, allMmrs[i].zseq.bankNo);
-            recomp_printf("Replaced sequence font successfully! (bank %x)\n", allMmrs[i].zseq.bankNo);
+            AudioApi_ReplaceSequenceFont(NA_BGM_FILE_SELECT, 0, allMmrs[i].bankNo);
+            recomp_printf("Replaced sequence font successfully! (bank 0x%x)\n", allMmrs[i].bankNo);
         }
     }
 }
