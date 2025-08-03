@@ -547,6 +547,7 @@ bool remove_mmrs(int mmrsId)
     rc = sqlite3_step(statement);
     if (rc == SQLITE_ROW)
     {
+        zseqId = sqlite3_column_int(statement, 0);
         mmrs_util::debug() << "Successfully deleted Zseq with ID " << zseqId << std::endl;
     }
     else
