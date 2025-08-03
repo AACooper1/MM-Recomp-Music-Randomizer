@@ -38,7 +38,7 @@ dependencies = [
 # Native libraries (e.g. DLLs) and the functions they export.
 native_libraries = [
 # Example native library:
-   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["read_mmrs_files", "load_mmrs_table", "load_zseq"] }
+   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["read_mmrs_files", "load_mmrs_table", "load_zseq", "sql_teardown"] }
 ]
 
 # Inputs to the mod tool.

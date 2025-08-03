@@ -1,6 +1,10 @@
 #include "read_mmrs.h"
 #include "mmrsSql.h"
 
+#include <tuple>
+
+sqlite3_stmt *statement;
+
 bool init_mmrs_cache(const char* dbPath)
 {
 
@@ -83,10 +87,10 @@ bool init_mmrs_cache(const char* dbPath)
     return true;
 }
 
-int count_mmrs(const char* dbPath)
+int count_mmrs()
 {
     const char* query = "SELECT COUNT(*) FROM mmrs";
-    sqlite3_stmt *statement;
+    sqlite3_reset(statement);
 
     int rc;
     if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
@@ -99,14 +103,12 @@ int count_mmrs(const char* dbPath)
         else
         {
             mmrs_util::error() << "Could not retrieve MMRS count: " << sqlite3_errmsg(db) << std::endl;
-            sqlite3_finalize(statement);
             return -1;
         }
     }
     else
     {
         mmrs_util::error() << "Error preparing count statement: " << sqlite3_errmsg(db) << std::endl;
-        sqlite3_finalize(statement);
         return -1;
     }
 }
@@ -124,7 +126,7 @@ bool check_mmrs_exists(fs::directory_entry file)
 
     // Check for matching entry
     const char* query = "SELECT * FROM mmrs WHERE filename=? AND modified=?;";
-    sqlite3_stmt *statement;
+    sqlite3_reset(statement);
 
     int rc;
 
@@ -141,18 +143,15 @@ bool check_mmrs_exists(fs::directory_entry file)
     if (rc == SQLITE_ROW)
     {
         mmrs_util::debug() << "Found matching entry for " << filepath << " with timestamp " << timestamp << ", skipping!" << std::endl;
-        sqlite3_finalize(statement);
         return true;
     }
     else if (rc == SQLITE_DONE)
     {
         mmrs_util::debug() << "No matching files found for " << filepath << " with timestamp " << timestamp <<  ", continuing!" << std::endl;
-        sqlite3_finalize(statement);
         return false;
     }
     else SQL_ERR_CHECK("Error in SELECT statement", "SELECT statement returned SQLITE_OK for some reason.......?");
 
-    sqlite3_finalize(statement);
     return false;
 }
 
@@ -165,7 +164,7 @@ bool insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
     const char *filepath = filepathStr.c_str();
     uint64_t timestamp = file.last_write_time().time_since_epoch().count();
 
-    sqlite3_stmt *statement;
+    sqlite3_reset(statement);
 
     sqlite3_prepare(db, "SELECT * FROM mmrs", -1, &statement, nullptr);
     if (sqlite3_step(statement) == SQLITE_DONE)
@@ -233,7 +232,6 @@ bool insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
     if (mmrsId <= 0)
     {
         mmrs_util::error() << "Error: MMRS UPSERT returned " << mmrsId << std::endl;
-        sqlite3_finalize(statement);
         return false;
     }
 
@@ -278,7 +276,6 @@ bool insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
     if (zseqId <= 0)
     {
         mmrs_util::error() << "Error: Zseq UPSERT returned " << zseqId << std::endl;
-        sqlite3_finalize(statement);
         return false;
     }
 
@@ -313,7 +310,6 @@ bool insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
     }
     else SQL_ERR_CHECK("Error in MMRS Relation table UPSERT", "MMRS Relation table UPSERTed successfully!");
 
-    sqlite3_finalize(statement);
     return true;
 }
 
@@ -326,7 +322,7 @@ bool _load_mmrs_table(const char *dbPath, MMRS* allMmrs)
 
     int rc = sqlite3_open(dbPath, &db);
 
-    sqlite3_stmt *statement;
+    sqlite3_reset(statement);
     sqlite3_stmt *substatement;
     const char* query = "SELECT * FROM mmrs;";
 
@@ -370,11 +366,11 @@ bool _load_mmrs_table(const char *dbPath, MMRS* allMmrs)
         {
             sqlite3_step(substatement);
             allMmrs[i].zseqId = sqlite3_column_int(substatement, 1);
-        }
-        sqlite3_finalize(substatement);
-        
+        }        
         i++;
     }
+
+    sqlite3_finalize(substatement);
 
     if (rc == SQLITE_DONE)
     {
@@ -383,7 +379,6 @@ bool _load_mmrs_table(const char *dbPath, MMRS* allMmrs)
             mmrs_util::error() << "Error: MMRS table is empty." << std::endl;
             mmrs_util:: debug() << END_PARA;
 
-            sqlite3_finalize(statement);
             sqlite3_close(db);
             return false;
         }
@@ -395,12 +390,10 @@ bool _load_mmrs_table(const char *dbPath, MMRS* allMmrs)
     else
     {
         SQL_ERR_CHECK("Error fetching MMRS table", "MMRS table fetch returned SQLITE_OK... If you see this, something has gone terribly wrong.");
-        sqlite3_finalize(statement);
         sqlite3_close(db);
         return false;
     }
 
-    sqlite3_finalize(statement);
     sqlite3_close(db);
 
     return true;
@@ -415,7 +408,7 @@ bool _load_zseq(const char *dbPath, Zseq* zseqAddr, int zseqId)
 
     sqlite3_open(dbPath, &db);
 
-    sqlite3_stmt *statement;
+    sqlite3_reset(statement);
 
     int rc;
 
@@ -442,16 +435,148 @@ bool _load_zseq(const char *dbPath, Zseq* zseqAddr, int zseqId)
     }
     else if (rc == SQLITE_DONE)
     {
-            sqlite3_finalize(statement);
             mmrs_util::error() << "No matching Zseq found for Zseq ID " << zseqId << std::endl;
             mmrs_util::debug() << END_PARA;
             return false;
     }
     else
     {
-        sqlite3_finalize(statement);
         mmrs_util::error() << "Error fetching Zseq: " << sqlite3_errmsg(db) << std::endl;
         mmrs_util::debug() << END_PARA;
         return false;
     }
+}
+
+bool retrieve_filenames(int* ids, std::string* filenames)
+{
+    sqlite3_reset(statement);
+
+    const char *query = "SELECT * FROM mmrs";
+
+    int rc = 0;
+    int i = 0;
+
+    rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr);
+
+    while ((rc = sqlite3_step(statement)) == SQLITE_ROW)
+    {
+        const unsigned char* fname = sqlite3_column_text(statement, 1);
+        std::string fnameStr((const char*)fname);
+        int id = sqlite3_column_int(statement, 0);
+
+        filenames[i] = fnameStr;
+        ids[i] = id;
+        i++;
+    }
+    if (rc == SQLITE_DONE)
+    {
+        mmrs_util::debug() << "Finished selecting filenames" << std::endl;
+    }
+    else 
+    {
+        mmrs_util::debug() << "Error selecting filenames:" << sqlite3_errmsg(db) << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool remove_mmrs(int mmrsId)
+{
+
+    mmrs_util::debug() << START_PARA;
+    sqlite3_reset(statement);
+
+    const char *query = "DELETE FROM mmrs WHERE id=? RETURNING id";
+
+    int rc = 0;
+
+    if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
+    {
+        sqlite3_bind_int(statement, 1, mmrsId);
+    }
+
+    rc = sqlite3_step(statement);
+    if (rc == SQLITE_ROW)
+    {
+        mmrsId = sqlite3_column_int(statement, 0);
+        mmrs_util::debug() << "Successfully deleted MMRS with ID " << mmrsId << std::endl;
+    }
+    else
+    {
+        mmrs_util::error() << "Error deleting MMRS with ID " << mmrsId << ": " << sqlite3_errmsg(db) << std::endl;
+        return false;
+    }
+
+    sqlite3_reset(statement);
+
+    query = "DELETE FROM mmrs_relation WHERE mmrs_id=? RETURNING zseq_id";
+
+    rc = 0;
+    int zseqId = 0;
+
+    if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
+    {
+        sqlite3_bind_int(statement, 1, mmrsId);
+    }
+
+    rc = sqlite3_step(statement);
+    if (rc == SQLITE_ROW)
+    {
+        mmrs_util::debug() << "Successfully deleted MMRS relation with ID " << mmrsId << std::endl;
+        zseqId = sqlite3_column_int(statement, 0);
+        mmrs_util::debug() << "Zseq id is " << zseqId << std::endl;
+    }
+    else
+    {
+        mmrs_util::error() << "Error deleting MMRS relation with ID " << mmrsId << ": " << sqlite3_errmsg(db) << std::endl;
+        return false;
+    }
+
+    sqlite3_reset(statement);
+
+    query = "DELETE FROM zseq WHERE id=? RETURNING id";
+
+    rc = 0;
+
+    if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
+    {
+        sqlite3_bind_int(statement, 1, zseqId);
+    }
+
+    rc = sqlite3_step(statement);
+    if (rc == SQLITE_ROW)
+    {
+        mmrs_util::debug() << "Successfully deleted Zseq with ID " << zseqId << std::endl;
+    }
+    else
+    {
+        mmrs_util::error() << "Error deleting Zseq with ID " << zseqId << ": " << sqlite3_errmsg(db) << std::endl;
+        return false;
+    }
+
+    sqlite3_reset(statement);
+
+    return true;
+}
+
+bool sql_teardown()
+{
+    bool success = true;
+
+    int rc = sqlite3_finalize(statement);
+    if (rc != SQLITE_OK)
+    {
+        mmrs_util::error() << "Error finalizing statement: " << sqlite3_errmsg(db) << std::endl;
+        success = false;
+    }
+    
+    rc = sqlite3_close(db);
+    if (rc != SQLITE_OK)
+    {
+        mmrs_util::error() << "Error closing DB: " << sqlite3_errmsg(db) << std::endl;
+        success = false;
+    }
+
+    return success;
 }

@@ -22,6 +22,7 @@
 RECOMP_IMPORT(".", int read_mmrs_files(const char *dbPath));
 RECOMP_IMPORT(".", bool load_mmrs_table(const char *dbPath, MMRS* allMmrs));
 RECOMP_IMPORT(".", bool load_zseq(const char *dbPath, Zseq* zseqAddr, int zseqId));
+RECOMP_IMPORT(".", void sql_teardown());
 
 MMRS *allMmrs;
 int numMmrs;
@@ -38,7 +39,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) void mmrs_loader_init()
     numMmrs = read_mmrs_files(dbPath);
 
     allMmrs = recomp_alloc(sizeof(MMRS) * numMmrs);
-    recomp_printf("NUMBER OF MMRS: %i", numMmrs);
+    recomp_printf("Number of MMRS sequences: %i", numMmrs);
     Lib_MemSet(allMmrs, 0, sizeof(MMRS) * numMmrs);
 
     load_mmrs_table(dbPath, allMmrs);
@@ -79,7 +80,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) void mmrs_loader_init()
             0, 0, 0,
         };
 
-        recomp_printf("\nCreated audiotable thing for song %d: %s!\n", i, allMmrs[i].songName);
+        recomp_printf("\nCreated audiotable thing for song %d: %s!\n", i + 1, allMmrs[i].songName);
         recomp_printf("Size of data: %i\n", mySeq.size);
         recomp_printf("===Data spans from %p to %p==\n", mySeq.romAddr, mySeq.romAddr + mySeq.size);
         recomp_printf("AudioTableEntry data: ");
@@ -99,6 +100,8 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) void mmrs_loader_init()
             recomp_printf("Replaced sequence font successfully! (bank 0x%x)\n", allMmrs[i].bankNo);
         }
     }
+
+    sql_teardown();
 }
 
 RECOMP_HOOK("AudioHeap_Init") void AudioHeap_Debug()

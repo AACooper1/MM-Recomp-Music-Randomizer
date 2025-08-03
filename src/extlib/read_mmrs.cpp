@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <unordered_set>
 
 // C/C++ external libraries
 
@@ -207,6 +208,7 @@ extern "C" int read_seq_directory(const char* dbPath)
 
     char *sqlErrorMsg;
     int sqlErrCode;
+    std::unordered_set<std::string> filenames;
 
     if(fs::exists(dir)) 
     {
@@ -225,6 +227,7 @@ extern "C" int read_seq_directory(const char* dbPath)
             }
             else 
             {
+                filenames.insert(filename);
                 if (check_mmrs_exists(entry))
                 {
                     i++;
@@ -244,10 +247,35 @@ extern "C" int read_seq_directory(const char* dbPath)
 
                     mmrs_util::debug() << "Successfully read file " << entry.path().filename().string() << std::endl;
                 }
+                i++;
             }
-            i++;
         }
-        return i;
+
+        mmrs_util::debug() << std::endl;
+        for (auto& it: filenames)
+        {
+            mmrs_util::debug() << it << std::endl;
+        }
+
+        // Now remove any that are in the db but not the folder
+        int mmrsCount = count_mmrs();
+        std::string dbFiles[mmrsCount];
+        int dbIds[mmrsCount];
+        
+        retrieve_filenames(dbIds, dbFiles);
+
+        bool success = false;
+
+        for (int j = 0; j < mmrsCount; j++)
+        {
+            if (! filenames.contains(dbFiles[j]))
+            {
+                mmrs_util::debug() << "DB entry " << dbFiles[j] << " not in music folder. Deleting..." << std::endl;
+                success = remove_mmrs(dbIds[j]);
+            }
+        }
+
+        return count_mmrs();
     } 
     else 
     {
@@ -366,5 +394,17 @@ RECOMP_DLL_FUNC(load_zseq)
     else
     {
         RECOMP_RETURN(bool, false);
+    }
+}
+
+RECOMP_DLL_FUNC(sql_teardown)
+{
+    if(sql_teardown())
+    {
+        printf("Successfully finalized!\n");
+    }
+    else
+    {
+            printf("Error with teardown: %s\n", sqlite3_errmsg(db));
     }
 }
