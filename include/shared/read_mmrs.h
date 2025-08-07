@@ -23,23 +23,26 @@
     #include "stdbool.h"
 #endif
 
+#define MAX_DATA_SIZE 32768
+
 typedef struct Zseq_t {
     int size;
-    unsigned char data[32768];
+    unsigned char data[MAX_DATA_SIZE];
 } Zseq;
 
 
 typedef struct Zbank_t{
+    int bankId;
     int bankSize;
-    unsigned char bankData[32768];
-    int MetaSize;
-    unsigned char metaData[32768];
+    unsigned char bankData[MAX_DATA_SIZE];
+    int metaSize;
+    unsigned char metaData[MAX_DATA_SIZE];
 } Zbank;
 
 
 typedef struct Zsound_t {
     int size;
-    unsigned char data[32768];
+    unsigned char data[MAX_DATA_SIZE];
 } Zsound;
 
 typedef struct MMRSFileType {

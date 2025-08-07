@@ -5,21 +5,22 @@
 
 # Unique ID of this mod. Pick something long enough that it'll never be the same as any other mod.
 # The name displayed in the mod management menu is separate from this so this doesn't need to be human readable.
-id = "mm_music_rando_miser"
+id = "mm_music_randomizer"
 
 # Version of this mod.
-version = "1.0.1"
+version = "0.0.1"
 
 # The name that will show up for this mod in the mod menu. This should be human readable.
-display_name = "mm_music_rando_miser"
+display_name = "MM Music Randomizer"
 
 # The description that will show up when this mod is displayed in the mod menu. This should be human readable.
 description =  """
-Te saluto."""
+This mod reads .mmrs files created for ZoeyZoltova's emulated randomizer and (WIP) randomizes music. 
+"""
 
 # A short description that will show up in this mod's entry in the mod list. This should be human readable and kept short
 # to prevent it from being cut off due to the limited space.
-short_description = "Yeah!!!"
+short_description = "MMRS reader and randomizer"
 
 # Authors of this mod.
 authors = [ "Asticky" ]
@@ -38,7 +39,7 @@ dependencies = [
 # Native libraries (e.g. DLLs) and the functions they export.
 native_libraries = [
 # Example native library:
-   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["read_mmrs_files", "load_mmrs_table", "load_zseq", "sql_teardown"] }
+   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["sql_init", "read_mmrs_files", "load_mmrs_table", "load_zseq", "load_zbank", "sql_teardown"] }
 ]
 
 # Inputs to the mod tool.

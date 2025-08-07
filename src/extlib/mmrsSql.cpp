@@ -5,19 +5,29 @@
 
 sqlite3_stmt *statement;
 
-bool init_mmrs_cache(const char* dbPath)
+bool _sql_init(const char* dbPath)
+{
+    bool success = true;
+
+    printf("%s (I am in the um)\n", dbPath);
+    printf("%p (I am in the um)\n", &db);
+
+    int rc = sqlite3_open(dbPath, &db);
+    printf("K M S\n");
+    // SQL_ERR_CHECK("Error opening db", "Successfully opened db!");
+
+    return true;
+}
+
+bool init_mmrs_cache()
 {
 
     mmrs_util::debug() << START_PARA;
-    mmrs_util::debug() << "Called init_mmrs_cache with dbPath: " << dbPath;
+    mmrs_util::debug() << "Called init_mmrs_cache";
     mmrs_util::debug() << END_PARA;
 
     char *sqlErrMsg;
     int rc;
-
-    rc = sqlite3_open(dbPath, &db);
-
-    SQL_ERR_CHECK("Error connecting to MMRS database", "Successfully connected to MMRS database!");
 
     // Initialize all tables    
     rc = sqlite3_exec(
@@ -79,10 +89,24 @@ bool init_mmrs_cache(const char* dbPath)
 
     SQL_ERR_CHECK("Error initializing Zsound-to-MMRS table", "Successfully initialized Zsound-to-MMRS table!");
 
+    rc = sqlite3_exec(
+        db,
+        "CREATE TABLE IF NOT EXISTS zbank (                 "
+           "id INTEGER PRIMARY KEY AUTOINCREMENT,           "
+           "headerSize INTEGER,                             "
+           "header BLOB,                                    "
+           "dataSize INTEGER,                               "
+           "data BLOB                                       "
+        ");",
+        nullptr,
+        nullptr,
+        &sqlErrMsg
+    );
+
+    SQL_ERR_CHECK("Error initializing Zbank table", "Successfully initialized Zbank table!");
+
     // TODO:
         // Zsound table
-        
-        // Zbank table
     
     return true;
 }
@@ -155,7 +179,7 @@ bool check_mmrs_exists(fs::directory_entry file)
     return false;
 }
 
-bool insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
+int insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
 {
     char *sqlErrMsg;
     int sqlErrCode;
@@ -232,7 +256,7 @@ bool insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
     if (mmrsId <= 0)
     {
         mmrs_util::error() << "Error: MMRS UPSERT returned " << mmrsId << std::endl;
-        return false;
+        return -1;
     }
 
     sqlite3_reset(statement);
@@ -276,7 +300,7 @@ bool insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
     if (zseqId <= 0)
     {
         mmrs_util::error() << "Error: Zseq UPSERT returned " << zseqId << std::endl;
-        return false;
+        return -1;
     }
 
     sqlite3_reset(statement);
@@ -310,30 +334,111 @@ bool insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
     }
     else SQL_ERR_CHECK("Error in MMRS Relation table UPSERT", "MMRS Relation table UPSERTed successfully!");
 
-    return true;
+    return mmrsId;
 }
 
-bool _load_mmrs_table(const char *dbPath, MMRS* allMmrs)
+int insert_zbank(Zbank zbank, int mmrsId)
+{
+    mmrs_util::debug() << START_PARA;
+    mmrs_util::debug() << "Called insert_zbank!";
+    mmrs_util::debug() << END_PARA;
+    sqlite3_reset(statement);
+
+    int rc = 0;
+
+    // Now upsert the Zbank, and return the ID.
+    const char* query = 
+        "INSERT INTO zbank (            \
+            headerSize,                 \
+            header,                     \
+            dataSize,                   \
+            data                        \
+        )                               \
+        VALUES (?, ?, ?, ?)             \
+        RETURNING id                    \
+        ";
+
+    if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
+    {
+        sqlite3_bind_int(statement, 1, zbank.metaSize);
+        sqlite3_bind_blob(statement, 2, zbank.metaData, zbank.metaSize, SQLITE_STATIC);
+        sqlite3_bind_int(statement, 3, zbank.bankSize);
+        sqlite3_bind_blob(statement, 4, zbank.bankData, zbank.bankSize, SQLITE_STATIC);
+    }
+
+    SQL_ERR_CHECK("Error preparing Zbank UPSERT statement", "Successfully prepared Zbank UPSERT statement!");
+
+    rc = sqlite3_step(statement);
+    int zbankId = -1;
+
+    if (rc == SQLITE_ROW)
+    {
+        zbankId = sqlite3_column_int(statement, 0);
+        mmrs_util::debug() << "Successfully performed Zbank UPSERT statement!" << std::endl;
+    }
+    else if (rc == SQLITE_DONE)
+    {
+        mmrs_util::debug() << "Zbank UPSERT with RETURNING clause completed successfully but did not return a row (?!)" << std::endl;
+    }
+    else SQL_ERR_CHECK("Error in Zbank UPSERT execution", "Zbank UPSERT with RETURNING clause completed successfully but returned SQLITE_OK (?!)");
+    
+    if (zbankId <= 0)
+    {
+        mmrs_util::error() << "Error: Zbank UPSERT returned " << zbankId << std::endl;
+        return -1;
+    }
+
+    sqlite3_reset(statement);
+
+    rc = 0;
+
+    query = 
+        "UPDATE mmrs_relation           \
+            SET zbank_id=?              \
+            WHERE mmrs_id=?             \
+        ";
+
+    if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
+    {
+        sqlite3_bind_int(statement, 1, zbankId);
+        sqlite3_bind_int(statement, 2, mmrsId);
+    }
+
+    SQL_ERR_CHECK("Error preparing MMRS Relation UPDATE statement", "Successfully prepared MMRS Relation UPDATE statement!");
+
+    rc = sqlite3_step(statement);
+
+    if (rc == SQLITE_DONE)
+    {
+        return zbankId;
+    }
+    else SQL_ERR_CHECK("Error in MMRS Relation UPDATE execution", "MMRS UPSERT with RETURNING clause completed successfully but did not return a row (?!)");
+    
+    if (zbankId <= 0)
+    {
+        mmrs_util::error() << "Error: Zbank UPSERT returned " << zbankId << std::endl;
+        return -1;
+    }
+}
+
+bool _load_mmrs_table(MMRS* allMmrs)
 {
 
     mmrs_util::debug() << START_PARA;
     mmrs_util::debug() << "MMRS Table on load call: ";
     mmrs_util::debug() << END_PARA;
 
-    int rc = sqlite3_open(dbPath, &db);
-
     sqlite3_reset(statement);
     sqlite3_stmt *substatement;
     const char* query = "SELECT * FROM mmrs;";
 
-    rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr);
+    int rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr);
 
     int i = 0;
 
     while ((rc = sqlite3_step(statement)) == SQLITE_ROW)
-    {        
+    {
         mmrs_util::debug() << sqlite3_column_int(statement, 0) << ", " << sqlite3_column_text(statement, 3) << ", timestamp " << sqlite3_column_int64(statement, 2) << std::endl;
-
         // Table index
         allMmrs[i].id = sqlite3_column_int(statement, 0);
 
@@ -360,13 +465,20 @@ bool _load_mmrs_table(const char *dbPath, MMRS* allMmrs)
         // Form mask
         allMmrs[i].formmask = sqlite3_column_int(statement, 6);
 
-        // Zseq ID, TODO: Bank ID
+        // Zseq ID
         const char* subquery = "SELECT * FROM mmrs_relation WHERE mmrs_id=?";
         if (sqlite3_prepare_v2(db, subquery, -1, &substatement, nullptr) == SQLITE_OK)
         {
-            sqlite3_step(substatement);
+                sqlite3_bind_int(substatement, 1, allMmrs[i].id);
+        }
+
+        if ((rc =sqlite3_step(substatement)) == SQLITE_ROW)
+        {
             allMmrs[i].zseqId = sqlite3_column_int(substatement, 1);
-        }        
+            mmrs_util::debug() << "ZseqId: " << allMmrs[i].zseqId << std::endl;
+            allMmrs[i].bankInfoId = sqlite3_column_int(substatement, 2);
+            mmrs_util::debug() << "BankInfoId: " << allMmrs[i].bankInfoId << std::endl;
+        }
         i++;
     }
 
@@ -379,7 +491,6 @@ bool _load_mmrs_table(const char *dbPath, MMRS* allMmrs)
             mmrs_util::error() << "Error: MMRS table is empty." << std::endl;
             mmrs_util:: debug() << END_PARA;
 
-            sqlite3_close(db);
             return false;
         }
         else
@@ -390,23 +501,18 @@ bool _load_mmrs_table(const char *dbPath, MMRS* allMmrs)
     else
     {
         SQL_ERR_CHECK("Error fetching MMRS table", "MMRS table fetch returned SQLITE_OK... If you see this, something has gone terribly wrong.");
-        sqlite3_close(db);
         return false;
     }
-
-    sqlite3_close(db);
 
     return true;
 }
 
-bool _load_zseq(const char *dbPath, Zseq* zseqAddr, int zseqId)
+bool _load_zseq(Zseq* zseqAddr, int zseqId)
 {
 
     mmrs_util::debug() << START_PARA;
     mmrs_util::debug() << "Called load_zseq";
     mmrs_util::debug() << END_PARA;
-
-    sqlite3_open(dbPath, &db);
 
     sqlite3_reset(statement);
 
@@ -425,6 +531,7 @@ bool _load_zseq(const char *dbPath, Zseq* zseqAddr, int zseqId)
         mmrs_util::debug() << "The" << std::endl;
         zseqAddr->size = sqlite3_column_int(statement, 1);
         const unsigned char* zseqData = (const unsigned char*)sqlite3_column_blob(statement, 2);
+        mmrs_util::debug() << "The" << std::endl;
         for (int i = 0; i < zseqAddr->size; i++)
         {
             zseqAddr->data[i ^ 3] = zseqData[i];
@@ -442,6 +549,67 @@ bool _load_zseq(const char *dbPath, Zseq* zseqAddr, int zseqId)
     else
     {
         mmrs_util::error() << "Error fetching Zseq: " << sqlite3_errmsg(db) << std::endl;
+        mmrs_util::debug() << END_PARA;
+        return false;
+    }
+}
+
+bool _load_zbank(Zbank* zbankAddr, int zbankId)
+{
+    mmrs_util::debug() << START_PARA;
+    mmrs_util::debug() << "Called load_zbank";
+    mmrs_util::debug() << END_PARA;
+    
+    sqlite3_reset(statement);
+
+    const char* query = "SELECT * FROM zbank WHERE id=?";
+    int rc;
+
+    if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
+    {
+        sqlite3_bind_int(statement, 1, zbankId);
+    }
+    else
+    {
+        mmrs_util::debug() << "Error preparing Zbank SELECT statement: " << sqlite3_errmsg(db) << std::endl;
+        return false;
+    }
+
+    rc = sqlite3_step(statement);
+
+    if (rc == SQLITE_ROW)
+    {
+        // Bankmeta (header)
+        zbankAddr->metaSize = sqlite3_column_int(statement, 1);
+        const unsigned char* bankMetaBuff = (const unsigned char*)sqlite3_column_blob(statement, 2);
+
+        for (int i = 0; i < zbankAddr->metaSize; i++)
+        {
+            zbankAddr->metaData[i ^ 3] = bankMetaBuff[i];
+        }
+
+        // Bank data
+        zbankAddr->bankSize = sqlite3_column_int(statement, 3);
+        const unsigned char* bankDataBuff = (const unsigned char*)sqlite3_column_blob(statement, 4);
+
+        for (int i = 0; i < 32; i++)
+        {
+            zbankAddr->bankData[i ^ 3] = bankDataBuff[i];
+            mmrs_util::debug() << std::hex << (int)bankDataBuff[i] << " ";
+        }
+        mmrs_util::debug() << std::endl;
+
+        return true;
+    }
+    else if (rc == SQLITE_DONE)
+    {
+        mmrs_util::error() << "Error: Could not find zbank with ID " << zbankId;
+        mmrs_util::debug() << END_PARA;
+        return false;
+    }
+    else
+    {
+        mmrs_util::error() << "Error loading Zbank from db: " << sqlite3_errmsg(db);
         mmrs_util::debug() << END_PARA;
         return false;
     }
@@ -561,7 +729,7 @@ bool remove_mmrs(int mmrsId)
     return true;
 }
 
-bool sql_teardown()
+bool _sql_teardown()
 {
     bool success = true;
 

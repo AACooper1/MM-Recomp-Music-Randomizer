@@ -1,29 +1,37 @@
-#define SQL_ERR_CHECK(errMsg, okMsg)                                                 \
-    if (rc != SQLITE_OK)                                                             \
-    {                                                                                \
-        mmrs_util::error() << errMsg << ": " << sqlite3_errmsg(db) << std::endl;     \
-        mmrs_util::error() << "Error code is " << rc << std::endl;                   \
-        return false;                                                                \
-    }                                                                                \
-    else                                                                             \
-    {                                                                                \
-        mmrs_util::info() << okMsg << std::endl;                                     \
-    }                                                                                \
+// #ifndef SQL_ERR_CHECK
+    #define SQL_ERR_CHECK(errMsg, okMsg)                                                 \
+        if (rc != SQLITE_OK)                                                             \
+        {                                                                                \
+            mmrs_util::error() << errMsg << ": " << sqlite3_errmsg(db) << std::endl;     \
+            mmrs_util::error() << "Error code is " << rc << std::endl;                   \
+            return false;                                                                \
+        }                                                                                \
+        else                                                                             \
+        {                                                                                \
+            mmrs_util::info() << okMsg << std::endl;                                     \
+        }
+// #endif
+
+bool _sql_init(const char* dbPath);
 
 int count_mmrs();
 
-bool init_mmrs_cache(const char* dbPath);
+bool init_mmrs_cache();
 
 bool check_mmrs_exists(fs::directory_entry file);
 
-bool insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file);
+int insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file);
 
-bool _load_mmrs_table(const char *dbPath, MMRS* allMmrs);
+int insert_zbank(Zbank zbank, int mmrsId);
 
-bool _load_zseq(const char *dbPath, Zseq* zseqAddr, int zseqId);
+bool _load_mmrs_table(MMRS* allMmrs);
+
+bool _load_zseq(Zseq* zseqAddr, int zseqId);
+
+bool _load_zbank(Zbank* zbankAddr, int zbankId);
 
 bool retrieve_filenames(int* ids, std::string* filenames);
 
 bool remove_mmrs(int mmrsId);
 
-bool sql_teardown();
+bool _sql_teardown();

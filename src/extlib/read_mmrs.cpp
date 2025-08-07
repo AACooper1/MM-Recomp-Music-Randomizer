@@ -40,7 +40,13 @@ bool read_mmrs(fs::directory_entry file)
     MMRS mmrs;
     Zseq zseq;
 
-    for (int i = 0; i < 32768; i++)
+    bool found_bankmeta = false;
+    bool found_zbank = false;
+
+    std::vector<unsigned char> zbankBuffer;
+    std::vector<unsigned char> bankmetaBuffer;    
+
+    for (int i = 0; i < MAX_DATA_SIZE; i++)
     {
         zseq.data[i] = 0xFF;
     }
@@ -117,7 +123,7 @@ bool read_mmrs(fs::directory_entry file)
                     throw std::runtime_error("Invalid zseq header");
                 }
 
-                if (filesize > 32768)
+                if (filesize > MAX_DATA_SIZE)
                 {
                     throw std::runtime_error("File is too large - max 32 KiB");
                 }
@@ -132,7 +138,8 @@ bool read_mmrs(fs::directory_entry file)
                 mmrs.bankNo = std::stoi(filename, 0, 16);
                 zseq.size = filesize;
             }
-            else if (filename == "categories.txt") {
+            else if (filename == "categories.txt") 
+            {
                 mmrs_util::debug() << "Reading categories.txt file\n";
                 mmrs_util::debug() << "Categories: ";
 
@@ -155,6 +162,63 @@ bool read_mmrs(fs::directory_entry file)
                 }
                 mmrs_util::debug() << "\n";
             }
+            else if (filename.ends_with(".zbank")) 
+            {
+                found_zbank = true;
+                mmrs_util::debug() << "Reading zbank file" << std::endl;
+
+                zbankBuffer.resize(filesize);
+
+                // Make sure the extraction really succeeded.
+                mmrs_util::debug() << "Data was: ";
+                for (int j = 0; j < 16; j++) 
+                {
+                    if (j >= filebuffer.size()) break;
+                    printf("%hhx ", filebuffer[j]);
+                }
+                mmrs_util::debug() << "...\n";
+
+                if (filesize > MAX_DATA_SIZE)
+                {
+                    throw std::runtime_error("File is too large - max 32 KiB");
+                }
+
+                for (int j = 0; j < filesize; j++) 
+                {
+                    zbankBuffer[j] = (unsigned char)filebuffer[j];
+                }
+
+                mmrs_util::debug() << "Successfully read!\n";
+            }
+            else if (filename.ends_with(".bankmeta")) 
+            {
+                found_bankmeta = true;
+                mmrs_util::debug() << "Reading zbank file" << std::endl;
+
+                bankmetaBuffer.resize(filesize);
+
+                // Make sure the extraction really succeeded.
+                mmrs_util::debug() << "Data was: ";
+                for (int j = 0; j < 16; j++) 
+                {
+                    if (j >= filebuffer.size()) break;
+                    printf("%hhx ", filebuffer[j]);
+                }
+                mmrs_util::debug() << "...\n";
+
+                if (filesize > MAX_DATA_SIZE)
+                {
+                    throw std::runtime_error("File is too large - max 32 KiB");
+                }
+
+                for (int j = 0; j < filebuffer.size(); j++) 
+                {
+                    if (j >= filebuffer.size()) break;
+                    bankmetaBuffer[j] = (unsigned char)filebuffer[j];
+                }
+
+                mmrs_util::debug() << "Successfully read!\n";
+            }
             else 
             {
                 mmrs_util::debug() << "Unknown filetype " << filename << std::endl;
@@ -163,8 +227,36 @@ bool read_mmrs(fs::directory_entry file)
 
         success = true;
         // Update the database
-        insert_mmrs(mmrs, zseq, file);
-
+        int mmrsId = insert_mmrs(mmrs, zseq, file);
+        
+        if (found_zbank && found_bankmeta)
+        {
+            Zbank zbank;
+            zbank.metaSize = bankmetaBuffer.size();
+            zbank.bankSize = zbankBuffer.size();
+            // Initialize to 255 ("End of data")
+            for (int j = 0; j < MAX_DATA_SIZE; j++)
+            {
+                zbank.bankData[j] = 0xFF;
+                zbank.metaData[j] = 0xFF;
+            }
+            
+            for (int j = 0; j < zbank.bankSize; j++) 
+            {
+                zbank.bankData[j] = zbankBuffer[j];
+            }
+            for (int j = 0; j < zbank.metaSize; j++) 
+            {
+                zbank.metaData[j] = bankmetaBuffer[j];
+            }
+            success = insert_zbank(zbank, mmrsId);
+        }
+        else if (found_zbank ^ found_bankmeta)
+        {
+            mmrs_util::warning() << "Warning: Found one of .zbank or .bankmeta, but not both for file " << zip_filename << "!" << std::endl;
+            mmrs_util::warning() << ".bankmeta: " << found_bankmeta << std::endl;
+            mmrs_util::warning() << ".zbank: " << found_zbank << std::endl;
+        }
     } 
     catch (const std::exception &e) 
     {
@@ -192,15 +284,11 @@ bool read_mmrs(fs::directory_entry file)
     return success;
 }
 
-extern "C" int read_seq_directory(const char* dbPath)
+int read_seq_directory(const char* dbPath)
 {
     mmrs_util::debug() << START_PARA;
     mmrs_util::debug() << "Calling read_seq_directory!";
     mmrs_util::debug() << END_PARA;
-
-    int rc = sqlite3_open(dbPath, &db);
-
-    SQL_ERR_CHECK("Error connecting to MMRS database", "Successfully connected to MMRS database!");
 
     const fs::path dir = "music";
 
@@ -286,6 +374,23 @@ extern "C" int read_seq_directory(const char* dbPath)
     return -1;
 }
 
+RECOMP_DLL_FUNC(sql_init)
+{
+    std::string dbPathStr = RECOMP_ARG_STR(0);
+    const char* dbPath = dbPathStr.c_str();
+
+    printf("%s\n", dbPath);
+
+    if(_sql_init(dbPath))
+    {
+        RECOMP_RETURN(bool, true);
+    }
+    else
+    {
+        RECOMP_RETURN(bool, false);
+    }
+}
+
 /*
     read_mmrs_files():
         Reads the music directory and updates the database.
@@ -314,17 +419,15 @@ RECOMP_DLL_FUNC(read_mmrs_files)
     
     bool initDb = false;
     
-    if (mmrs_util::gLogLevel >= mmrs_util::LOG_DEBUG) { printf("Calling init_mmrs_cache!");}
+    printf("Calling init_mmrs_cache!");
     try
     {
-        initDb = init_mmrs_cache(dbPath);
+        initDb = init_mmrs_cache();
     }
     catch (std::exception e)
     {
-        if (mmrs_util::gLogLevel >= mmrs_util::LOG_ERROR) 
-        { 
+
             printf("Error initalizing music DB: %s\n", e.what());
-        }
         RECOMP_RETURN(int, -1);
     }
     
@@ -355,12 +458,9 @@ RECOMP_DLL_FUNC(read_mmrs_files)
 
 RECOMP_DLL_FUNC(load_mmrs_table)
 {
-    std::string dbPathStr = RECOMP_ARG_STR(0);
-    const char *dbPath = dbPathStr.c_str();
+    MMRS* allMmrs = RECOMP_ARG(MMRS*, 0);
 
-    MMRS* allMmrs = RECOMP_ARG(MMRS*, 1);
-
-    bool success = _load_mmrs_table(dbPath, allMmrs);
+    bool success = _load_mmrs_table(allMmrs);
 
     if(success)
     {
@@ -379,14 +479,28 @@ RECOMP_DLL_FUNC(load_mmrs_table)
 
 RECOMP_DLL_FUNC(load_zseq)
 {
-    std::string dbPathStr = RECOMP_ARG_STR(0);
-    const char *dbPath = dbPathStr.c_str();
+    Zseq* zseqAddr = RECOMP_ARG(Zseq*, 0);
+    int zseqId = RECOMP_ARG(int, 1);
 
-    Zseq* zseqAddr = RECOMP_ARG(Zseq*, 1);
-    int zseqId = RECOMP_ARG(int, 2);
+    bool success = _load_zseq(zseqAddr, zseqId);
 
-    bool success = _load_zseq(dbPath, zseqAddr, zseqId);
+    if(success)
+    {
+        RECOMP_RETURN(bool, true);
+    }
+    else
+    {
+        RECOMP_RETURN(bool, false);
+    }
+}
 
+RECOMP_DLL_FUNC(load_zbank)
+{
+    Zbank* zbankAddr = RECOMP_ARG(Zbank*, 0);
+    int zbankId = RECOMP_ARG(int, 1);
+
+    bool success = _load_zbank(zbankAddr, zbankId);
+    
     if(success)
     {
         RECOMP_RETURN(bool, true);
@@ -399,12 +513,12 @@ RECOMP_DLL_FUNC(load_zseq)
 
 RECOMP_DLL_FUNC(sql_teardown)
 {
-    if(sql_teardown())
+    if(_sql_teardown())
     {
-        printf("Successfully finalized!\n");
+        RECOMP_RETURN(bool, true);
     }
     else
     {
-            printf("Error with teardown: %s\n", sqlite3_errmsg(db));
+        RECOMP_RETURN(bool, false);
     }
 }
