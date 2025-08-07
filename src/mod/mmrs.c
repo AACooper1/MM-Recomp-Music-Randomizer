@@ -144,8 +144,12 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
                 recomp_printf("\n");
 
                 s32 bankNo = AudioApi_AddSoundFont(bankEntry);
-                
+
+                recomp_printf("%d %d %p %p\n", bankNo, gAudioCtx.soundFontTable->entries[bankNo].cachePolicy, 
+                    gAudioCtx.soundFontTable->entries[bankNo].romAddr, &zbank->bankData[0]);
+
                 AudioApi_ReplaceSequenceFont(NA_BGM_FILE_SELECT, 0, bankNo);
+
                 recomp_printf("Replaced sequence font successfully! (bank 0x%x)\n", bankNo);
 
                 recomp_printf("\n");
@@ -163,8 +167,9 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
     sql_teardown();
 }
 
-RECOMP_HOOK("AudioHeap_Init") void AudioHeap_Debug()
+RECOMP_HOOK_RETURN("AudioLoad_Init") void afterAudioLoad_Init()
 {
-    // recomp_printf("\nCalled AudioHeap_Debug()\n");
-    // recomp_printf("\n==SAMPLING FREQUENCY: %i==\n", gAudioSpecs[gAudioCtx.specId].samplingFreq);
+    SoundFont* font = &gAudioCtx.soundFontList[41];
+    recomp_printf("Accessed font.\n");
+    recomp_printf("%d %d %d %d %d\n", font->sampleBankId1, font->sampleBankId2, font->numInstruments, font->numDrums, font->numSfx);
 }
