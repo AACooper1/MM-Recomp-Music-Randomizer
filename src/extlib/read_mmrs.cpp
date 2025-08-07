@@ -237,8 +237,8 @@ bool read_mmrs(fs::directory_entry file)
             // Initialize to 255 ("End of data")
             for (int j = 0; j < MAX_DATA_SIZE; j++)
             {
-                zbank.bankData[j] = 0xFF;
-                zbank.metaData[j] = 0xFF;
+                zbank.bankData[j] = '\0';
+                zbank.metaData[j] = '\0';
             }
             
             for (int j = 0; j < zbank.bankSize; j++) 

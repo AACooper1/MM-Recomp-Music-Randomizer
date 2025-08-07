@@ -16,9 +16,6 @@
 // Project Files
 #include "read_mmrs.h"
 
-// RECOMP_IMPORT("magemods_audio_api", void AudioApi_ReplaceSequence(AudioTableEntry entry, s32 seqId));
-// RECOMP_IMPORT("magemods_audio_api", void AudioApi_ReplaceSequenceFont(s32 seqId, s32 fontNum, s32 fontId));
-
 RECOMP_IMPORT(".", bool sql_init(const char *dbPath));
 RECOMP_IMPORT(".", int read_mmrs_files());
 RECOMP_IMPORT(".", bool load_mmrs_table(MMRS* allMmrs));
@@ -128,15 +125,21 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
             {
                 bankEntry->romAddr = (uintptr_t) &zbank->bankData[0];
                 bankEntry->size = zbank->bankSize;
-                bankEntry->medium = MEDIUM_CART;
-                bankEntry->cachePolicy = CACHE_EITHER;
-                bankEntry->shortData1 = 0;
-                bankEntry->shortData2 = 0;
-                bankEntry->shortData3 = 0;
+                bankEntry->medium = zbank->metaData[0];
+                bankEntry->cachePolicy = 42;
+                bankEntry->shortData1 = (zbank->metaData[2] << 8) | (zbank->metaData[3]);
+                bankEntry->shortData2 = (zbank->metaData[4] << 8) | (zbank->metaData[5]);
+                bankEntry->shortData3 = (u16) zbank->metaData[6];
 
                 for (int d = 0; d < 32; d++)
                 {
                     recomp_printf("%02x ", zbank->bankData[d]);
+                }
+                recomp_printf("\n");
+                
+                for (int d = 0; d < 8; d++)
+                {
+                    recomp_printf("%02x ", zbank->metaData[d]);
                 }
                 recomp_printf("\n");
 
@@ -151,6 +154,9 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
             {
                 recomp_printf("Could not load zbank.");
             }
+
+            recomp_free(bankEntry);
+            recomp_free(mySeq);
         }
     }
 

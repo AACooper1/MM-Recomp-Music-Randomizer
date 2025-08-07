@@ -531,7 +531,7 @@ bool _load_zseq(Zseq* zseqAddr, int zseqId)
         mmrs_util::debug() << "The" << std::endl;
         zseqAddr->size = sqlite3_column_int(statement, 1);
         const unsigned char* zseqData = (const unsigned char*)sqlite3_column_blob(statement, 2);
-        mmrs_util::debug() << "The" << std::endl;
+        
         for (int i = 0; i < zseqAddr->size; i++)
         {
             zseqAddr->data[i ^ 3] = zseqData[i];
@@ -595,9 +595,9 @@ bool _load_zbank(Zbank* zbankAddr, int zbankId)
         for (int i = 0; i < 32; i++)
         {
             zbankAddr->bankData[i ^ 3] = bankDataBuff[i];
-            mmrs_util::debug() << std::hex << (int)bankDataBuff[i] << " ";
+            // mmrs_util::debug() << std::hex << (int)bankDataBuff[i] << " ";
         }
-        mmrs_util::debug() << std::endl;
+        // mmrs_util::debug() << std::endl;
 
         return true;
     }
