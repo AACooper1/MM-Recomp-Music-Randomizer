@@ -26,6 +26,26 @@ RECOMP_IMPORT(".", bool sql_teardown());
 MMRS *allMmrs;
 int numMmrs;
 
+void print_bytes(void* addr, int n)
+{
+       recomp_printf("Data starting from %p is:\n", addr);
+        recomp_printf("\t\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n");
+
+        uintptr_t addrInt = (uintptr_t) addr;
+        recomp_printf("\n%08x\t", addrInt - (addrInt % 16));
+        
+        for (int i = 0; i < addrInt % 16; i++)
+        {
+            recomp_printf("   ");
+        }
+
+        for (int i = 0; i < n; i++)
+        {
+            if ((addrInt + i) % 16 == 0 && i != 0) {recomp_printf("\n%08x\t", addrInt + i);}
+            recomp_printf("%02x ", *(unsigned char*)(addr + i));
+        }
+        recomp_printf("\n");
+}
 
 /*
     mmrs_loader_init()
@@ -167,9 +187,12 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
     sql_teardown();
 }
 
-RECOMP_HOOK_RETURN("AudioLoad_Init") void afterAudioLoad_Init()
+RECOMP_CALLBACK("magemods_audio_api", AudioApi_SoundFontLoaded) bool mmrs_loader_font_loaded(s32 fontId, u8* fontData)
 {
-    SoundFont* font = &gAudioCtx.soundFontList[41];
-    recomp_printf("Accessed font.\n");
-    recomp_printf("%d %d %d %d %d\n", font->sampleBankId1, font->sampleBankId2, font->numInstruments, font->numDrums, font->numSfx);
+    recomp_printf("loaded font: %d %p\n", fontId, fontData);
+
+    if(fontId > 0x28)
+    {
+        print_bytes(fontData, 5392);
+    }
 }
