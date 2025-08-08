@@ -28,20 +28,19 @@ int numMmrs;
 
 void print_bytes(void* addr, int n)
 {
-       recomp_printf("Data starting from %p is:\n", addr);
-        recomp_printf("\t\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n");
+       recomp_printf("Data starting from %p is:\n\n", addr);
+        recomp_printf("\t\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n\n");
 
         uintptr_t addrInt = (uintptr_t) addr;
-        recomp_printf("\n%08x\t", addrInt - (addrInt % 16));
-        
-        for (int i = 0; i < addrInt % 16; i++)
-        {
-            recomp_printf("   ");
-        }
+        recomp_printf("%08x\t", addrInt);
 
         for (int i = 0; i < n; i++)
         {
-            if ((addrInt + i) % 16 == 0 && i != 0) {recomp_printf("\n%08x\t", addrInt + i);}
+            if (i % 16 == 0 && i != 0) 
+            {
+                recomp_printf("\n%08x\t", addrInt + i);
+            }
+            
             recomp_printf("%02x ", *(unsigned char*)(addr + i));
         }
         recomp_printf("\n");
@@ -151,10 +150,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
                 bankEntry->shortData2 = (zbank->metaData[4] << 8) | (zbank->metaData[5]);
                 bankEntry->shortData3 = (u16) zbank->metaData[6];
 
-                for (int d = 0; d < 32; d++)
-                {
-                    recomp_printf("%02x ", zbank->bankData[d]);
-                }
+                print_bytes(&zbank->bankData[0], 256);
                 recomp_printf("\n");
                 
                 for (int d = 0; d < 8; d++)
@@ -193,6 +189,6 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_SoundFontLoaded) bool mmrs_loader
 
     if(fontId > 0x28)
     {
-        print_bytes(fontData, 5392);
+        print_bytes(fontData, 512);
     }
 }

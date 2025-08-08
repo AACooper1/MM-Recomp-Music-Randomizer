@@ -592,7 +592,7 @@ bool _load_zbank(Zbank* zbankAddr, int zbankId)
         zbankAddr->bankSize = sqlite3_column_int(statement, 3);
         const unsigned char* bankDataBuff = (const unsigned char*)sqlite3_column_blob(statement, 4);
 
-        for (int i = 0; i < 32; i++)
+        for (int i = 0; i < zbankAddr->bankSize; i++)
         {
             zbankAddr->bankData[i ^ 3] = bankDataBuff[i];
             // mmrs_util::debug() << std::hex << (int)bankDataBuff[i] << " ";
