@@ -8,17 +8,13 @@ void mmrs_util::set_log_level(log_level_t level)
 
 std::ostream* mmrs_util::_log(log_level_t level)
 {
-        if (gLogLevel >= level)
-        {
-            return &std::cout;
-        }
+    std::cout.clear();
+    if (gLogLevel < level)
+    {
+        std::cout.setstate(std::ios::failbit);
+    }
 
-        else
-        {
-            std::ostream bitBucket(0);
-
-            return &bitBucket;
-        }
+    return &std::cout;
 }
 
 std::ostream&  mmrs_util::critical() {return *mmrs_util::_log(LOG_CRITICAL);}

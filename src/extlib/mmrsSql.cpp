@@ -9,12 +9,7 @@ bool _sql_init(const char* dbPath)
 {
     bool success = true;
 
-    printf("%s (I am in the um)\n", dbPath);
-    printf("%p (I am in the um)\n", &db);
-
     int rc = sqlite3_open(dbPath, &db);
-    printf("K M S\n");
-    // SQL_ERR_CHECK("Error opening db", "Successfully opened db!");
 
     return true;
 }

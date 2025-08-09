@@ -8,7 +8,7 @@
         }                                                                                \
         else                                                                             \
         {                                                                                \
-            mmrs_util::info() << okMsg << std::endl;                                     \
+            mmrs_util::debug() << okMsg << std::endl;                                     \
         }
 // #endif
 

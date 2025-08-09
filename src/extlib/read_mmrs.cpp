@@ -114,7 +114,7 @@ bool read_mmrs(fs::directory_entry file)
                 for (int j = 0; j < 16; j++) 
                 {
                     if (j >= filebuffer.size()) break;
-                    printf("%hhx ", filebuffer[j]);
+                    mmrs_util::debug() << std::format("%hhx ", filebuffer[j]);
                 }
                 mmrs_util::debug() << "...\n";
 
@@ -174,7 +174,7 @@ bool read_mmrs(fs::directory_entry file)
                 for (int j = 0; j < 16; j++) 
                 {
                     if (j >= filebuffer.size()) break;
-                    printf("%hhx ", filebuffer[j]);
+                    mmrs_util::debug() << std::format("%hhx ", filebuffer[j]);
                 }
                 mmrs_util::debug() << "...\n";
 
@@ -202,7 +202,7 @@ bool read_mmrs(fs::directory_entry file)
                 for (int j = 0; j < 16; j++) 
                 {
                     if (j >= filebuffer.size()) break;
-                    printf("%hhx ", filebuffer[j]);
+                    mmrs_util::debug() << std::format("%hhx ", filebuffer[j]);
                 }
                 mmrs_util::debug() << "...\n";
 
@@ -218,6 +218,11 @@ bool read_mmrs(fs::directory_entry file)
                 }
 
                 mmrs_util::debug() << "Successfully read!\n";
+            }
+            else if (filename.ends_with(".zsound"))
+            {
+                mmrs_util::info() << "Custom sounds are not supported yet. " << zip_filename << "will be skipped." << std::endl;
+                return false;
             }
             else 
             {
@@ -302,7 +307,7 @@ int read_seq_directory(const char* dbPath)
     {
         int i = 0;
         for(const fs::directory_entry entry: fs::directory_iterator(dir)) {
-            printf("i: %d\n\n", i);
+            mmrs_util::debug() << "i: " << i << std::endl << std::endl;
 
             std::string filename = entry.path().filename().string();
             std::string songNameStr = entry.path().filename().stem().string();
@@ -311,7 +316,7 @@ int read_seq_directory(const char* dbPath)
             // If file has an extension other than .mmrs, print that to the console and continue
             if (entry.path().extension() != ".mmrs") 
             {
-                printf("File %s is not a .mmrs file, skipping.", filename.c_str());
+                mmrs_util::debug() << "File " << filename.c_str() << " is not a .mmrs file, skipping." << std::endl;
             }
             else 
             {
@@ -374,12 +379,21 @@ int read_seq_directory(const char* dbPath)
     return -1;
 }
 
+RECOMP_DLL_FUNC(set_log_level)
+{
+    int level = RECOMP_ARG(int, 0);
+
+    mmrs_util::set_log_level(mmrs_util::log_level_t(level));
+
+    RECOMP_RETURN(int, level);
+}
+
 RECOMP_DLL_FUNC(sql_init)
 {
     std::string dbPathStr = RECOMP_ARG_STR(0);
     const char* dbPath = dbPathStr.c_str();
 
-    printf("%s\n", dbPath);
+    mmrs_util::debug() << dbPath << std::endl;
 
     if(_sql_init(dbPath))
     {
@@ -404,22 +418,17 @@ RECOMP_DLL_FUNC(sql_init)
 */
 
 RECOMP_DLL_FUNC(read_mmrs_files)
-{
-    mmrs_util::set_log_level(mmrs_util::LOG_DEBUG);
-    
-    if (mmrs_util::gLogLevel >= mmrs_util::LOG_DEBUG)
-    {
-        printf(START_PARA);
-        printf("START EXTLIB");
-        printf(END_PARA);
-    }
+{    
+    mmrs_util::debug() << START_PARA;
+    mmrs_util::debug() << "START EXTLIB";
+    mmrs_util::debug() << END_PARA;
 
     std::string dbPathStr = RECOMP_ARG_STR(0);
     const char *dbPath = dbPathStr.c_str();
     
     bool initDb = false;
     
-    printf("Calling init_mmrs_cache!");
+    mmrs_util::debug() << "Calling init_mmrs_cache!" << std::endl;
     try
     {
         initDb = init_mmrs_cache();
@@ -427,17 +436,15 @@ RECOMP_DLL_FUNC(read_mmrs_files)
     catch (std::exception e)
     {
 
-            printf("Error initalizing music DB: %s\n", e.what());
+        mmrs_util::debug() << "Error initalizing music DB: " << e.what() << std::endl;
         RECOMP_RETURN(int, -1);
     }
     
     int numMmrs = read_seq_directory(dbPath);
 
-    if (mmrs_util::gLogLevel >= mmrs_util::LOG_DEBUG)
-    {
-        printf("Completed extlib function read_mmrs_files(). Number of MMRSes: %i", numMmrs);
-        printf(END_PARA);
-    }
+    mmrs_util::debug() << "Completed extlib function read_mmrs_files(). Number of MMRSes: " << numMmrs;
+    mmrs_util::debug() << END_PARA;
+    
 
     RECOMP_RETURN(int, numMmrs);
 }
@@ -466,9 +473,9 @@ RECOMP_DLL_FUNC(load_mmrs_table)
     {
         for (int n = 0; n < strlen(allMmrs[0].songName); n++)
         {
-            std::cout << allMmrs[0].songName[n];
+            mmrs_util::debug() << allMmrs[0].songName[n];
         }
-        std::cout << std::endl;
+        mmrs_util::debug() << std::endl;
         RECOMP_RETURN(bool, false);
     }
     else
