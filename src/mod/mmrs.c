@@ -29,6 +29,7 @@ RECOMP_IMPORT(".", bool load_mmrs_table(MMRS* allMmrs));
 RECOMP_IMPORT(".", bool load_zseq(Zseq* zseqAddr, int zseqId));
 RECOMP_IMPORT(".", bool load_zbank(Zbank* zbankAddr, int zbankId));
 RECOMP_IMPORT(".", bool sql_teardown());
+RECOMP_IMPORT("debugprinter", void Debug_Print_Draw());
 
 enum log_level_t
 {
@@ -71,7 +72,7 @@ void print_bytes(void* addr, int n)
 */
 RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 {
-    logLevel = set_log_level(LOG_INFO);
+    logLevel = set_log_level(LOG_DEBUG);
 
     log_debug("Starting mmrs_loader_init()...\n");
     const char *dbPath = "assets/musicDB.db";
@@ -150,15 +151,11 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 
         log_debug("bankInfoId: %i\n", allMmrs[i].bankInfoId);
 
-        AudioApi_AddSequence(mySeq);
+        s32 sequenceId = AudioApi_AddSequence(mySeq);
+        log_debug("New sequence ID: %i\n", sequenceId);
 
-        /* Below is for testing purposes
-        if (!strcmp(allMmrs[i].songName, "DELTARUNE - Raise Up Your Bat!"))
+        if (allMmrs[i].bankInfoId != -1)
         {
-            AudioApi_ReplaceSequence(NA_BGM_FILE_SELECT, mySeq);
-            log_debug("%s", allMmrs[i].songName);
-            log_debug("Replaced sequence successfully!\n");
-
             zbank = recomp_alloc(sizeof(Zbank));
             bankEntry = recomp_alloc(sizeof(AudioTableEntry));
 
@@ -186,21 +183,18 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
                 log_debug("%d %d %p %p\n", bankNo, gAudioCtx.soundFontTable->entries[bankNo].cachePolicy, 
                     gAudioCtx.soundFontTable->entries[bankNo].romAddr, &zbank->bankData[0]);
 
-                AudioApi_ReplaceSequenceFont(NA_BGM_FILE_SELECT, 0, bankNo);
-
-                log_debug("Replaced sequence font successfully! (bank 0x%x)\n", bankNo);
-
-                log_debug("\n");
             }
             else
             {
-                log_debug("Could not load zbank.");
+                log_error("Could not load zbank.");
             }
+
+            AudioApi_ReplaceSequence(sequenceId, mySeq);
+            AudioApi_ReplaceSequenceFont(sequenceId, 0, allMmrs[i].bankNo);
 
             recomp_free(bankEntry);
             recomp_free(mySeq);
         }
-        */
     }
 
     sql_teardown();
