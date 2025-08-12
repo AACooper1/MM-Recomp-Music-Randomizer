@@ -179,6 +179,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
                 log_debug("\n");
 
                 s32 bankNo = AudioApi_AddSoundFont(bankEntry);
+                allMmrs[i].bankNo = bankNo;
 
                 log_debug("%d %d %p %p\n", bankNo, gAudioCtx.soundFontTable->entries[bankNo].cachePolicy, 
                     gAudioCtx.soundFontTable->entries[bankNo].romAddr, &zbank->bankData[0]);
@@ -189,12 +190,14 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
                 log_error("Could not load zbank.");
             }
 
-            AudioApi_ReplaceSequence(sequenceId, mySeq);
-            AudioApi_ReplaceSequenceFont(sequenceId, 0, allMmrs[i].bankNo);
-
             recomp_free(bankEntry);
-            recomp_free(mySeq);
+
         }
+        AudioApi_ReplaceSequence(sequenceId, mySeq);
+        AudioApi_ReplaceSequenceFont(sequenceId, 0, allMmrs[i].bankNo);
+        log_debug("Sequence is at ID %i, uses bank %i.\n\n", sequenceId, allMmrs[i].bankNo);
+
+        recomp_free(mySeq);
     }
 
     sql_teardown();
