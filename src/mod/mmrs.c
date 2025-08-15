@@ -15,12 +15,13 @@
 
 // Project Files
 #include "read_mmrs.h"
+#include "mod_util.h"
 
-#define log_critical(...) if (logLevel  >= 1) {recomp_printf(__VA_ARGS__);}
-#define log_error(...) if (logLevel  >= 2) {recomp_printf(__VA_ARGS__);}
-#define log_warning(...) if (logLevel  >= 3) {recomp_printf(__VA_ARGS__);}
-#define log_info(...) if (logLevel  >= 4) {recomp_printf(__VA_ARGS__);}
-#define log_debug(...) if (logLevel  >= 5) {recomp_printf(__VA_ARGS__);}
+
+
+#ifndef SEQ_FLAG_FANFARE
+    #define SEQ_FLAG_FANFARE (1 << 1)
+#endif
 
 RECOMP_IMPORT(".", int set_log_level(int level));
 RECOMP_IMPORT(".", bool sql_init(const char *dbPath));
@@ -31,15 +32,6 @@ RECOMP_IMPORT(".", bool load_zbank(Zbank* zbankAddr, int zbankId));
 RECOMP_IMPORT(".", bool sql_teardown());
 RECOMP_IMPORT("debugprinter", void Debug_Print_Draw());
 
-enum log_level_t
-{
-    LOG_NOTHING,
-    LOG_CRITICAL,
-    LOG_ERROR,
-    LOG_WARNING,
-    LOG_INFO,
-    LOG_DEBUG
-};
 
 MMRS *allMmrs;
 int numMmrs;
@@ -72,7 +64,7 @@ void print_bytes(void* addr, int n)
 */
 RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 {
-    logLevel = set_log_level(LOG_DEBUG);
+    logLevel = set_log_level(LOG_INFO);
 
     log_debug("Starting mmrs_loader_init()...\n");
     const char *dbPath = "assets/musicDB.db";
@@ -113,6 +105,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
         zseq = recomp_alloc(sizeof(Zseq));
         bool loaded = load_zseq(zseq, allMmrs[i].zseqId);
         log_debug("%s\n", allMmrs[i].songName);
+        bool is_fanfare = false;
 
         if (!loaded)
         {
@@ -169,7 +162,10 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
                 bankEntry->shortData2 = (zbank->metaData[4] << 8) | (zbank->metaData[5]);
                 bankEntry->shortData3 = (u16) zbank->metaData[6];
 
-                print_bytes(&zbank->bankData[0], 256);
+                if (logLevel >= LOG_DEBUG)
+                {
+                    print_bytes(&zbank->bankData[0], 256);
+                }
                 log_debug("\n");
                 
                 for (int d = 0; d < 8; d++)
@@ -191,11 +187,16 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
             }
 
             recomp_free(bankEntry);
-
         }
         AudioApi_ReplaceSequence(sequenceId, mySeq);
-        AudioApi_ReplaceSequenceFont(sequenceId, 0, allMmrs[i].bankNo);
+        AudioApi_AddSequenceFont(sequenceId, allMmrs[i].bankNo);
         log_debug("Sequence is at ID %i, uses bank %i.\n\n", sequenceId, allMmrs[i].bankNo);
+
+        if (*(u32*)&(allMmrs[i].categories[8]))
+        {
+            AudioApi_SetSequenceFlags(sequenceId, SEQ_FLAG_FANFARE);
+            log_debug("Sequence is a fanfare.\n");
+        }
 
         recomp_free(mySeq);
     }
@@ -207,7 +208,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_SoundFontLoaded) bool mmrs_loader
 {
     log_debug("loaded font: %d %p\n", fontId, fontData);
 
-    if(fontId > 0x28)
+    if(fontId > 0x28 && logLevel >= LOG_DEBUG)
     {
         print_bytes(fontData, 512);
     }

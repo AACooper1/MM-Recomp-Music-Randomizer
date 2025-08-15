@@ -38,8 +38,8 @@ dependencies = [
 
 # Native libraries (e.g. DLLs) and the functions they export.
 native_libraries = [
-# Example native library:
    { name = "mm_recomp_mmrs_reader_extlib", funcs = ["set_log_level", "sql_init", "read_mmrs_files", "load_mmrs_table", "load_zseq", "load_zbank", "sql_teardown"] }
+   { name = APCpp-Glue", funcs = "rando_get_seed_name", "rando_solo_generate"}
 ]
 
 # Inputs to the mod tool.

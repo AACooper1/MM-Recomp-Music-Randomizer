@@ -11,6 +11,15 @@ extern s16 sQuestVtxHeights[];
 
 extern u8 sAudioPauseState;
 
+s32 seqId;
+u16 seqArgs;
+
+RecompuiContext context;
+RecompuiResource root;
+RecompuiResource container;
+
+bool is_music_menu_open = false;
+
 RECOMP_IMPORT("magemods_audio_api", s32 AudioApi_GetActiveSeqId(u8 seqPlayerIndex));
 RECOMP_IMPORT("magemods_audio_api", u16 AudioApi_GetActiveSeqArgs(u8 seqPlayerIndex));
 RECOMP_IMPORT("magemods_audio_api", void AudioApi_StartSequence(u8 seqPlayerIndex, s32 seqId, u16 seqArgs, u16 fadeInDuration));
@@ -28,15 +37,119 @@ RECOMP_HOOK("KaleidoScope_UpdateCursorSize") void insert_music_buttons(PlayState
 }
 
 RECOMP_DECLARE_EVENT(music_buttons_interact(u16 cursor, PlayState* play));
+RECOMP_DECLARE_EVENT(music_menu_open(PlayState* play));
+RECOMP_DECLARE_EVENT(music_menu_close(PlayState* play));
+
+RECOMP_CALLBACK("*", recomp_on_init) void musicMenuInit()
+{
+    RecompuiColor bg_color;
+    bg_color.r = 255;
+    bg_color.g = 255;
+    bg_color.b = 255;
+    bg_color.a = 0.3f * 255;
+
+    RecompuiColor border_color;
+    border_color.r = 255;
+    border_color.g = 255;
+    border_color.b = 255;
+    border_color.a = 0.2f * 255;
+
+    RecompuiColor container_color;
+    container_color.r = 8;
+    container_color.g = 7;
+    container_color.b = 13;
+    container_color.a = 1.0f * 255;
+
+    const float body_padding = 64.0f;
+    const float container_height = RECOMPUI_TOTAL_HEIGHT - (2 * body_padding);
+    const float container_width = container_height * (16.0f / 9.0f);
+    const float container_border_width = 1.1f;
+    const float container_border_radius = 16.0f;
+
+    context = recompui_create_context();
+    recompui_open_context(context);
+
+    recompui_set_context_captures_input(context, 0);
+    recompui_set_context_captures_mouse(context, 0);
+
+    root = recompui_context_root(context);
+
+    recompui_set_position(root, POSITION_ABSOLUTE);
+    recompui_set_display(root, DISPLAY_FLEX);
+
+    recompui_set_top(root, 0, UNIT_PERCENT);
+    recompui_set_left(root, 0, UNIT_PERCENT);
+    recompui_set_bottom(root, 100, UNIT_PERCENT);
+    recompui_set_right(root, 100, UNIT_PERCENT);
+
+    recompui_set_width(root, 100, UNIT_PERCENT);
+    recompui_set_min_width(root, 100, UNIT_PERCENT);
+    recompui_set_max_width(root, 100, UNIT_PERCENT);
+    recompui_set_height(root, 100, UNIT_PERCENT);
+    recompui_set_min_height(root, 100, UNIT_PERCENT);
+    recompui_set_max_height(root, 100, UNIT_PERCENT);
+
+    recompui_set_align_items(root, ALIGN_ITEMS_CENTER);
+    recompui_set_justify_content(root, JUSTIFY_CONTENT_CENTER);
+    
+
+    // recompui_set_background_color(root, &bg_color);
+
+    container = recompui_create_element(context, root);
+    
+    // Center the thing where the map viewport is
+
+    recompui_set_display(container, DISPLAY_INLINE_BLOCK);
+
+    recompui_set_width(container, 0.90f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
+    // recompui_set_max_width(container, 70, UNIT_PERCENT);
+
+    recompui_set_height(container, 0.533f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
+
+    recompui_set_margin_top(container, 53.0f, UNIT_DP);
+    recompui_set_margin_right(container, 10.0f, UNIT_DP);
+
+    recompui_set_background_color(container, &container_color);
+
+    recompui_close_context(context);
+}
+
+RECOMP_HOOK("KaleidoScope_UpdateQuestCursor") void check_music_menu_close(PlayState* play)
+{
+    if (is_music_menu_open)
+    {
+        if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->press.button, BTN_B | BTN_START | BTN_Z | BTN_R))
+        {
+            recompui_hide_context(context);
+            music_menu_close(play);
+            is_music_menu_open = false;
+        }
+    }
+}
 
 RECOMP_CALLBACK(".", music_buttons_interact) void on_music_buttons_interact(u16 cursor, PlayState* play)
 {
+    s32 seqIdPrev = seqId;
+    u16 seqArgsPrev = seqArgs;
+
+    seqId = AudioApi_GetActiveSeqId(SEQ_PLAYER_BGM_MAIN);
+    seqArgs = AudioApi_GetActiveSeqArgs(SEQ_PLAYER_BGM_MAIN);
+
+    if (seqId == 65535)
+    {
+        seqId = seqIdPrev;
+        seqArgs = seqArgsPrev;
+    }
+
     if (cursor == QUEST_REWIND)
     {
         if (CHECK_BTN_ALL(CONTROLLER1(&play->state)->press.button, BTN_A))
         {
-            s32 seqId = AudioApi_GetActiveSeqId(SEQ_PLAYER_BGM_MAIN);
-            u16 seqArgs = AudioApi_GetActiveSeqArgs(SEQ_PLAYER_BGM_MAIN);
+            do
+            {
+                seqId--;
+                seqId %= gAudioCtx.sequenceTable->header.numEntries;
+            } while(gAudioCtx.sequenceTable->entries[seqId].romAddr == NULL);
 
             AudioSeq_StopSequence(SEQ_PLAYER_BGM_MAIN, 0);
             AudioApi_StartSequence(SEQ_PLAYER_BGM_MAIN, seqId, seqArgs, 0);
@@ -46,20 +159,25 @@ RECOMP_CALLBACK(".", music_buttons_interact) void on_music_buttons_interact(u16 
     {
         if (CHECK_BTN_ALL(CONTROLLER1(&play->state)->press.button, BTN_A))
         {
-            s32 seqId = AudioApi_GetActiveSeqId(SEQ_PLAYER_BGM_MAIN);
-            u16 seqArgs = AudioApi_GetActiveSeqArgs(SEQ_PLAYER_BGM_MAIN);
-
             do
             {
                 seqId++;
                 seqId %= gAudioCtx.sequenceTable->header.numEntries;
             } while(gAudioCtx.sequenceTable->entries[seqId].romAddr == NULL);
 
-            recomp_printf("Playing sequence with ID %i\n", seqId);
-
             AudioSeq_StopSequence(SEQ_PLAYER_BGM_MAIN, 0);
             AudioApi_StartSequence(SEQ_PLAYER_BGM_MAIN, seqId, seqArgs, 0);
         }
+    }
+    else if (cursor == QUEST_TRACKS)
+    {
+        if (CHECK_BTN_ALL(CONTROLLER1(&play->state)->press.button, BTN_A))
+        {
+            recompui_show_context(context);
+            is_music_menu_open = true;
+            music_menu_close(play);
+        }
+        
     }
 }
 
