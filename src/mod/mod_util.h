@@ -5,7 +5,6 @@
 #include "recompui.h"
 
 #include <string.h>
-#include <limits.h>
 
 #ifndef MOD_UTIL_H
 #define MOD_UTIL_H
@@ -15,6 +14,10 @@
 #define log_warning(...) if (logLevel  >= LOG_WARNING) {recomp_printf(__VA_ARGS__);}
 #define log_info(...) if (logLevel  >= LOG_INFO) {recomp_printf(__VA_ARGS__);}
 #define log_debug(...) if (logLevel  >= LOG_DEBUG) {recomp_printf(__VA_ARGS__);}
+
+#define STOP_EXECUTION(...) bool printed = false; while (true) { if (!printed) log_critical(__VA_ARGS__); printed = true; }
+
+void print_bytes(void* addr, int n);
 
 enum log_level_t
 {
@@ -31,14 +34,12 @@ extern int logLevel;
 
 // Dynamic array (C++ vector) implementation
 
-// Specific use case: 
-
 // Structs & enums
 typedef struct Vector_t 
 {
     size_t elementSize;
-    int numElements;
-    int capacity;
+    u32 numElements;
+    u32 capacity;
     void* dataStart;
 } Vector;
 
@@ -46,7 +47,7 @@ typedef enum VecError_t
 {
     VEC_SUCCESS,
     VEC_ERR_EMPTY,
-    VEC_ERR_MAX_CAPACITY = INT_MAX
+    VEC_ERR_MAX_CAPACITY = UINT32_MAX
 } VecError;
 
 typedef enum VecResize_t
@@ -57,14 +58,21 @@ typedef enum VecResize_t
 
 // Functions
 // Internal
-int _vec_resize(Vector* self, bool shrink);
+u32 _vec_resize(Vector* self, bool shrink);
 
 // Public
-Vector* vector_init(size_t elementSize);
-int vec_push_back(Vector* self, void* data);
-int vec_erase(Vector* self, int idx);
-int vec_pop(Vector* self, void* addr);
-int vec_pop_at(Vector* self, void* addr, int idx);
+Vector* vec_init(size_t elementSize);
+u32 vec_push_back(Vector* self, void* data);
+u32 vec_erase(Vector* self, int idx);
+u32 vec_pop(Vector* self, void* addr);
+u32 vec_pop_at(Vector* self, void* addr, int idx);
+
+void vec_errmsg(int err);
+void vec_printData(Vector* self);
+
 void vec_teardown(Vector* self);
+
+// Specific use case: Category Sequences
+Vector* CAT_SEQ_INIT(int seqIdArray[], size_t size);
 
 #endif

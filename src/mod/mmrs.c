@@ -32,31 +32,10 @@ RECOMP_IMPORT(".", bool load_zbank(Zbank* zbankAddr, int zbankId));
 RECOMP_IMPORT(".", bool sql_teardown());
 RECOMP_IMPORT("debugprinter", void Debug_Print_Draw());
 
-
 MMRS *allMmrs;
 int numMmrs;
 
 int logLevel;
-
-void print_bytes(void* addr, int n)
-{
-        recomp_printf("Data starting from %p is:\n\n", addr);
-        recomp_printf("\t\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n\n");
-
-        uintptr_t addrInt = (uintptr_t) addr;
-        recomp_printf("%08x\t", addrInt);
-
-        for (int i = 0; i < n; i++)
-        {
-            if (i % 16 == 0 && i != 0) 
-            {
-                recomp_printf("\n%08x\t", addrInt + i);
-            }
-            
-            recomp_printf("%02x ", *(unsigned char*)(addr + i));
-        }
-        recomp_printf("\n");
-}
 
 /*
     mmrs_loader_init()
@@ -202,6 +181,8 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
     }
 
     sql_teardown();
+
+    return true;
 }
 
 RECOMP_CALLBACK("magemods_audio_api", AudioApi_SoundFontLoaded) bool mmrs_loader_font_loaded(s32 fontId, u8* fontData)
@@ -212,4 +193,6 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_SoundFontLoaded) bool mmrs_loader
     {
         print_bytes(fontData, 512);
     }
+
+    return true;
 }
