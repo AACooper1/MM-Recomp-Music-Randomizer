@@ -24,27 +24,32 @@ void print_bytes(void* addr, int n)
 // Dynamic array (C++ vector) implementation
 
 // Specific use case: Category Sequences
-Vector* CAT_SEQ_INIT(int seqIdArray[], size_t size)
+Vector* CAT_SEQ_INIT(int seqIdArray[], size_t size, Vector** SeqCatArray,  int seqCatIdx)
 {
     Vector* seqVec = vec_init(sizeof(int)); 
     // log_debug("\nInitialized seqVec at address %p.\n", seqVec->dataStart);
 
     int rc;
 
-    for (int i = 0; i < size; i++) 
+    for (size_t i = 0; i < size; i++) 
     { 
         // log_debug("Data in seqIdArray at index %i:\t%i.\n", i, seqIdArray[i])
         if( (rc = vec_push_back(seqVec, &(seqIdArray[i]))) != VEC_SUCCESS )
         {
             vec_errmsg(rc);
-        } 
+        }
+        log_warning("Pushing %i to seqCatElement[%i]\n", seqCatIdx, seqIdArray[i])
+        if( (rc = vec_push_back(SeqCatArray[seqIdArray[i]], &seqCatIdx)) != VEC_SUCCESS )
+        {
+            vec_errmsg(rc);
+        }
     }
 
-    log_debug("\n(Printing from within CAT_SEQ_INIT.)")
-    if (logLevel >= LOG_DEBUG)
-    {
-        vec_printData(seqVec);
-    }
+    // log_debug("\n(Printing from within CAT_SEQ_INIT.)")
+    // if (logLevel >= LOG_DEBUG)
+    // {
+    //     vec_printData(seqVec);
+    // }
 
     return seqVec;
 }
@@ -60,7 +65,7 @@ u32 _vec_resize(Vector* self, bool grow_or_shrink)
         }
         else if (self->capacity == 0)
         {
-            self->capacity = self->elementSize;
+            self->capacity = 1;
         }
         else 
         {
@@ -73,7 +78,7 @@ u32 _vec_resize(Vector* self, bool grow_or_shrink)
         {
             return VEC_ERR_EMPTY;
         }
-        else if (self->capacity == self->elementSize)
+        else if (self->capacity == 1)
         {
             self->capacity = 0;
         }
@@ -86,7 +91,7 @@ u32 _vec_resize(Vector* self, bool grow_or_shrink)
     // Allocate new table, initialize to 0, copy and free old table.
     void* new_data = recomp_alloc(self->elementSize * self->capacity);
     Lib_MemSet(new_data, 0, self->elementSize * self->capacity);
-    if (self->capacity > self->elementSize)
+    if (self->capacity > 1)
     {
         Lib_MemCpy(new_data, self->dataStart, self->elementSize * self->capacity);
         recomp_free(self->dataStart);
@@ -117,7 +122,7 @@ u32 vec_push_back(Vector* self, void* data)
     // Resize vector (or chastise user) if full
     while (self->numElements >= self->capacity)
     {
-        if(!(rc = _vec_resize(self, VEC_GROW)) == VEC_SUCCESS)
+        if((rc = _vec_resize(self, VEC_GROW)) != VEC_SUCCESS)
         {
             return rc;
         }
@@ -143,12 +148,14 @@ u32 vec_pop(Vector* self, void* addr)
 u32 vec_erase(Vector* self, int idx)
 {
     void* dummyAddr = recomp_alloc(self->elementSize);
-    vec_pop_at(self, dummyAddr, idx);
+    u32 rc = vec_pop_at(self, dummyAddr, idx);
     recomp_free(dummyAddr);
+
+    return rc;
 }
 
 // Pop the element with the highest memory address. Use for stack-like structures.
-// Use this over vec_pop where possible, as dynamic array dequeue is Θ(n).
+// Use this over vec_pop where possible, as dynamic array stack pop is Θ(1).
 u32 vec_pop_back(Vector* self, void* addr)
 {
     // If empty, return error.
@@ -163,13 +170,15 @@ u32 vec_pop_back(Vector* self, void* addr)
     self->numElements--;
 
     int rc;
-    while (self->numElements < self->capacity / 2)
+    if (self->numElements < self->capacity / 2)
     {
         if((rc = _vec_resize(self, VEC_SHRINK)) != VEC_SUCCESS)
         {
             return rc;
         }
+        log_debug("Resized vector. Now size %i, with %i elements.\n", self->capacity, self->numElements);
     }
+    
 
     return VEC_SUCCESS;
 }
@@ -196,14 +205,87 @@ u32 vec_pop_at(Vector* self, void* addr, int idx)
         (self->numElements)--;
 
         // Shrink the vector if numElements drops below preceding power of 2.
-        while (self->numElements < self->capacity / 2)
+        if (self->numElements < self->capacity / 2)
         {
-            if(!(rc = _vec_resize(self, VEC_SHRINK)) == VEC_SUCCESS)
+            if((rc = _vec_resize(self, VEC_SHRINK)) != VEC_SUCCESS)
             {
                 return rc;
             }
         }
+
+        return VEC_SUCCESS;
     }
+}
+
+// Concatenate a vector onto tgt. Does not destroy src, remember to free when you are done.
+u32 vec_concat(Vector* tgt, Vector* src)
+{
+    if (src->elementSize != tgt->elementSize)
+    {
+        return VEC_ERR_DIFFERENT_DATA_TYPES;
+    }
+
+    while (tgt->capacity < src->numElements + tgt->numElements)
+    {
+        _vec_resize(tgt, VEC_GROW);
+    }
+
+    if (src->numElements > 0)
+    {
+        Lib_MemCpy(tgt->dataStart + (tgt->numElements * tgt->elementSize), src->dataStart, src->numElements * src->elementSize);
+    }
+    else
+    {
+        log_warning("[Warning] src vector had no elements, tgt will remain unmodified.\n")
+    }
+
+    tgt->numElements += src->numElements;
+
+    return VEC_SUCCESS;
+}
+
+// Randomize a vector in-place using the Fisher-Yates Algorithm.
+u32 vec_randomize(Vector* self)
+{
+    if (self->numElements == 0)
+    {
+        return VEC_ERR_EMPTY;
+    }
+    else if (self->numElements == 1)
+    {
+        return VEC_SUCCESS;
+    }
+    else
+    {
+        if (logLevel >= LOG_DEBUG)
+        {
+            log_debug("\n==CALLED vec_randomize.==\n");
+            log_debug("\nVector before randomization:\n")
+            vec_printData(self);
+        }
+
+        void* tempData = recomp_alloc(self->elementSize);
+        Rand_Seed(get_current_time());
+
+        for (int i = self->numElements - 1; i > 0; i--)
+        {
+            u32 rand_idx = Rand_Next() % i;
+            // log_debug("Got random int %i\n", rand_idx);
+            Lib_MemCpy(tempData, self->dataStart + (i * self->elementSize), self->elementSize);
+            memmove(self->dataStart + (i * self->elementSize), self->dataStart + (rand_idx * self->elementSize), self->elementSize);
+            Lib_MemCpy(self->dataStart + (rand_idx * self->elementSize), tempData, self->elementSize);
+        }
+        
+        recomp_free(tempData);
+    }
+
+    if (logLevel >= LOG_DEBUG)
+    {
+        log_debug("Vector after randomization:\n")
+        vec_printData(self);
+    }
+
+    return VEC_SUCCESS;
 }
 
 // Prints info about the vector, followed by the data it points to, in chunks of size elementSize.
@@ -215,7 +297,7 @@ void vec_printData(Vector* self)
     recomp_printf("\t   numElements: %i\n", self->numElements);
     recomp_printf("\t   capacity: %i\n", self->capacity);
     recomp_printf("\t   Data stored at address %p:\n", self->dataStart);
-    for (int i = 0; i < self->numElements * self->elementSize; i++)
+    for (u32 i = 0; i < self->numElements * self->elementSize; i++)
     {
         if(i % (4 * self->elementSize)  == 0)
         {
@@ -225,7 +307,7 @@ void vec_printData(Vector* self)
         {
             recomp_printf("\t0x");
         }
-        recomp_printf("%x", *(unsigned char*)(self->dataStart + i));
+        recomp_printf("%02x", *(unsigned char*)(self->dataStart + i));
         recomp_printf("");
         if(i % (4 * self->elementSize) == (4 * self->elementSize) - 1)
         {
@@ -256,12 +338,18 @@ void vec_errmsg(int err)
                 err
             );
             break;
+        case VEC_ERR_DIFFERENT_DATA_TYPES:
+            log_error("vec1 and vec2 mush have the same data sizes.\n");
+            break;
         }
 }
 
 // Deconstructor for vectors. Frees the memory at its data address and then frees the memory of its struct.
 void vec_teardown(Vector* self)
 {
-    recomp_free(self->dataStart);
+    if (self->numElements > 0)
+    {
+        recomp_free(self->dataStart);
+    }
     recomp_free(self);
 }

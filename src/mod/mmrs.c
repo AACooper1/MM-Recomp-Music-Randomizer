@@ -32,6 +32,8 @@ RECOMP_IMPORT(".", bool load_zbank(Zbank* zbankAddr, int zbankId));
 RECOMP_IMPORT(".", bool sql_teardown());
 RECOMP_IMPORT("debugprinter", void Debug_Print_Draw());
 
+RECOMP_DECLARE_EVENT(mmrs_reader_done(MMRS *allMmrs, int numMmrs));
+
 MMRS *allMmrs;
 int numMmrs;
 
@@ -43,7 +45,7 @@ int logLevel;
 */
 RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 {
-    logLevel = set_log_level(LOG_INFO);
+    logLevel = set_log_level(LOG_ERROR);
 
     log_debug("Starting mmrs_loader_init()...\n");
     const char *dbPath = "assets/musicDB.db";
@@ -122,6 +124,11 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
         log_debug("...\n");
 
         log_debug("bankInfoId: %i\n", allMmrs[i].bankInfoId);
+        log_debug("Categories (below):\n");
+        if (logLevel >= LOG_DEBUG)
+        {
+            print_bytes(allMmrs[i].categories, 256);
+        }
 
         s32 sequenceId = AudioApi_AddSequence(mySeq);
         log_debug("New sequence ID: %i\n", sequenceId);
@@ -181,6 +188,8 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
     }
 
     sql_teardown();
+
+    mmrs_reader_done(allMmrs, numMmrs);
 
     return true;
 }

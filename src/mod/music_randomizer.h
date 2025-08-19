@@ -6,6 +6,11 @@
 
 #include "mod_util.h"
 
+#include "read_mmrs.h"
+
+// Variables
+
+
 // Enums
 typedef enum Categories_t 
 {
@@ -24,9 +29,21 @@ typedef enum Categories_t
 } Categories;
 
 Vector** categorySequences;
+Vector** sequenceCategories;
 
-Vector** categorySequences_init()
+AudioTable sequenceTableImpostor;
+u8* sequenceFontTableImpostor;
+
+void init_vanilla_sequence_categories();
+void add_custom_sequence_categories(MMRS* allMmrs, int numMmrs);
+
+Vector** init_catSeq_table()
 {
+    sequenceCategories = recomp_alloc(sizeof(Vector*) * gAudioCtx.sequenceTable->header.numEntries);
+    for(int i = 0; i < gAudioCtx.sequenceTable->header.numEntries; i++)
+    {
+        sequenceCategories[i] = vec_init(sizeof(int));
+    }
     // Categories for vanilla sequences. Pulled from MMR
     Vector* catSeqTemp[] = 
     {
@@ -41,7 +58,7 @@ Vector** categorySequences_init()
                 NA_BGM_DEKU_PALACE,
                 NA_BGM_ROMANI_RANCH,
                 NA_BGM_SARIAS_SONG
-            }, 8
+            }, 8, sequenceCategories, 0
         ),
 
         /* CAT_TOWN */
@@ -61,7 +78,7 @@ Vector** categorySequences_init()
                 NA_BGM_INGO,
                 NA_BGM_SARIAS_SONG,
                 NA_BGM_ZELDAS_LULLABY,
-            }, 14
+            }, 14, sequenceCategories, 1
         ),
         
         /* CAT_DUNGEON */
@@ -75,7 +92,7 @@ Vector** categorySequences_init()
                 NA_BGM_STONE_TOWER_TEMPLE,
                 NA_BGM_INV_STONE_TOWER_TEMPLE,
                 NA_BGM_WOODFALL_TEMPLE
-            }, 8
+            }, 8, sequenceCategories, 2
         ),
 
         /* CAT_INDOORS */
@@ -104,7 +121,7 @@ Vector** categorySequences_init()
                 NA_BGM_ZELDAS_LULLABY,
                 NA_BGM_SONG_OF_HEALING,
                 NA_BGM_GIANTS_THEME
-            }, 23
+            }, 23, sequenceCategories, 3
         ),
 
             /* CAT_MINIGAME */
@@ -123,7 +140,7 @@ Vector** categorySequences_init()
                 NA_BGM_SARIAS_SONG,
                 NA_BGM_MAJORAS_INCARNATION,
                 NA_BGM_ENEMY
-            }, 12
+            }, 12, sequenceCategories, 4
         ),
 
         /* CAT_ACTION */
@@ -138,7 +155,7 @@ Vector** categorySequences_init()
                 NA_BGM_ZELDA_APPEAR,
                 NA_BGM_MAJORAS_INCARNATION,
                 NA_BGM_ENEMY
-            }, 9
+            }, 9, sequenceCategories, 5
         ),
 
         /* CAT_CALM */
@@ -165,7 +182,7 @@ Vector** categorySequences_init()
                 NA_BGM_GIANTS_THEME,
                 NA_BGM_GATHERING_GIANTS,
                 NA_BGM_TITLE_THEME
-            }, 21
+            }, 21, sequenceCategories, 6
         ),
 
         /* CAT_BOSS */
@@ -178,7 +195,7 @@ Vector** categorySequences_init()
                 NA_BGM_MAJORAS_MASK,
                 NA_BGM_MAJORAS_INCARNATION,
                 NA_BGM_MAJORAS_WRATH
-            }, 6
+            }, 6, sequenceCategories, 7
         ),
 
         /* CAT_FANFARE */
@@ -196,7 +213,7 @@ Vector** categorySequences_init()
                 NA_BGM_LEARNED_NEW_SONG,
                 NA_BGM_SONG_OF_SOARING,
                 NA_BGM_DUNGEON_APPEAR
-            }, 11
+            }, 11, sequenceCategories, 8
         ),
 
         /* CAT_GAME_OVER */
@@ -209,7 +226,7 @@ Vector** categorySequences_init()
                 NA_BGM_CLEAR_BOSS,
                 NA_BGM_SONG_OF_SOARING,
                 NA_BGM_DUNGEON_APPEAR,
-            }, 6
+            }, 6, sequenceCategories, 9
         ),
 
             // CAT_AREA_CLEAR
@@ -221,7 +238,7 @@ Vector** categorySequences_init()
                 NA_BGM_SNOWHEAD_CLEAR,
                 NA_BGM_MOONS_DESTRUCTION,
                 NA_BGM_GOODBYE_GIANT,
-            }, 5
+            }, 5, sequenceCategories, 10
         ),
         
         /* CAT_SPECIAL */
@@ -231,12 +248,25 @@ Vector** categorySequences_init()
                 NA_BGM_GATHERING_GIANTS,
                 NA_BGM_TITLE_THEME,
                 NA_BGM_FINAL_HOURS
-            }, 3
+            }, 3, sequenceCategories, 11
         )
     };
 
-    Vector** catSeqPerm = recomp_alloc(sizeof(Vector*) * 12);
+    Vector** catSeqPerm = recomp_alloc(sizeof(Vector*) * (12 + 127));
     Lib_MemCpy(catSeqPerm, catSeqTemp, sizeof(Vector*) * 12);
+
+    // REMINDER! When adding logic for individual song slots, remember to subtract 0xF4 if category[i] > 16.
+    // And also if category[i] == 16 add it to category 11.
+    for (int i = 12; i < 139; i++)
+    {
+        log_debug("\nCreating entry for song %i\n", i);
+        Vector* songSlot = CAT_SEQ_INIT((int[]){i}, 1, sequenceCategories, i);
+        log_debug("Created!\n");
+        log_debug("Data is %i\n", *((int*)songSlot->dataStart));
+        log_debug("%p, %p\n", &(catSeqPerm[i]), &songSlot);
+        Lib_MemCpy(&(catSeqPerm[i]), &songSlot, sizeof(Vector*));
+        log_debug("Copied to address %p!\n", &(catSeqPerm[i]));
+    }
 
     return catSeqPerm;
 }

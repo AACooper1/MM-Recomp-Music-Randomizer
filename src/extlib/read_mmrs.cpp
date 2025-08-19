@@ -152,7 +152,7 @@ bool read_mmrs(fs::directory_entry file)
 
                 while (c != nullptr) 
                 {
-                    int cat = std::stoi(std::string(c));
+                    int cat = std::stoi(std::string(c), 0, 16);
                     if (cat < 256) 
                     {
                         mmrs.categories[cat] = true;
@@ -384,6 +384,28 @@ RECOMP_DLL_FUNC(set_log_level)
     int level = RECOMP_ARG(int, 0);
 
     mmrs_util::set_log_level(mmrs_util::log_level_t(level));
+
+    switch (level)
+    {
+        case mmrs_util::LOG_NOTHING:
+            std::cout << "[MUSIC RANDOMIZER] Set log level to LOG_NOTHING." << std:: endl;
+            break;
+        case mmrs_util::LOG_CRITICAL:
+            mmrs_util::critical() << "[MUSIC RANDOMIZER] Set log level to LOG_CRITICAL." << std:: endl;
+            break;
+        case mmrs_util::LOG_ERROR:
+            mmrs_util::critical() << "[MUSIC RANDOMIZER] Set log level to LOG_ERROR." << std:: endl;
+            break;
+        case mmrs_util::LOG_WARNING:
+            mmrs_util::critical() << "[MUSIC RANDOMIZER] Set log level to LOG_WARNING." << std:: endl;
+            break;
+        case mmrs_util::LOG_INFO:
+            mmrs_util::critical() << "[MUSIC RANDOMIZER] Set log level to LOG_INFO." << std:: endl;
+            break;
+        case mmrs_util::LOG_DEBUG:
+            mmrs_util::critical() << "[MUSIC RANDOMIZER] Set log level to LOG_DEBUG." << std:: endl;
+            break;
+    }
 
     RECOMP_RETURN(int, level);
 }

@@ -450,7 +450,7 @@ bool _load_mmrs_table(MMRS* allMmrs)
         
         for (int c = 0; c < 256; c++)
         {
-            allMmrs[i].categories[c] = cats[c];
+            allMmrs[i].categories[c ^ 3] = cats[c];
             // mmrs_util::debug() << c << std::endl;
         }
 
@@ -734,13 +734,14 @@ bool _sql_teardown()
         mmrs_util::error() << "Error finalizing statement: " << sqlite3_errmsg(db) << std::endl;
         success = false;
     }
-    
-    rc = sqlite3_close(db);
-    if (rc != SQLITE_OK)
+    else
     {
-        mmrs_util::error() << "Error closing DB: " << sqlite3_errmsg(db) << std::endl;
-        success = false;
+        rc = sqlite3_close(db);
+        if (rc != SQLITE_OK)
+        {
+            mmrs_util::error() << "Error closing DB: " << sqlite3_errmsg(db) << std::endl;
+            success = false;
+        }
     }
-
     return success;
 }

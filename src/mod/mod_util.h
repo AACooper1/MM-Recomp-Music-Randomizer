@@ -17,6 +17,8 @@
 
 #define STOP_EXECUTION(...) bool printed = false; while (true) { if (!printed) log_critical(__VA_ARGS__); printed = true; }
 
+RECOMP_IMPORT(".", long get_current_time());
+
 void print_bytes(void* addr, int n);
 
 enum log_level_t
@@ -47,6 +49,7 @@ typedef enum VecError_t
 {
     VEC_SUCCESS,
     VEC_ERR_EMPTY,
+    VEC_ERR_DIFFERENT_DATA_TYPES,
     VEC_ERR_MAX_CAPACITY = UINT32_MAX
 } VecError;
 
@@ -65,7 +68,10 @@ Vector* vec_init(size_t elementSize);
 u32 vec_push_back(Vector* self, void* data);
 u32 vec_erase(Vector* self, int idx);
 u32 vec_pop(Vector* self, void* addr);
+u32 vec_pop_back(Vector* self, void* addr);
 u32 vec_pop_at(Vector* self, void* addr, int idx);
+u32 vec_concat(Vector* src, Vector* tgt);
+u32 vec_randomize(Vector* self);
 
 void vec_errmsg(int err);
 void vec_printData(Vector* self);
@@ -73,6 +79,6 @@ void vec_printData(Vector* self);
 void vec_teardown(Vector* self);
 
 // Specific use case: Category Sequences
-Vector* CAT_SEQ_INIT(int seqIdArray[], size_t size);
+Vector* CAT_SEQ_INIT(int seqIdArray[], size_t size, Vector** SeqCatArray, int seqCatIdx);
 
 #endif

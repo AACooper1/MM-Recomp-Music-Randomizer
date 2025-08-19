@@ -1,4 +1,12 @@
+#include "lib_recomp.hpp"
 #include "util.h"
+
+#include <ctime>
+
+RECOMP_DLL_FUNC(get_current_time)
+{
+    RECOMP_RETURN(u32, (u32)(time(nullptr) & 0xFFFFFF));
+}
 
 
 void mmrs_util::set_log_level(log_level_t level)
