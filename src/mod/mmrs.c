@@ -196,6 +196,8 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 
 RECOMP_CALLBACK("magemods_audio_api", AudioApi_SoundFontLoaded) bool mmrs_loader_font_loaded(s32 fontId, u8* fontData)
 {
+    int pastLogLevel = logLevel;
+    logLevel = set_log_level(LOG_DEBUG);
     log_debug("loaded font: %d %p\n", fontId, fontData);
 
     if(fontId > 0x28 && logLevel >= LOG_DEBUG)
@@ -203,5 +205,6 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_SoundFontLoaded) bool mmrs_loader
         print_bytes(fontData, 512);
     }
 
+    logLevel = set_log_level(pastLogLevel);
     return true;
 }

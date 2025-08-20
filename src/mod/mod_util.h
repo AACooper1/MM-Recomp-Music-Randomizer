@@ -50,6 +50,7 @@ typedef enum VecError_t
     VEC_SUCCESS,
     VEC_ERR_EMPTY,
     VEC_ERR_DIFFERENT_DATA_TYPES,
+    VEC_OUT_OF_RANGE,
     VEC_ERR_MAX_CAPACITY = UINT32_MAX
 } VecError;
 
@@ -70,6 +71,8 @@ u32 vec_erase(Vector* self, int idx);
 u32 vec_pop(Vector* self, void* addr);
 u32 vec_pop_back(Vector* self, void* addr);
 u32 vec_pop_at(Vector* self, void* addr, int idx);
+u32 vec_at(Vector* self, size_t idx, void* addr);
+
 u32 vec_concat(Vector* src, Vector* tgt);
 u32 vec_randomize(Vector* self);
 

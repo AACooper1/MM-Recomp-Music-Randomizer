@@ -117,6 +117,7 @@ Vector* vec_init(size_t elementSize)
 // Add an element to the end of the vector. Θ(1)
 u32 vec_push_back(Vector* self, void* data)
 {
+    // log_debug("Called vec_push_back on vector at %p with %i elements of size %i.\n", self, self->numElements, self->elementSize);
     int rc;
 
     // Resize vector (or chastise user) if full
@@ -215,6 +216,18 @@ u32 vec_pop_at(Vector* self, void* addr, int idx)
 
         return VEC_SUCCESS;
     }
+}
+
+u32 vec_at(Vector* self, size_t idx, void* addr)
+{
+    if (idx >= self->numElements || idx < 0)
+    {
+        return VEC_OUT_OF_RANGE;
+    }
+    
+    Lib_MemCpy(addr, self->dataStart + (self->elementSize * idx), self->elementSize);
+
+    return VEC_SUCCESS;
 }
 
 // Concatenate a vector onto tgt. Does not destroy src, remember to free when you are done.

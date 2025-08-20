@@ -334,7 +334,7 @@ int read_seq_directory(const char* dbPath)
 
                     if (!success) 
                     {
-                        mmrs_util::error() << "Could not read file " << entry.path().filename().string();
+                        mmrs_util::error() << "Could not read file " << entry.path().filename().string() << std::endl;
                         continue;
                     }
 

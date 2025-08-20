@@ -15,6 +15,16 @@ void init_vanilla_sequence_categories()
     // print_bytes(categorySequences, sizeof(Vector*));
 
     // print_bytes(categorySequences[0], sizeof(Vector));
+    for (size_t i = 0; i < 127; i++)
+    {
+        log_debug("%s (index %i) at %p\n", vanillaSongNames[i], i, &(vanillaSongNames[i]))
+        log_debug("songNames vector at %p.\n", songNames);
+        vec_push_back(songNames, vanillaSongNames[i]);
+        log_debug("Pushed.\n")
+        char* thisSongName = (char*)recomp_alloc(sizeof(char) * 256);
+        Lib_MemSet(thisSongName, 0, 256);
+        vec_at(songNames, i, thisSongName);
+    }
 }
 
 // Add all custom sequences to the categories table.
@@ -28,6 +38,8 @@ void add_custom_sequence_categories(MMRS* allMmrs, int numMmrs)
     {
         // Custom music tracks start at index 256 in Mage's API. Subject to change.
         int seqId = i + 256;
+        log_debug("Song name is %s.\n", allMmrs[i].songName);
+        vec_push_back(songNames, allMmrs[i].songName);
         for (int c = 0; c < 256; c++)
         {
             if (allMmrs[i].categories[c])
@@ -67,10 +79,8 @@ void add_custom_sequence_categories(MMRS* allMmrs, int numMmrs)
 
 RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int numMmrs)
 {
-    logLevel = set_log_level(LOG_ERROR);
+    songNames = vec_init(256);
     init_vanilla_sequence_categories();
-
-    vec_printData(categorySequences[11]);
 
     add_custom_sequence_categories(allMmrs, numMmrs);
     
@@ -163,10 +173,10 @@ RECOMP_CALLBACK(".", music_rando_on_init) void randomize_music()
             {
                 rc = vec_pop_back(availableSeqs, &newSeqId);
                 log_debug("\nPopped value is %02x.\n", newSeqId);
-                // 30% chance of reroll if not custom song (probably tweak later)
+                // 15% chance of reroll if not custom song (possibly tweak later)
                 if (newSeqId < 256)
                 {
-                    if (Rand_Next() % 10 < 3)
+                    if (Rand_Next() % 100 < 15)
                     {
                         log_debug("Rerolling 0x%02x because custom music makers are GREEDY...\n", newSeqId);
                         continue;
@@ -196,7 +206,21 @@ RECOMP_CALLBACK(".", music_rando_on_init) void randomize_music()
         else
         {
             AudioApi_ReplaceSequence(i, &(sequenceTableImpostor.entries[newSeqId]));
-            log_info("[MUSIC RANDOMIZER] Replaced sequence %i with sequence %i.\n", i, newSeqId);
+            char oldSeqName[256];
+            char newSeqName[256];
+            vec_at(songNames, i, oldSeqName);
+
+            if (newSeqId < 256)
+            {
+                vec_at(songNames, newSeqId, &(newSeqName[0]));
+            }
+            else
+            {
+                vec_at(songNames, newSeqId - 129, &(newSeqName[0]));
+            }
+
+            log_debug("[MUSIC RANDOMIZER] Replaced sequence %i with sequence %i.\n", i, newSeqId);
+            log_info("[MUSIC RANDOMIZER] Replaced sequence %s with sequence %s.\n", oldSeqName, newSeqName)
             AudioApi_ReplaceSequenceFont(i, 0, sequenceFontTableImpostor[((u16*)sequenceFontTableImpostor)[newSeqId] + 1]);
             // log_info("Loaded audiobank %i.\n", sequenceFontTableImpostor[((u16*)sequenceFontTableImpostor)[newSeqId] + 1]);
         }
