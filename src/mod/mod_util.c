@@ -278,7 +278,6 @@ u32 vec_randomize(Vector* self)
         }
 
         void* tempData = recomp_alloc(self->elementSize);
-        Rand_Seed(get_current_time());
 
         for (int i = self->numElements - 1; i > 0; i--)
         {

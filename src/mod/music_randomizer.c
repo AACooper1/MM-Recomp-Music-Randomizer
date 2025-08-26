@@ -81,6 +81,13 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int 
 {
     songNames = vec_init(256);
     init_vanilla_sequence_categories();
+    // u32 *randSeed = (u32*)recomp_get_save_file_path();
+
+    // Rand_Seed(*randSeed);
+
+    // recomp_free(randSeed);
+
+    Rand_Seed(get_current_time());
 
     add_custom_sequence_categories(allMmrs, numMmrs);
     
@@ -146,6 +153,12 @@ RECOMP_CALLBACK(".", music_rando_on_init) void randomize_music()
         alreadyRolled[i] = false;
     }
 
+    randomizedIds = recomp_alloc(sizeof(int) * gAudioCtx.sequenceTable->header.numEntries);
+    for (int z = 0; z < gAudioCtx.sequenceTable->header.numEntries; z++)
+    {
+        randomizedIds[z] = z;
+    }
+
     for (int i = 2; i < sequenceTableImpostor.header.numEntries; i++)
     {
         Vector* availableSeqs = vec_init(sizeof(int));
@@ -185,7 +198,25 @@ RECOMP_CALLBACK(".", music_rando_on_init) void randomize_music()
                 // Reroll if already rolled and still has seqs available.
                 if (alreadyRolled[newSeqId] == false)
                 {
-                    alreadyRolled[newSeqId] = true;
+                    // Do not mark already rolled on seldom-heard music
+                    if  (!(
+                    i == 0x03 ||    // Chase
+                    i == 0x04 ||    // Majora's Theme
+                    i == 0x05 ||    // Clock Tower
+                    i == 0x0F ||    // Sharp's Curse
+                    i == 0x18 ||    // File Select (Fairy's Fountain)
+                    i == 0x1E ||    // Opening
+                    i == 0x74 ||    // The End (Credits 1)
+                    i == 0x75 ||    // Opening (Loop)
+                    i == 0x76 ||    // Title Theme
+                    i == 0x7B ||    // To the Moon
+                    i == 0x7C ||    // The Giants' Exit
+                    i == 0x7E ||    // Moon's Destruction
+                    i == 0x7F       // Credits 2
+                    ))
+                    {
+                        alreadyRolled[newSeqId] = true;
+                    }
                     break;
                 }
                 else
@@ -213,10 +244,12 @@ RECOMP_CALLBACK(".", music_rando_on_init) void randomize_music()
             if (newSeqId < 256)
             {
                 vec_at(songNames, newSeqId, &(newSeqName[0]));
+                randomizedIds[i] = newSeqId;
             }
             else
             {
                 vec_at(songNames, newSeqId - 129, &(newSeqName[0]));
+                randomizedIds[i] = newSeqId - 129;
             }
 
             log_debug("[MUSIC RANDOMIZER] Replaced sequence %i with sequence %i.\n", i, newSeqId);

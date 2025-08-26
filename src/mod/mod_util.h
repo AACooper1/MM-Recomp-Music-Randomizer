@@ -3,6 +3,7 @@
 #include "recomputils.h"
 #include "recompconfig.h"
 #include "recompui.h"
+#include "debug_util.h"
 
 #include <string.h>
 

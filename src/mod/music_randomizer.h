@@ -30,8 +30,8 @@ typedef enum Categories_t
 
 const char* vanillaSongNames[256] = 
 {
-    /* 0x00 */ "General Sound Effects (should not roll)",
-    /* 0x01 */ "Ambience (should not roll)",
+    /* 0x00 */ "", // General SFX
+    /* 0x01 */ "", // Ambience
     /* 0x02 */ "Termina Field",
     /* 0x03 */ "Chase",
     /* 0x04 */ "Majora's Theme",
@@ -163,6 +163,7 @@ const char* vanillaSongNames[256] =
 Vector* songNames;
 Vector** categorySequences;
 Vector** sequenceCategories;
+int* randomizedIds;
 
 AudioTable sequenceTableImpostor;
 u8* sequenceFontTableImpostor;

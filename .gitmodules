@@ -4,9 +4,6 @@
 [submodule "mm-decomp"]
 	path = mm-decomp
 	url = https://github.com/zeldaret/mm
-[submodule "libzippp"]
-	path = libzippp
-	url = https://github.com/ctabin/libzippp.git
-[submodule "libzip"]
-	path = libzip
-	url = https://github.com/nih-at/libzip.git
+[submodule "N64Recomp"]
+	path = N64Recomp
+	url = https://github.com/N64Recomp/N64Recomp

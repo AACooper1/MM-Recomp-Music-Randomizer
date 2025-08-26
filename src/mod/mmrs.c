@@ -11,7 +11,7 @@
 #include "recompconfig.h"
 
 // Required Mods
-#include "audio_api.h"
+#include "audio_api/all.h"
 
 // Project Files
 #include "read_mmrs.h"
@@ -30,9 +30,11 @@ RECOMP_IMPORT(".", bool load_mmrs_table(MMRS* allMmrs));
 RECOMP_IMPORT(".", bool load_zseq(Zseq* zseqAddr, int zseqId));
 RECOMP_IMPORT(".", bool load_zbank(Zbank* zbankAddr, int zbankId));
 RECOMP_IMPORT(".", bool sql_teardown());
-RECOMP_IMPORT("debugprinter", void Debug_Print_Draw());
 
 RECOMP_DECLARE_EVENT(mmrs_reader_done(MMRS *allMmrs, int numMmrs));
+
+extern Vector* songNames;
+extern int* randomizedIds;
 
 MMRS *allMmrs;
 int numMmrs;
@@ -143,7 +145,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
                 bankEntry->romAddr = (uintptr_t) &zbank->bankData[0];
                 bankEntry->size = zbank->bankSize;
                 bankEntry->medium = zbank->metaData[0];
-                bankEntry->cachePolicy = 42;
+                bankEntry->cachePolicy = zbank->metaData[1];
                 bankEntry->shortData1 = (zbank->metaData[2] << 8) | (zbank->metaData[3]);
                 bankEntry->shortData2 = (zbank->metaData[4] << 8) | (zbank->metaData[5]);
                 bankEntry->shortData3 = (u16) zbank->metaData[6];
@@ -165,6 +167,16 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 
                 log_debug("%d %d %p %p\n", bankNo, gAudioCtx.soundFontTable->entries[bankNo].cachePolicy, 
                     gAudioCtx.soundFontTable->entries[bankNo].romAddr, &zbank->bankData[0]);
+                // s32 bankNo = AudioApi_ImportVanillaSoundFont(
+                //     (uintptr_t*)&(zbank->bankData[0]),          // Addr
+                //     zbank->metaData[2],                         // sampleBank0
+                //     zbank->metaData[3],                         // sampleBank1
+                //     zbank->metaData[4],                         // numInstruments
+                //     zbank->metaData[5],                         // numDrums
+                //     zbank->metaData[6]                          // numSfx
+                // );
+
+                allMmrs[i].bankNo = bankNo;
 
             }
             else
@@ -196,15 +208,182 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 
 RECOMP_CALLBACK("magemods_audio_api", AudioApi_SoundFontLoaded) bool mmrs_loader_font_loaded(s32 fontId, u8* fontData)
 {
-    int pastLogLevel = logLevel;
-    logLevel = set_log_level(LOG_DEBUG);
     log_debug("loaded font: %d %p\n", fontId, fontData);
 
     if(fontId > 0x28 && logLevel >= LOG_DEBUG)
     {
         print_bytes(fontData, 512);
     }
-
-    logLevel = set_log_level(pastLogLevel);
     return true;
+}
+
+s32 currSeqId;
+const char currSongName[256];
+OSTime lastSongLoadTime;
+
+RECOMP_HOOK("AudioLoad_SyncLoadSeq") void prepare_display_song_name(s32 seqId)
+{
+    currSeqId = seqId;
+}
+
+RECOMP_HOOK("Play_PostWorldDraw") void drawSongName(PlayState* this)
+{
+    if (osGetTime() > lastSongLoadTime + OS_USEC_TO_CYCLES(5 * 1000 * 1000))
+    {
+        return;
+    }
+
+    GfxPrint songNamePrinter;
+    Gfx* gfx;
+
+    OPEN_DISPS(this->state.gfxCtx);
+
+    gfx = POLY_OPA_DISP + 1;
+    gSPDisplayList(OVERLAY_DISP++, gfx);
+    GfxPrint_Init(&songNamePrinter);
+    GfxPrint_Open(&songNamePrinter, gfx);
+
+    GfxPrint_SetColor(&songNamePrinter, 200, 200, 200, 255);
+
+    GfxPrint_SetPos(&songNamePrinter, 0, 29);
+
+    vec_at(songNames, randomizedIds[currSeqId], currSongName);
+
+    GfxPrint_Printf(&songNamePrinter, currSongName);
+
+    gfx = GfxPrint_Close(&songNamePrinter);
+    GfxPrint_Destroy(&songNamePrinter);
+
+    gSPEndDisplayList(gfx++);
+    gSPBranchList(POLY_OPA_DISP, gfx);
+    POLY_OPA_DISP = gfx;
+
+    CLOSE_DISPS(this->state.gfxCtx);
+}
+
+RECOMP_HOOK_RETURN("AudioLoad_SyncLoadSeq") void displaySongName()
+{
+    vec_at(songNames, currSeqId, currSongName);
+    lastSongLoadTime = osGetTime();
+}
+
+extern u8 sPrevSeqMode;
+
+#include "overlays/actors/ovl_En_Test3/z_en_test3.h"
+extern void Player_Action_21(Player* this, PlayState* play);
+extern void Player_Action_84(Player* this, PlayState* play);
+extern void Player_Action_52(Player* this, PlayState* play);
+extern void Player_Action_53(Player* this, PlayState* play);
+extern bool func_8082EF20(Player* this);
+
+RECOMP_PATCH void Player_UpdateCamAndSeqModes(PlayState* play, Player* this) {
+    u8 seqMode;
+    s32 pad[2];
+    Camera* camera;
+    s32 camMode;
+
+    if (this == GET_PLAYER(play)) {
+        seqMode = SEQ_MODE_DEFAULT;
+        if (this->stateFlags1 & PLAYER_STATE1_100000) {
+            seqMode = SEQ_MODE_STILL;
+        } else if (this->csAction != PLAYER_CSACTION_NONE) {
+            Camera_ChangeMode(Play_GetCamera(play, CAM_ID_MAIN), CAM_MODE_NORMAL);
+        } else {
+            camera = (this->actor.id == ACTOR_PLAYER) ? Play_GetCamera(play, CAM_ID_MAIN)
+                                                      : Play_GetCamera(play, ((EnTest3*)this)->subCamId);
+            if ((this->actor.parent != NULL) && (this->stateFlags3 & PLAYER_STATE3_FLYING_WITH_HOOKSHOT)) {
+                camMode = CAM_MODE_HOOKSHOT;
+                Camera_SetViewParam(camera, CAM_VIEW_TARGET, this->actor.parent);
+            } else if (Player_Action_21 == this->actionFunc) {
+                camMode = CAM_MODE_STILL;
+            } else if (this->stateFlags3 & PLAYER_STATE3_8000) {
+                if (this->stateFlags1 & PLAYER_STATE1_8000000) {
+                    camMode = CAM_MODE_GORONDASH;
+                } else {
+                    camMode = CAM_MODE_FREEFALL;
+                }
+            } else if (this->stateFlags3 & PLAYER_STATE3_80000) {
+                if (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND) {
+                    camMode = CAM_MODE_GORONDASH;
+                } else {
+                    camMode = CAM_MODE_GORONJUMP;
+                }
+            } else if (this->stateFlags2 & PLAYER_STATE2_100) {
+                camMode = CAM_MODE_PUSHPULL;
+            } else if (this->focusActor != NULL) {
+                if (CHECK_FLAG_ALL(this->actor.flags, ACTOR_FLAG_TALK)) {
+                    camMode = CAM_MODE_TALK;
+                } else if (this->stateFlags1 & PLAYER_STATE1_FRIENDLY_ACTOR_FOCUS) {
+                    if (this->stateFlags1 & PLAYER_STATE1_ZORA_BOOMERANG_THROWN) {
+                        camMode = CAM_MODE_FOLLOWBOOMERANG;
+                    } else {
+                        camMode = CAM_MODE_FOLLOWTARGET;
+                    }
+                } else {
+                    camMode = CAM_MODE_BATTLE;
+                }
+                Camera_SetViewParam(camera, CAM_VIEW_TARGET, this->focusActor);
+            } else if (this->stateFlags1 & PLAYER_STATE1_CHARGING_SPIN_ATTACK) {
+                camMode = CAM_MODE_CHARGE;
+            } else if (this->stateFlags3 & PLAYER_STATE3_100) {
+                camMode = CAM_MODE_DEKUHIDE;
+            } else if (this->stateFlags1 & PLAYER_STATE1_ZORA_BOOMERANG_THROWN) {
+                camMode = CAM_MODE_FOLLOWBOOMERANG;
+                Camera_SetViewParam(camera, CAM_VIEW_TARGET, this->zoraBoomerangActor);
+            } else if (this->stateFlags1 & (PLAYER_STATE1_4 | PLAYER_STATE1_2000 | PLAYER_STATE1_4000)) {
+                if (Player_FriendlyLockOnOrParallel(this)) {
+                    camMode = CAM_MODE_HANGZ;
+                } else {
+                    camMode = CAM_MODE_HANG;
+                }
+            } else if ((this->stateFlags3 & PLAYER_STATE3_2000) && (this->actor.velocity.y < 0.0f)) {
+                if (this->stateFlags1 & (PLAYER_STATE1_PARALLEL | PLAYER_STATE1_LOCK_ON_FORCED_TO_RELEASE)) {
+                    camMode = CAM_MODE_DEKUFLYZ;
+                } else {
+                    camMode = CAM_MODE_DEKUFLY;
+                }
+            } else if (this->stateFlags1 & (PLAYER_STATE1_PARALLEL | PLAYER_STATE1_LOCK_ON_FORCED_TO_RELEASE)) {
+                if (func_800B7128(this) || func_8082EF20(this)) {
+                    camMode = CAM_MODE_BOWARROWZ;
+                } else if (this->stateFlags1 & PLAYER_STATE1_200000) {
+                    camMode = CAM_MODE_CLIMBZ;
+                } else {
+                    camMode = CAM_MODE_TARGET;
+                }
+            } else if ((this->stateFlags1 & PLAYER_STATE1_400000) && (this->transformation != 0)) {
+                camMode = CAM_MODE_STILL;
+            } else if (this->stateFlags1 & PLAYER_STATE1_40000) {
+                camMode = CAM_MODE_JUMP;
+            } else if (this->stateFlags1 & PLAYER_STATE1_200000) {
+                camMode = CAM_MODE_CLIMB;
+            } else if (this->stateFlags1 & PLAYER_STATE1_80000) {
+                camMode = CAM_MODE_FREEFALL;
+            } else if (((Player_Action_84 == this->actionFunc) &&
+                        (this->meleeWeaponAnimation >= PLAYER_MWA_FORWARD_SLASH_1H) &&
+                        (this->meleeWeaponAnimation <= PLAYER_MWA_ZORA_PUNCH_KICK)) ||
+                       (this->stateFlags3 & PLAYER_STATE3_8) ||
+                       ((Player_Action_52 == this->actionFunc) && (this->av2.actionVar2 == 0)) ||
+                       (Player_Action_53 == this->actionFunc)) {
+                camMode = CAM_MODE_STILL;
+            } else {
+                camMode = CAM_MODE_NORMAL;
+                if ((this->speedXZ == 0.0f) &&
+                    (!(this->stateFlags1 & PLAYER_STATE1_800000) || (this->rideActor->speed == 0.0f))) {
+                    seqMode = SEQ_MODE_STILL;
+                }
+            }
+
+            Camera_ChangeMode(camera, camMode);
+        }
+
+        if (!recomp_get_config_u32("disable_enemy_bgm"))
+        {
+            if (play->actorCtx.attention.bgmEnemy != NULL) {
+                seqMode = SEQ_MODE_ENEMY;
+                Audio_UpdateEnemyBgmVolume(sqrtf(play->actorCtx.attention.bgmEnemy->xyzDistToPlayerSq));
+            }
+        }
+
+        Audio_SetSequenceMode(seqMode);
+    }
 }

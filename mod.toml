@@ -33,7 +33,8 @@ minimum_recomp_version = "1.2.0"
 
 # Dependency mods. Each entry is the mod's ID and then an optional minimum version of the dependency mod.
 dependencies = [
-   "magemods_audio_api"
+   "magemods_audio_api",
+   "mm_recomp_rando"
 ]
 
 # Native libraries (e.g. DLLs) and the functions they export.
@@ -107,28 +108,9 @@ linux_release_build_preset = "zig-linux-x64-Release"
 
 # Mod config options
 [[manifest.config_options]]
-id = "enum_option"
-name = "Enum Option"
-description = "Test enum config option"
+id = "disable_enemy_bgm"
+name = "Disable Combat Music"
+description = "Controls whether combat music plays while fighting a normal enemy. Does not apply to (mini-)bosses."
 type = "Enum"
-options = [ "First", "Second" ]
-default = "First"
-
-[[manifest.config_options]]
-id = "number_option"
-name = "Number Option"
-description = "Test number config option."
-type = "Number"
-min = 0
-max = 10
-step = 0.1
-precision = 1
-percent = false
-default = 1
-
-[[manifest.config_options]]
-id = "string_option"
-name = "String Option"
-description = "Test string config option."
-type = "String"
-default = "Lorem Ipsum"
+options = [ "Off", "On" ]
+default = "Off"
