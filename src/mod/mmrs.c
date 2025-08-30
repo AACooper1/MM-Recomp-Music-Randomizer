@@ -31,6 +31,7 @@ RECOMP_IMPORT(".", bool load_zseq(Zseq* zseqAddr, int zseqId));
 RECOMP_IMPORT(".", bool load_zbank(Zbank* zbankAddr, int zbankId));
 RECOMP_IMPORT(".", bool sql_teardown());
 
+RECOMP_DECLARE_EVENT(music_rando_begin());
 RECOMP_DECLARE_EVENT(mmrs_reader_done(MMRS *allMmrs, int numMmrs));
 
 extern Vector* songNames;
@@ -42,12 +43,22 @@ int numMmrs;
 int logLevel;
 
 /*
+    Initialize the music randomizer during N64 logo screen.
+    This ensures that it loads after the rando has changed the save path.
+    Will be replaced once rando update with declared event is out.
+*/
+RECOMP_HOOK_RETURN("ConsoleLogo_Init") void on_ConsoleLogo_Init()
+{
+    music_rando_begin();
+}
+
+/*
     mmrs_loader_init()
         Initialize, update, and load the MMRS database.
 */
 RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 {
-    logLevel = set_log_level(LOG_ERROR);
+    logLevel = set_log_level(recomp_get_config_u32("log_level"));
 
     log_debug("Starting mmrs_loader_init()...\n");
     const char *dbPath = "assets/musicDB.db";

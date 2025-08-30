@@ -38,7 +38,7 @@ Vector* CAT_SEQ_INIT(int seqIdArray[], size_t size, Vector** SeqCatArray,  int s
         {
             vec_errmsg(rc);
         }
-        log_warning("Pushing %i to seqCatElement[%i]\n", seqCatIdx, seqIdArray[i])
+        log_debug("Pushing %i to seqCatElement[%i]\n", seqCatIdx, seqIdArray[i])
         if( (rc = vec_push_back(SeqCatArray[seqIdArray[i]], &seqCatIdx)) != VEC_SUCCESS )
         {
             vec_errmsg(rc);

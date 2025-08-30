@@ -19,6 +19,7 @@
 #define STOP_EXECUTION(...) bool printed = false; while (true) { if (!printed) log_critical(__VA_ARGS__); printed = true; }
 
 RECOMP_IMPORT(".", long get_current_time());
+RECOMP_IMPORT(".", int fucking_use_stoi(const char* idfc));
 
 void print_bytes(void* addr, int n);
 

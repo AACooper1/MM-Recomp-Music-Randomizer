@@ -81,20 +81,10 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int 
 {
     songNames = vec_init(256);
     init_vanilla_sequence_categories();
-    // u32 *randSeed = (u32*)recomp_get_save_file_path();
 
-    // Rand_Seed(*randSeed);
-
-    // recomp_free(randSeed);
-
-    Rand_Seed(get_current_time());
+    // Rand_Seed(get_current_time());
 
     add_custom_sequence_categories(allMmrs, numMmrs);
-    
-    for (int i = 0; i < 139; i++)
-    {
-        vec_randomize(categorySequences[i]);
-    }
 
     sequenceFontTableImpostor = recomp_alloc((sizeof(u16) * gAudioCtx.sequenceTable->header.numEntries) + gAudioCtx.sequenceTable->header.numEntries * 20);
     Lib_MemCpy(sequenceFontTableImpostor, gAudioCtx.sequenceFontTable, (sizeof(u16) * gAudioCtx.sequenceTable->header.numEntries) + gAudioCtx.sequenceTable->header.numEntries * 20);
@@ -144,9 +134,29 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int 
     music_rando_on_init();
 }
 
-RECOMP_CALLBACK(".", music_rando_on_init) void randomize_music()
+RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
 {
-    logLevel = set_log_level(LOG_INFO);
+    recomp_printf("Path length: %i\n", strlen(recomp_get_save_file_path()));
+    
+    unsigned char* save_file_path_temp = recomp_get_save_file_path();
+    unsigned char* save_file_path = recomp_alloc(strlen(save_file_path_temp));
+    strcpy(save_file_path, save_file_path_temp);
+    recomp_free(save_file_path_temp);
+    recomp_printf("Initial path: %s\n", save_file_path);
+    
+    save_file_path+=strlen(save_file_path) - 15;
+    recomp_printf("End of path: %s\n", save_file_path);
+
+    int randSeed = fucking_use_stoi(save_file_path);
+    recomp_printf("Seed: %i\n\n", randSeed);
+
+    Rand_Seed((u32)randSeed);
+
+    for (int i = 0; i < 139; i++)
+    {
+        vec_randomize(categorySequences[i]);
+    }
+
     bool alreadyRolled[gAudioCtx.sequenceTable->header.numEntries];
     for (int i = 0; i < gAudioCtx.sequenceTable->header.numEntries; i++)
     {
@@ -185,6 +195,18 @@ RECOMP_CALLBACK(".", music_rando_on_init) void randomize_music()
             while (availableSeqs->numElements > 0)
             {
                 rc = vec_pop_back(availableSeqs, &newSeqId);
+                if (
+                    newSeqId == NA_BGM_FAIRY_FOUNTAIN ||
+                    newSeqId == NA_BGM_CLOCK_TOWN_DAY_2_PTR ||
+                    newSeqId == NA_BGM_MILK_BAR_DUPLICATE ||
+                    newSeqId == NA_BGM_MAJORAS_LAIR ||
+                    newSeqId == NA_BGM_OCARINA_LULLABY_INTRO_PTR
+                )
+                {
+                    alreadyRolled[newSeqId] = true;
+                    log_debug("Rolled 0x%02x, which is a pointer. Rerolling...")
+                    continue;
+                }
                 log_debug("\nPopped value is %02x.\n", newSeqId);
                 // 15% chance of reroll if not custom song (possibly tweak later)
                 if (newSeqId < 256)

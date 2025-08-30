@@ -39,7 +39,7 @@ dependencies = [
 
 # Native libraries (e.g. DLLs) and the functions they export.
 native_libraries = [
-   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["set_log_level", "sql_init", "read_mmrs_files", "load_mmrs_table", "load_zseq", "load_zbank", "sql_teardown", "get_current_time"] },
+   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["set_log_level", "sql_init", "read_mmrs_files", "load_mmrs_table", "load_zseq", "load_zbank", "sql_teardown", "get_current_time", "fucking_use_stoi"] },
    { name = "APCpp-Glue", funcs = ["rando_get_seed_name", "rando_solo_generate"]}
 ]
 
@@ -108,6 +108,16 @@ linux_release_build_preset = "zig-linux-x64-Release"
 
 # Mod config options
 [[manifest.config_options]]
+
+id = "log_level"
+name = "Log Level"
+description = "Controls the verbosity output to the console. Only affects debug releases."
+type = "Enum"
+options = [ "Nothing", "Critical", "Error", "Warning", "Info", "Debug" ]
+default = "Error"
+
+[[manifest.config_options]]
+
 id = "disable_enemy_bgm"
 name = "Disable Combat Music"
 description = "Controls whether combat music plays while fighting a normal enemy. Does not apply to (mini-)bosses."

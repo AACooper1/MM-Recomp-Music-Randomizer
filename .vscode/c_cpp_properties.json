@@ -16,7 +16,7 @@
                 "/usr/local/lib",
                 "/usr/lib/llvm-18/lib/clang/18/include",
                 "/usr/local/include",
-                "${workspaceFolder}/include/shared",
+                "${workspaceFolder}/include/shared"
             ],
             "defines": [
                 "F3DEX_GBI_2",
