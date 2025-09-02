@@ -26,9 +26,11 @@
 RECOMP_IMPORT(".", int set_log_level(int level));
 RECOMP_IMPORT(".", bool sql_init(const char *dbPath));
 RECOMP_IMPORT(".", int read_mmrs_files());
+RECOMP_IMPORT(".", int count_zsound(int mmrsId));
 RECOMP_IMPORT(".", bool load_mmrs_table(MMRS* allMmrs));
 RECOMP_IMPORT(".", bool load_zseq(Zseq* zseqAddr, int zseqId));
 RECOMP_IMPORT(".", bool load_zbank(Zbank* zbankAddr, int zbankId));
+RECOMP_IMPORT(".", bool load_zsound(Zsound* zsoundAddr, int zsoundId));
 RECOMP_IMPORT(".", bool sql_teardown());
 
 RECOMP_DECLARE_EVENT(music_rando_begin());
@@ -126,22 +128,22 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
         mySeq->shortData2 = 0;
         mySeq->shortData3 = 0;
 
-        log_debug("\nCreated audiotable thing for song %d: %s!\n", i + 1, allMmrs[i].songName);
-        log_debug("Size of data: %i\n", mySeq->size);
-        log_debug("===Data spans from %p to %p==\n", mySeq->romAddr, mySeq->romAddr + mySeq->size);
-        log_debug("AudioTableEntry data: ");
-        for (int q = 0; q < 16; q++)
-        {
-            log_debug("%02x ", *((unsigned char*)mySeq->romAddr + q));
-        }
-        log_debug("...\n");
+        // log_debug("\nCreated audiotable thing for song %d: %s!\n", i + 1, allMmrs[i].songName);
+        // log_debug("Size of data: %i\n", mySeq->size);
+        // log_debug("===Data spans from %p to %p==\n", mySeq->romAddr, mySeq->romAddr + mySeq->size);
+        // log_debug("AudioTableEntry data: ");
+        // for (int q = 0; q < 16; q++)
+        // {
+        //     log_debug("%02x ", *((unsigned char*)mySeq->romAddr + q));
+        // }
+        // log_debug("...\n");
 
-        log_debug("bankInfoId: %i\n", allMmrs[i].bankInfoId);
-        log_debug("Categories (below):\n");
-        if (logLevel >= LOG_DEBUG)
-        {
-            print_bytes(allMmrs[i].categories, 256);
-        }
+        // log_debug("bankInfoId: %i\n", allMmrs[i].bankInfoId);
+        // log_debug("Categories (below):\n");
+        // if (logLevel >= LOG_DEBUG)
+        // {
+        //     print_bytes(allMmrs[i].categories, 256);
+        // }
 
         s32 sequenceId = AudioApi_AddSequence(mySeq);
         log_debug("New sequence ID: %i\n", sequenceId);
@@ -153,41 +155,52 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 
             if(load_zbank(zbank, allMmrs[i].bankInfoId))
             {
-                bankEntry->romAddr = (uintptr_t) &zbank->bankData[0];
-                bankEntry->size = zbank->bankSize;
-                bankEntry->medium = zbank->metaData[0];
-                bankEntry->cachePolicy = zbank->metaData[1];
-                bankEntry->shortData1 = (zbank->metaData[2] << 8) | (zbank->metaData[3]);
-                bankEntry->shortData2 = (zbank->metaData[4] << 8) | (zbank->metaData[5]);
-                bankEntry->shortData3 = (u16) zbank->metaData[6];
+                // bankEntry->romAddr = (uintptr_t) &zbank->bankData[0];
+                // bankEntry->size = zbank->bankSize;
+                // bankEntry->medium = zbank->metaData[0];
+                // bankEntry->cachePolicy = zbank->metaData[1];
+                // bankEntry->shortData1 = (zbank->metaData[2] << 8) | (zbank->metaData[3]);
+                // bankEntry->shortData2 = (zbank->metaData[4] << 8) | (zbank->metaData[5]);
+                // bankEntry->shortData3 = (u16) zbank->metaData[6];
 
-                if (logLevel >= LOG_DEBUG)
-                {
-                    print_bytes(&zbank->bankData[0], 256);
-                }
-                log_debug("\n");
+                // if (logLevel >= LOG_DEBUG)
+                // {
+                //     print_bytes(&zbank->bankData[0], 256);
+                // }
+                // log_debug("\n");
                 
-                for (int d = 0; d < 8; d++)
-                {
-                    log_debug("%02x ", zbank->metaData[d]);
-                }
-                log_debug("\n");
+                // for (int d = 0; d < 8; d++)
+                // {
+                //     log_debug("%02x ", zbank->metaData[d]);
+                // }
+                // log_debug("\n");
 
-                s32 bankNo = AudioApi_AddSoundFont(bankEntry);
-                allMmrs[i].bankNo = bankNo;
+                // s32 bankNo = AudioApi_AddSoundFont(bankEntry);
+                // allMmrs[i].bankNo = bankNo;
 
-                log_debug("%d %d %p %p\n", bankNo, gAudioCtx.soundFontTable->entries[bankNo].cachePolicy, 
-                    gAudioCtx.soundFontTable->entries[bankNo].romAddr, &zbank->bankData[0]);
-                // s32 bankNo = AudioApi_ImportVanillaSoundFont(
-                //     (uintptr_t*)&(zbank->bankData[0]),          // Addr
-                //     zbank->metaData[2],                         // sampleBank0
-                //     zbank->metaData[3],                         // sampleBank1
-                //     zbank->metaData[4],                         // numInstruments
-                //     zbank->metaData[5],                         // numDrums
-                //     zbank->metaData[6]                          // numSfx
-                // );
+                s32 bankNo = AudioApi_ImportVanillaSoundFont(
+                    (uintptr_t*)&(zbank->bankData[0]),          // Addr
+                    zbank->metaData[2],                         // sampleBank0
+                    zbank->metaData[3],                         // sampleBank1
+                    zbank->metaData[4],                         // numInstruments
+                    zbank->metaData[5],                         // numDrums
+                    zbank->metaData[6]                          // numSfx
+                );
 
                 allMmrs[i].bankNo = bankNo;
+
+                log_info("Soundfond id %d: %p %d %d %d %d %d\n",
+                    bankNo,
+                    (uintptr_t*)&(zbank->bankData[0]),          // Addr
+                    zbank->metaData[2],                         // sampleBank0
+                    zbank->metaData[3],                         // sampleBank1
+                    zbank->metaData[4],                         // numInstruments
+                    zbank->metaData[5],                         // numDrums
+                    zbank->metaData[6]                          // numSfx
+                );
+                
+                // log_info("%d %d %p %p\n", bankNo, gAudioCtx.soundFontTable->entries[bankNo].cachePolicy, 
+                //     gAudioCtx.soundFontTable->entries[bankNo].romAddr, &zbank->bankData[0]);
 
             }
             else
@@ -196,6 +209,10 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
             }
 
             recomp_free(bankEntry);
+        }
+        if (count_zsound(allMmrs[i].id))
+        {
+            
         }
         AudioApi_ReplaceSequence(sequenceId, mySeq);
         AudioApi_AddSequenceFont(sequenceId, allMmrs[i].bankNo);
@@ -221,10 +238,10 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_SoundFontLoaded) bool mmrs_loader
 {
     log_debug("loaded font: %d %p\n", fontId, fontData);
 
-    if(fontId > 0x28 && logLevel >= LOG_DEBUG)
-    {
-        print_bytes(fontData, 512);
-    }
+    // if(fontId > 0x28 && logLevel >= LOG_DEBUG)
+    // {
+    //     print_bytes(fontData, 512);
+    // }
     return true;
 }
 

@@ -118,7 +118,7 @@ const char* vanillaSongNames[256] =
     /* 0x55 */ "Song of Soaring",
     /* 0x56 */ "A Pointer to Milk Bar For Some Reason",
     /* 0x57 */ "Last Day",
-    /* 0x58 */ "Mikau",
+    /* 0x58 */ "", // Mikau
     /* 0x59 */ "Concert For You",
     /* 0x5A */ "Frog Song",
     /* 0x5B */ "", // Ocarina - Sonata of Awakening

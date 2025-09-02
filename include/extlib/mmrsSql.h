@@ -16,6 +16,8 @@ bool _sql_init(const char* dbPath);
 
 int count_mmrs();
 
+int count_zsound(int mmrsId);
+
 bool init_mmrs_cache();
 
 bool check_mmrs_exists(fs::directory_entry file);
@@ -24,11 +26,15 @@ int insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file);
 
 int insert_zbank(Zbank zbank, int mmrsId);
 
+bool insert_zsound(Zsound zsound, int mmrsId);
+
 bool _load_mmrs_table(MMRS* allMmrs);
 
 bool _load_zseq(Zseq* zseqAddr, int zseqId);
 
 bool _load_zbank(Zbank* zbankAddr, int zbankId);
+
+bool _load_zsound(Zsound* zsoundAddr, int zsoundId);
 
 bool retrieve_filenames(int* ids, std::string* filenames);
 

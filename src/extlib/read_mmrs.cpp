@@ -44,7 +44,9 @@ bool read_mmrs(fs::directory_entry file)
     bool found_zbank = false;
 
     std::vector<unsigned char> zbankBuffer;
-    std::vector<unsigned char> bankmetaBuffer;    
+    std::vector<unsigned char> bankmetaBuffer;
+
+    std::vector<Zsound*> zsounds;
 
     for (int i = 0; i < MAX_DATA_SIZE; i++)
     {
@@ -114,7 +116,7 @@ bool read_mmrs(fs::directory_entry file)
                 for (int j = 0; j < 16; j++) 
                 {
                     if (j >= filebuffer.size()) break;
-                    mmrs_util::debug() << std::format("%hhx ", filebuffer[j]);
+                    mmrs_util::debug() << std::format("{:02x} ", filebuffer[j]);
                 }
                 mmrs_util::debug() << "...\n";
 
@@ -174,7 +176,7 @@ bool read_mmrs(fs::directory_entry file)
                 for (int j = 0; j < 16; j++) 
                 {
                     if (j >= filebuffer.size()) break;
-                    mmrs_util::debug() << std::format("%hhx ", filebuffer[j]);
+                    mmrs_util::debug() << std::format("{:02x} ", filebuffer[j]);
                 }
                 mmrs_util::debug() << "...\n";
 
@@ -202,7 +204,7 @@ bool read_mmrs(fs::directory_entry file)
                 for (int j = 0; j < 16; j++) 
                 {
                     if (j >= filebuffer.size()) break;
-                    mmrs_util::debug() << std::format("%hhx ", filebuffer[j]);
+                    mmrs_util::debug() << std::format("{:02x} ", filebuffer[j]);
                 }
                 mmrs_util::debug() << "...\n";
 
@@ -221,8 +223,40 @@ bool read_mmrs(fs::directory_entry file)
             }
             else if (filename.ends_with(".zsound"))
             {
-                mmrs_util::info() << "Custom sounds are not supported yet. " << zip_filename << "will be skipped." << std::endl;
-                return false;
+                // mmrs_util::info() << "Custom sounds are not supported yet. " << zip_filename << "will be skipped." << std::endl;
+                mmrs_util::debug() << "Reading zsound file" << std::endl;
+
+                Zsound zsound;
+                zsound.size = filesize;
+                std::string foreignKey = filename.substr(filename.length() - 8);
+
+                for (int j = 0; j < MAX_DATA_SIZE; j++)
+                {
+                    zsound.data[i] = 0;
+                }
+
+                // Make sure the extraction really succeeded.
+                mmrs_util::debug() << "Data was: ";
+                for (int j = 0; j < 16; j++) 
+                {
+                    if (j >= filebuffer.size()) break;
+                    mmrs_util::debug() << std::format("{:02x} ", filebuffer[j]);
+                }
+                mmrs_util::debug() << "...\n";
+
+                if (filesize > MAX_DATA_SIZE)
+                {
+                    throw std::runtime_error("File is too large - max 32 KiB");
+                }
+
+                for (int j = 0; j < filesize; j++) 
+                {
+                    zsound.data[j] = (unsigned char)filebuffer[j];
+                }
+
+                zsounds.push_back(&zsound);
+
+                mmrs_util::debug() << "Successfully read!\n";
             }
             else 
             {
@@ -233,6 +267,14 @@ bool read_mmrs(fs::directory_entry file)
         success = true;
         // Update the database
         int mmrsId = insert_mmrs(mmrs, zseq, file);
+
+        if (zsounds.size() > 0)
+        {
+            for (int s = 0; s < zsounds.size(); s++)
+            {
+                insert_zsound(*(zsounds[s]), mmrsId);
+            }
+        }
         
         if (found_zbank && found_bankmeta)
         {
@@ -471,6 +513,13 @@ RECOMP_DLL_FUNC(read_mmrs_files)
     RECOMP_RETURN(int, numMmrs);
 }
 
+RECOMP_DLL_FUNC(count_zsound)
+{
+    int mmrsId = RECOMP_ARG(int, 0);
+
+    RECOMP_RETURN(int, count_zsound(mmrsId));
+}
+
 /*
     load_mmrs_table()
         Loads the MMRS table into mod memory from the DB.
@@ -529,6 +578,23 @@ RECOMP_DLL_FUNC(load_zbank)
     int zbankId = RECOMP_ARG(int, 1);
 
     bool success = _load_zbank(zbankAddr, zbankId);
+    
+    if(success)
+    {
+        RECOMP_RETURN(bool, true);
+    }
+    else
+    {
+        RECOMP_RETURN(bool, false);
+    }
+}
+
+RECOMP_DLL_FUNC(load_zsound)
+{
+    Zsound* zsoundAddr = RECOMP_ARG(Zsound*, 0);
+    int zsoundId = RECOMP_ARG(int, 1);
+
+    bool success = _load_zsound(zsoundAddr, zsoundId);
     
     if(success)
     {

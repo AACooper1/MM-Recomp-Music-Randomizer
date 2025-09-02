@@ -42,6 +42,7 @@ typedef struct Zbank_t{
 
 typedef struct Zsound_t {
     int size;
+    u32 sampleAddr;
     unsigned char data[MAX_DATA_SIZE];
 } Zsound;
 

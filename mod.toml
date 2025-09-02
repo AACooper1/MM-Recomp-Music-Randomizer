@@ -39,7 +39,7 @@ dependencies = [
 
 # Native libraries (e.g. DLLs) and the functions they export.
 native_libraries = [
-   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["set_log_level", "sql_init", "read_mmrs_files", "load_mmrs_table", "load_zseq", "load_zbank", "sql_teardown", "get_current_time", "fucking_use_stoi"] },
+   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["set_log_level", "sql_init", "read_mmrs_files", "load_mmrs_table", "load_zseq", "load_zbank", "sql_teardown", "get_current_time", "fucking_use_stoi", "count_zsound", "load_zsound"] },
    { name = "APCpp-Glue", funcs = ["rando_get_seed_name", "rando_solo_generate"]}
 ]
 
