@@ -30,7 +30,10 @@ RECOMP_IMPORT(".", int count_zsound(int mmrsId));
 RECOMP_IMPORT(".", bool load_mmrs_table(MMRS* allMmrs));
 RECOMP_IMPORT(".", bool load_zseq(Zseq* zseqAddr, int zseqId));
 RECOMP_IMPORT(".", bool load_zbank(Zbank* zbankAddr, int zbankId));
-RECOMP_IMPORT(".", bool load_zsound(Zsound* zsoundAddr, int zsoundId));
+RECOMP_IMPORT(".", bool load_zsounds(Zsound* zsoundAddr, int zsoundId));
+RECOMP_IMPORT(".", void zsound_key_add(u32 key, u32 value));
+RECOMP_IMPORT(".", void zsound_key_remove(u32 key));
+RECOMP_IMPORT(".", u32 zsound_key_lookup(u32 key));
 RECOMP_IMPORT(".", bool sql_teardown());
 
 RECOMP_DECLARE_EVENT(music_rando_begin());
@@ -41,6 +44,8 @@ extern int* randomizedIds;
 
 MMRS *allMmrs;
 int numMmrs;
+
+Vector* zsoundTable;
 
 int logLevel;
 
@@ -61,8 +66,9 @@ RECOMP_HOOK_RETURN("ConsoleLogo_Init") void on_ConsoleLogo_Init()
 RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 {
     logLevel = set_log_level(recomp_get_config_u32("log_level"));
+    zsoundTable = vec_init(MAX_ZSOUND_SIZE);
 
-    log_debug("Starting mmrs_loader_init()...\n");
+    log_info("Loading MMRS files...\n");
     const char *dbPath = "assets/musicDB.db";
 
     bool success = sql_init(dbPath);
@@ -86,11 +92,8 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 
     load_mmrs_table(allMmrs);
 
-    // Testing - Remove later
     Zseq *zseq;
     Zbank *zbank;
-
-    log_debug("%s\n", allMmrs[0].songName);
 
     AudioTableEntry *mySeq;
     AudioTableEntry *bankEntry;
@@ -100,19 +103,19 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
     {
         zseq = recomp_alloc(sizeof(Zseq));
         bool loaded = load_zseq(zseq, allMmrs[i].zseqId);
-        log_debug("%s\n", allMmrs[i].songName);
         bool is_fanfare = false;
 
         if (!loaded)
         {
             log_error("Error: Failed to load zseq %s.\n", allMmrs[i].songName);
+            continue;
         }
         else
         {
-            log_debug("Loaded zseq!\n");
+            // log_debug("Loaded zseq!\n");
         }
 
-        // recomp_printf("\nSize is %d", allMmrs[i].zseq.size);
+        // log_debug("\nSize is %d", allMmrs[i].zseq.size);
         if (zseq->size == 0) 
         {
             continue;
@@ -128,25 +131,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
         mySeq->shortData2 = 0;
         mySeq->shortData3 = 0;
 
-        // log_debug("\nCreated audiotable thing for song %d: %s!\n", i + 1, allMmrs[i].songName);
-        // log_debug("Size of data: %i\n", mySeq->size);
-        // log_debug("===Data spans from %p to %p==\n", mySeq->romAddr, mySeq->romAddr + mySeq->size);
-        // log_debug("AudioTableEntry data: ");
-        // for (int q = 0; q < 16; q++)
-        // {
-        //     log_debug("%02x ", *((unsigned char*)mySeq->romAddr + q));
-        // }
-        // log_debug("...\n");
-
-        // log_debug("bankInfoId: %i\n", allMmrs[i].bankInfoId);
-        // log_debug("Categories (below):\n");
-        // if (logLevel >= LOG_DEBUG)
-        // {
-        //     print_bytes(allMmrs[i].categories, 256);
-        // }
-
         s32 sequenceId = AudioApi_AddSequence(mySeq);
-        log_debug("New sequence ID: %i\n", sequenceId);
 
         if (allMmrs[i].bankInfoId != -1)
         {
@@ -155,29 +140,6 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 
             if(load_zbank(zbank, allMmrs[i].bankInfoId))
             {
-                // bankEntry->romAddr = (uintptr_t) &zbank->bankData[0];
-                // bankEntry->size = zbank->bankSize;
-                // bankEntry->medium = zbank->metaData[0];
-                // bankEntry->cachePolicy = zbank->metaData[1];
-                // bankEntry->shortData1 = (zbank->metaData[2] << 8) | (zbank->metaData[3]);
-                // bankEntry->shortData2 = (zbank->metaData[4] << 8) | (zbank->metaData[5]);
-                // bankEntry->shortData3 = (u16) zbank->metaData[6];
-
-                // if (logLevel >= LOG_DEBUG)
-                // {
-                //     print_bytes(&zbank->bankData[0], 256);
-                // }
-                // log_debug("\n");
-                
-                // for (int d = 0; d < 8; d++)
-                // {
-                //     log_debug("%02x ", zbank->metaData[d]);
-                // }
-                // log_debug("\n");
-
-                // s32 bankNo = AudioApi_AddSoundFont(bankEntry);
-                // allMmrs[i].bankNo = bankNo;
-
                 s32 bankNo = AudioApi_ImportVanillaSoundFont(
                     (uintptr_t*)&(zbank->bankData[0]),          // Addr
                     zbank->metaData[2],                         // sampleBank0
@@ -188,20 +150,6 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
                 );
 
                 allMmrs[i].bankNo = bankNo;
-
-                log_info("Soundfond id %d: %p %d %d %d %d %d\n",
-                    bankNo,
-                    (uintptr_t*)&(zbank->bankData[0]),          // Addr
-                    zbank->metaData[2],                         // sampleBank0
-                    zbank->metaData[3],                         // sampleBank1
-                    zbank->metaData[4],                         // numInstruments
-                    zbank->metaData[5],                         // numDrums
-                    zbank->metaData[6]                          // numSfx
-                );
-                
-                // log_info("%d %d %p %p\n", bankNo, gAudioCtx.soundFontTable->entries[bankNo].cachePolicy, 
-                //     gAudioCtx.soundFontTable->entries[bankNo].romAddr, &zbank->bankData[0]);
-
             }
             else
             {
@@ -210,19 +158,205 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 
             recomp_free(bankEntry);
         }
-        if (count_zsound(allMmrs[i].id))
+
+        int numZsound = count_zsound(allMmrs[i].id);
+
+        if (numZsound > 0)
         {
+            Zsound* this_zsoundTable = recomp_alloc(sizeof(Zsound) * numZsound);
+            log_debug("=====================================================\nLoading sound for song %s.\n", allMmrs[i].songName)
+            log_debug("Allocated size for %d zsounds, starting from address %p.\n", numZsound, this_zsoundTable);
+
+            if (!load_zsounds(this_zsoundTable, allMmrs[i].id))
+            {
+                log_error("Error loading custom samples for MMRS %s. Song will be skipped.\n", allMmrs[i].songName);
+                continue;
+            }
+            else
+            {
+                log_debug("Successfully loaded sounds for MMRS %s!\n", allMmrs[i].songName);
+            }
             
+            for (int s = 0; s < numZsound; s++)
+            {
+                vec_push_back(zsoundTable, this_zsoundTable[s].data);
+                log_debug("Pushed back...")
+                char* the = recomp_alloc(MAX_ZSOUND_SIZE);
+                // vec_at(zsoundTable, zsoundTable->numElements - 1, the);
+                // print_bytes(the, 64);
+
+                zsound_key_add(this_zsoundTable[s].sampleAddr, (uintptr_t)zsoundTable->dataStart + (MAX_ZSOUND_SIZE * (zsoundTable->numElements - 1)));
+                log_debug("Added key %x......\n", this_zsoundTable[s].sampleAddr);
+                // print_bytes((void*)zsound_key_lookup(this_zsoundTable[s].sampleAddr), 64);
+            }
+
+            log_debug("Bank number: %d\n", allMmrs[i].bankNo);
+            log_debug("Custom sounds: %d\n", numZsound);
+
+            CustomSoundFont* font = (CustomSoundFont*)(gAudioCtx.soundFontTable->entries[allMmrs[i].bankNo].romAddr);
+
+            if (logLevel >= LOG_DEBUG)
+            {
+                print_bytes(&(gAudioCtx.soundFontTable->entries[allMmrs[i].bankNo]), sizeof(AudioTableEntry));
+            }
+
+            log_debug("\n");
+
+            Drum* drum;
+            SoundEffect* soundEffect;
+            Instrument* inst;
+            s32 d;
+
+            if (logLevel >= LOG_DEBUG)
+            {
+                print_bytes(font, sizeof(CustomSoundFont));
+            }
+
+            log_debug("\nType   : %x\n", font->type);
+            log_debug("Bank1  : %x\n", font->sampleBank1);
+            log_debug("Bank2  : %x\n", font->sampleBank2);
+            log_debug("nInsts : %x\n", font->numInstruments);
+            log_debug("nDrums : %x\n", font->numDrums);
+            log_debug("maxInst: %x\n", font->instrumentsCapacity);
+            log_debug("maxDrum: %x\n", font->drumsCapacity);
+            log_debug("maxSFX : %x\n", font->sfxCapacity);
+            log_debug("Insts  : %x\n", font->instruments);
+            log_debug("Drums  : %x\n", font->drums);
+            log_debug("SFX    : %x\n", font->soundEffects);
+
+            // Print addresses of drums, SFX, instruments
+            for (d = 0; d < font->numDrums; d++) {
+                drum = font->drums[d];
+                if (drum == NULL) {
+                    log_debug("Drum %d is null, skipping.\n", d)
+                    continue;
+                }
+
+                log_debug("Drum: %d\n", d);
+                log_debug(" - sample: %p is ", drum->tunedSample.sample->sampleAddr);
+
+                u32 sampleAddr = zsound_key_lookup((uintptr_t)drum->tunedSample.sample->sampleAddr);
+
+                if(sampleAddr)
+                {
+                    drum->tunedSample.sample->sampleAddr = (u8*)sampleAddr;
+                    log_debug("custom.\n");
+                }
+                else
+                {
+                    log_debug("vanilla.\n");
+                }
+            }
+
+            for (d = 0; d < font->numSfx; d++) {
+                soundEffect = &font->soundEffects[d];
+                if (soundEffect == NULL || soundEffect->tunedSample.sample == NULL) {
+                    continue;
+                }
+
+                log_debug("Sfx: %d\n", d);
+                log_debug(" - sample: %p\n", soundEffect->tunedSample.sample->sampleAddr);
+
+                u32 sampleAddr = zsound_key_lookup((uintptr_t)soundEffect->tunedSample.sample->sampleAddr);
+
+                if(sampleAddr)
+                {
+                    soundEffect->tunedSample.sample->sampleAddr = (u8*)sampleAddr;
+                    log_debug("custom.\n");
+                }
+                else
+                {
+                    log_debug("vanilla.\n");
+                }
+            }
+
+            for (d = 0; d < font->numInstruments; d++) 
+            {
+                inst = font->instruments[d];
+                if (inst == NULL) {
+                    continue;
+                }
+
+                log_debug("Instrument: %d\n", d);
+                log_debug(" - sample: %p is ", inst->normalPitchTunedSample.sample->sampleAddr);
+
+                u32 sampleAddr = zsound_key_lookup((uintptr_t)inst->normalPitchTunedSample.sample->sampleAddr);
+
+                if(sampleAddr)
+                {
+                    inst->normalPitchTunedSample.sample->sampleAddr = (u8*)sampleAddr;
+                    log_debug("custom.\n");
+                    if (logLevel >= LOG_DEBUG)
+                    {
+                        print_bytes(inst->normalPitchTunedSample.sample->sampleAddr, 64);
+                        log_debug("\n");
+                    }
+                }
+                else
+                {
+                    log_debug("vanilla.\n");
+                }
+
+                // Add this later
+                if (inst->normalRangeLo != 0) {
+                    log_debug(" - Low sample: %p is\n", inst->lowPitchTunedSample.sample->sampleAddr);
+                    
+                    u32 sampleAddr = zsound_key_lookup((uintptr_t)inst->normalPitchTunedSample.sample->sampleAddr);
+
+                    if(sampleAddr)
+                    {
+                        inst->lowPitchTunedSample.sample->sampleAddr = (u8*)sampleAddr;
+                        log_debug("custom.\n");
+                        if (logLevel >= LOG_DEBUG)
+                        {
+                            print_bytes(inst->lowPitchTunedSample.sample->sampleAddr, 64);
+                            log_debug("\n");
+                        }
+                    }
+                    else
+                    {
+                        log_debug("vanilla.\n");
+                    }
+                }
+                if (inst->normalRangeHi != 0x7F) {
+                    log_debug(" - High sample: %p is \n", inst->highPitchTunedSample.sample->sampleAddr);
+
+                    u32 sampleAddr = zsound_key_lookup((uintptr_t)inst->highPitchTunedSample.sample->sampleAddr);
+
+                    if(sampleAddr)
+                    {
+                        inst->highPitchTunedSample.sample->sampleAddr = (u8*)sampleAddr;
+                        log_debug("custom.\n");
+                        if (logLevel >= LOG_DEBUG)
+                        {
+                            print_bytes(inst->highPitchTunedSample.sample->sampleAddr, 64);
+                            log_debug("\n");
+                        }
+                    }
+                }
+            }    
+
+            for (int s = 0; s < numZsound; s++)
+            {
+                zsound_key_remove(this_zsoundTable[s].sampleAddr);
+            }
         }
         AudioApi_ReplaceSequence(sequenceId, mySeq);
         AudioApi_AddSequenceFont(sequenceId, allMmrs[i].bankNo);
-        log_debug("Sequence is at ID %i, uses bank %i.\n\n", sequenceId, allMmrs[i].bankNo);
+        log_info("Successfully added sequence %s", allMmrs[i].songName);
+        log_debug(", uses bank %i", allMmrs[i].bankNo);
 
         if (*(u32*)&(allMmrs[i].categories[8]))
         {
             AudioApi_SetSequenceFlags(sequenceId, SEQ_FLAG_FANFARE);
-            log_debug("Sequence is a fanfare.\n");
+            log_debug(" and is a fanfare\n");
         }
+        else
+        {
+            log_debug(" and is not a fanfare");
+        }
+
+        log_info("!\n\n");
 
         recomp_free(mySeq);
     }
@@ -237,11 +371,6 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 RECOMP_CALLBACK("magemods_audio_api", AudioApi_SoundFontLoaded) bool mmrs_loader_font_loaded(s32 fontId, u8* fontData)
 {
     log_debug("loaded font: %d %p\n", fontId, fontData);
-
-    // if(fontId > 0x28 && logLevel >= LOG_DEBUG)
-    // {
-    //     print_bytes(fontData, 512);
-    // }
     return true;
 }
 

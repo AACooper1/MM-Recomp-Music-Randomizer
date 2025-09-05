@@ -2,6 +2,7 @@
 #include "mmrsSql.h"
 
 #include <tuple>
+#include <format>
 
 sqlite3_stmt *statement;
 
@@ -16,11 +17,6 @@ bool _sql_init(const char* dbPath)
 
 bool init_mmrs_cache()
 {
-
-    mmrs_util::debug() << START_PARA;
-    mmrs_util::debug() << "Called init_mmrs_cache";
-    mmrs_util::debug() << END_PARA;
-
     char *sqlErrMsg;
     int rc;
 
@@ -41,7 +37,7 @@ bool init_mmrs_cache()
         &sqlErrMsg
     );
 
-    SQL_ERR_CHECK("Error initializing MMRS table", "Successfully initialized MMRS table!");
+    SQL_ERR_CHECK("Error initializing MMRS table", "");
 
     rc = sqlite3_exec(
         db,
@@ -55,7 +51,7 @@ bool init_mmrs_cache()
         &sqlErrMsg
     );
 
-    SQL_ERR_CHECK("Error initializing Zseq table", "Successfully initialized Zseq table!");
+    SQL_ERR_CHECK("Error initializing Zseq table", "");
 
     rc = sqlite3_exec(
         db,
@@ -69,7 +65,7 @@ bool init_mmrs_cache()
         &sqlErrMsg
     );
 
-    SQL_ERR_CHECK("Error initializing MMRS Relation table", "Successfully initialized MMRS Relation table!");
+    SQL_ERR_CHECK("Error initializing MMRS Relation table", "");
 
         rc = sqlite3_exec(
         db,
@@ -82,7 +78,7 @@ bool init_mmrs_cache()
         &sqlErrMsg
     );
 
-    SQL_ERR_CHECK("Error initializing Zsound-to-MMRS table", "Successfully initialized Zsound-to-MMRS table!");
+    SQL_ERR_CHECK("Error initializing Zsound-to-MMRS table", "");
 
     rc = sqlite3_exec(
         db,
@@ -98,7 +94,7 @@ bool init_mmrs_cache()
         &sqlErrMsg
     );
 
-    SQL_ERR_CHECK("Error initializing Zbank table", "Successfully initialized Zbank table!");
+    SQL_ERR_CHECK("Error initializing Zbank table", "");
 
     // TODO:
         // Zsound table
@@ -115,7 +111,7 @@ bool init_mmrs_cache()
         &sqlErrMsg
     );
 
-    SQL_ERR_CHECK("Error initializing Zsound table", "Successfully initialized Zsound table!");
+    SQL_ERR_CHECK("Error initializing Zsound table", "");
     
     return true;
 }
@@ -146,28 +142,26 @@ int count_mmrs()
     }
 }
 
-int count_zsound(int mmrsId)
+int _count_zsound(int mmrsId)
 {
-    const char* query = "SELECT COUNT(*) FROM zsound_to_mmrs";
     sqlite3_reset(statement);
-
+    const char* query = "SELECT COUNT(*) FROM zsound_to_mmrs WHERE mmrs_id=?";
     int rc;
+
     if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
     {
-        rc = sqlite3_step(statement);
-        if (rc == SQLITE_ROW)
-        {
-            return sqlite3_column_int(statement, 0);
-        }
-        else
-        {
-            mmrs_util::error() << "Could not retrieve Zsound count for MMRS " << mmrsId << ": " << sqlite3_errmsg(db) << std::endl;
-            return -1;
-        }
+        sqlite3_bind_int(statement, 1, mmrsId);
+    }
+    SQL_ERR_CHECK("Error preparing Zsound count statement", "");
+
+    rc = sqlite3_step(statement);
+    if (rc == SQLITE_ROW)
+    {
+        return sqlite3_column_int(statement, 0);
     }
     else
     {
-        mmrs_util::error() << "Error preparing count statement: " << sqlite3_errmsg(db) << std::endl;
+        mmrs_util::error() << "Could not retrieve Zsound count for MMRS " << mmrsId << ": " << sqlite3_errmsg(db) << std::endl;
         return -1;
     }
 }
@@ -181,8 +175,6 @@ bool check_mmrs_exists(fs::directory_entry file)
     const char *filepath = fPathStrTemp.c_str();
     uint64_t timestamp = file.last_write_time().time_since_epoch().count();
 
-    mmrs_util::debug() << "Filepath is " << filepath << std::endl;
-
     // Check for matching entry
     const char* query = "SELECT * FROM mmrs WHERE filename=? AND modified=?;";
     sqlite3_reset(statement);
@@ -194,7 +186,7 @@ bool check_mmrs_exists(fs::directory_entry file)
         sqlite3_bind_text(statement, 1, filepath, strlen(filepath), SQLITE_STATIC);
         sqlite3_bind_int64(statement, 2, timestamp);
     }
-    SQL_ERR_CHECK("Error preparing MMRS SELECT statement", "Successfully prepared MMRS SELECT statement!");
+    SQL_ERR_CHECK("Error preparing MMRS SELECT statement", "");
 
 
     rc = sqlite3_step(statement);
@@ -206,7 +198,7 @@ bool check_mmrs_exists(fs::directory_entry file)
     }
     else if (rc == SQLITE_DONE)
     {
-        mmrs_util::debug() << "No matching files found for " << filepath << " with timestamp " << timestamp <<  ", continuing!" << std::endl;
+        mmrs_util::debug() << "No matching files found for " << filepath << " with timestamp " << timestamp <<  ", adding to database!" << std::endl;
         return false;
     }
     else SQL_ERR_CHECK("Error in SELECT statement", "SELECT statement returned SQLITE_OK for some reason.......?");
@@ -226,14 +218,6 @@ int insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
     sqlite3_reset(statement);
 
     sqlite3_prepare(db, "SELECT * FROM mmrs", -1, &statement, nullptr);
-    if (sqlite3_step(statement) == SQLITE_DONE)
-    {
-        for (int i = 0; i < 6; i++)
-        {
-            mmrs_util::debug() << sqlite3_column_name(statement, i) << " ";
-        }
-        mmrs_util::debug() << std::endl;
-    }
 
     int rc = 0;
 
@@ -273,7 +257,7 @@ int insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
         sqlite3_bind_int(statement, 11, mmrs.formmask);
     }
 
-    SQL_ERR_CHECK("Error preparing MMRS UPSERT statement", "Successfully prepared MMRS UPSERT statement!");
+    SQL_ERR_CHECK("Error preparing MMRS UPSERT statement", "");
 
     rc = sqlite3_step(statement);
     int mmrsId = -1;
@@ -284,9 +268,9 @@ int insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
     }
     else if (rc == SQLITE_DONE)
     {
-        mmrs_util::debug() << "Successfully performed MMRS UPSERT statement!" << std::endl;
+
     }
-    else SQL_ERR_CHECK("Error in MMRS UPSERT execution", "MMRS UPSERT with RETURNING clause completed successfully but did not return a row (?!)");
+    else SQL_ERR_CHECK("Error in MMRS UPSERT execution", "");
     
     if (mmrsId <= 0)
     {
@@ -323,14 +307,13 @@ int insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
 
     if (rc == SQLITE_ROW)
     {
-        mmrs_util::debug() << "Successfully performed Zseq UPSERT statement!" << std::endl;
         zseqId = sqlite3_column_int(statement, 0);
     }
     else if (rc == SQLITE_DONE)
     {
-        mmrs_util::debug() << "Zseq UPSERT with RETURNING clause returned SQLITE_OK (?!)" << std::endl;
+
     }
-    else SQL_ERR_CHECK("Error in Zseq UPSERT execution", "UPSERT clause executed successfully!");
+    else SQL_ERR_CHECK("Error in Zseq UPSERT execution", "");
     
     if (zseqId <= 0)
     {
@@ -365,18 +348,15 @@ int insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
     rc = sqlite3_step(statement);
     if (rc == SQLITE_DONE)
     {
-        mmrs_util::debug() << "MMRS Relation returned SQLITE_DONE for some reason but seems ok otherwise" << std::endl;
+
     }
-    else SQL_ERR_CHECK("Error in MMRS Relation table UPSERT", "MMRS Relation table UPSERTed successfully!");
+    else SQL_ERR_CHECK("Error in MMRS Relation table UPSERT", "");
 
     return mmrsId;
 }
 
 int insert_zbank(Zbank zbank, int mmrsId)
 {
-    mmrs_util::debug() << START_PARA;
-    mmrs_util::debug() << "Called insert_zbank!";
-    mmrs_util::debug() << END_PARA;
     sqlite3_reset(statement);
 
     int rc = 0;
@@ -401,7 +381,7 @@ int insert_zbank(Zbank zbank, int mmrsId)
         sqlite3_bind_blob(statement, 4, zbank.bankData, zbank.bankSize, SQLITE_STATIC);
     }
 
-    SQL_ERR_CHECK("Error preparing Zbank UPSERT statement", "Successfully prepared Zbank UPSERT statement!");
+    SQL_ERR_CHECK("Error preparing Zbank UPSERT statement", "");
 
     rc = sqlite3_step(statement);
     int zbankId = -1;
@@ -409,13 +389,12 @@ int insert_zbank(Zbank zbank, int mmrsId)
     if (rc == SQLITE_ROW)
     {
         zbankId = sqlite3_column_int(statement, 0);
-        mmrs_util::debug() << "Successfully performed Zbank UPSERT statement!" << std::endl;
     }
     else if (rc == SQLITE_DONE)
     {
-        mmrs_util::debug() << "Zbank UPSERT with RETURNING clause completed successfully but did not return a row (?!)" << std::endl;
+        mmrs_util::warning() << "Zbank UPSERT with RETURNING clause completed successfully but did not return a row (?!)" << std::endl;
     }
-    else SQL_ERR_CHECK("Error in Zbank UPSERT execution", "Zbank UPSERT with RETURNING clause completed successfully but returned SQLITE_OK (?!)");
+    else SQL_ERR_CHECK("Error in Zbank UPSERT execution", "");
     
     if (zbankId <= 0)
     {
@@ -439,7 +418,7 @@ int insert_zbank(Zbank zbank, int mmrsId)
         sqlite3_bind_int(statement, 2, mmrsId);
     }
 
-    SQL_ERR_CHECK("Error preparing MMRS Relation UPDATE statement", "Successfully prepared MMRS Relation UPDATE statement!");
+    SQL_ERR_CHECK("Error preparing MMRS Relation UPDATE statement", "");
 
     rc = sqlite3_step(statement);
 
@@ -447,7 +426,7 @@ int insert_zbank(Zbank zbank, int mmrsId)
     {
         return zbankId;
     }
-    else SQL_ERR_CHECK("Error in MMRS Relation UPDATE execution", "MMRS UPSERT with RETURNING clause completed successfully but did not return a row (?!)");
+    else SQL_ERR_CHECK("Error in MMRS Relation UPDATE execution", "");
     
     if (zbankId <= 0)
     {
@@ -483,7 +462,9 @@ bool insert_zsound(Zsound zsound, int mmrsId)
         sqlite3_bind_blob(statement, 3, zsound.data, zsound.size, SQLITE_STATIC);
     }
 
-    SQL_ERR_CHECK("Error preparing Zsound INSERT statement", "Successfully prepared Zsound INSERT statement!");
+    SQL_ERR_CHECK("Error preparing Zsound INSERT statement", "");
+
+    mmrs_util::debug() << "sampleAddr: " << zsound.sampleAddr << std::endl;
 
     rc = sqlite3_step(statement);
     int zsoundId = -1;
@@ -491,13 +472,12 @@ bool insert_zsound(Zsound zsound, int mmrsId)
     if (rc == SQLITE_ROW)
     {
         zsoundId = sqlite3_column_int(statement, 0);
-        mmrs_util::debug() << "Successfully performed Zsound INSERT statement!" << std::endl;
     }
     else if (rc == SQLITE_DONE)
     {
-        mmrs_util::debug() << "Zsound INSERT with RETURNING clause completed successfully but did not return a row (?!)" << std::endl;
+
     }
-    else SQL_ERR_CHECK("Error in Zsound INSERT execution", "Zsound INSERT with RETURNING clause completed successfully but returned SQLITE_OK (?!)");
+    else SQL_ERR_CHECK("Error in Zsound INSERT execution", "");
     
     if (zsoundId <= 0)
     {
@@ -527,7 +507,7 @@ bool insert_zsound(Zsound zsound, int mmrsId)
         sqlite3_bind_int(statement, 2, mmrsId);
     }
 
-    SQL_ERR_CHECK("Error preparing Zbank-to-Zsound UPSERT statement", "Successfully prepared Zbank-to-Zsound UPSERT statement!");
+    SQL_ERR_CHECK("Error preparing Zbank-to-Zsound UPSERT statement", "");
 
     rc = sqlite3_step(statement);
 
@@ -546,10 +526,6 @@ bool insert_zsound(Zsound zsound, int mmrsId)
 
 bool _load_mmrs_table(MMRS* allMmrs)
 {
-    mmrs_util::debug() << START_PARA;
-    mmrs_util::debug() << "MMRS Table on load call: ";
-    mmrs_util::debug() << END_PARA;
-
     sqlite3_reset(statement);
     sqlite3_stmt *substatement;
     const char* query = "SELECT * FROM mmrs;";
@@ -560,7 +536,7 @@ bool _load_mmrs_table(MMRS* allMmrs)
 
     while ((rc = sqlite3_step(statement)) == SQLITE_ROW)
     {
-        mmrs_util::debug() << sqlite3_column_int(statement, 0) << ", " << sqlite3_column_text(statement, 3) << ", timestamp " << sqlite3_column_int64(statement, 2) << std::endl;
+        // mmrs_util::debug() << sqlite3_column_int(statement, 0) << ", " << sqlite3_column_text(statement, 3) << ", timestamp " << sqlite3_column_int64(statement, 2) << std::endl;
         // Table index
         allMmrs[i].id = sqlite3_column_int(statement, 0);
 
@@ -578,7 +554,6 @@ bool _load_mmrs_table(MMRS* allMmrs)
         for (int c = 0; c < 256; c++)
         {
             allMmrs[i].categories[c ^ 3] = cats[c];
-            // mmrs_util::debug() << c << std::endl;
         }
 
         // Audiobank number
@@ -597,9 +572,7 @@ bool _load_mmrs_table(MMRS* allMmrs)
         if ((rc =sqlite3_step(substatement)) == SQLITE_ROW)
         {
             allMmrs[i].zseqId = sqlite3_column_int(substatement, 1);
-            mmrs_util::debug() << "ZseqId: " << allMmrs[i].zseqId << std::endl;
             allMmrs[i].bankInfoId = sqlite3_column_int(substatement, 2);
-            mmrs_util::debug() << "BankInfoId: " << allMmrs[i].bankInfoId << std::endl;
         }
         i++;
     }
@@ -611,13 +584,12 @@ bool _load_mmrs_table(MMRS* allMmrs)
         if (i == 0)
         {
             mmrs_util::error() << "Error: MMRS table is empty." << std::endl;
-            mmrs_util:: debug() << END_PARA;
 
             return false;
         }
         else
         {
-            mmrs_util::debug() << std::endl << "Reached end of table." << std::endl;
+            // mmrs_util::debug() << std::endl << "Reached end of table." << std::endl;
         }
     }
     else
@@ -631,10 +603,6 @@ bool _load_mmrs_table(MMRS* allMmrs)
 
 bool _load_zseq(Zseq* zseqAddr, int zseqId)
 {
-    mmrs_util::debug() << START_PARA;
-    mmrs_util::debug() << "Called load_zseq";
-    mmrs_util::debug() << END_PARA;
-
     sqlite3_reset(statement);
 
     int rc;
@@ -649,7 +617,6 @@ bool _load_zseq(Zseq* zseqAddr, int zseqId)
 
     if (rc == SQLITE_ROW)
     {
-        mmrs_util::debug() << "The" << std::endl;
         zseqAddr->size = sqlite3_column_int(statement, 1);
         const unsigned char* zseqData = (const unsigned char*)sqlite3_column_blob(statement, 2);
         
@@ -657,30 +624,20 @@ bool _load_zseq(Zseq* zseqAddr, int zseqId)
         {
             zseqAddr->data[i ^ 3] = zseqData[i];
         }
-        mmrs_util::debug() << "Successfully copied Zseq with ID " << zseqId << "!" << std::endl;
-        mmrs_util::debug() << END_PARA;
         return true;
     }
     else if (rc == SQLITE_DONE)
     {
-            mmrs_util::error() << "No matching Zseq found for Zseq ID " << zseqId << std::endl;
-            mmrs_util::debug() << END_PARA;
             return false;
     }
     else
     {
-        mmrs_util::error() << "Error fetching Zseq: " << sqlite3_errmsg(db) << std::endl;
-        mmrs_util::debug() << END_PARA;
         return false;
     }
 }
 
 bool _load_zbank(Zbank* zbankAddr, int zbankId)
-{
-    mmrs_util::debug() << START_PARA;
-    mmrs_util::debug() << "Called load_zbank";
-    mmrs_util::debug() << END_PARA;
-    
+{    
     sqlite3_reset(statement);
 
     const char* query = "SELECT * FROM zbank WHERE id=?";
@@ -692,7 +649,6 @@ bool _load_zbank(Zbank* zbankAddr, int zbankId)
     }
     else
     {
-        mmrs_util::debug() << "Error preparing Zbank SELECT statement: " << sqlite3_errmsg(db) << std::endl;
         return false;
     }
 
@@ -716,29 +672,26 @@ bool _load_zbank(Zbank* zbankAddr, int zbankId)
         for (int i = 0; i < zbankAddr->bankSize; i++)
         {
             zbankAddr->bankData[i ^ 3] = bankDataBuff[i];
-            // mmrs_util::debug() << std::hex << (int)bankDataBuff[i] << " ";
         }
-        // mmrs_util::debug() << std::endl;
 
         return true;
     }
     else if (rc == SQLITE_DONE)
     {
         mmrs_util::error() << "Error: Could not find zbank with ID " << zbankId;
-        mmrs_util::debug() << END_PARA;
+
         return false;
     }
     else
     {
         mmrs_util::error() << "Error loading Zbank from db: " << sqlite3_errmsg(db);
-        mmrs_util::debug() << END_PARA;
         return false;
     }
 }
 
 
 
-bool _load_zsound(Zsound* zsoundAddr, int zsoundId)
+bool _load_zsound(Zsound* zsoundAddr, int mmrsId)
 {
     mmrs_util::debug() << START_PARA;
     mmrs_util::debug() << "Called load_zsound";
@@ -748,30 +701,41 @@ bool _load_zsound(Zsound* zsoundAddr, int zsoundId)
 
     int rc;
 
-    const char *query = "SELECT * FROM zsound WHERE mmrs_id=?";
+    const char *query = "SELECT * FROM zsound LEFT JOIN zsound_to_mmrs ON zsound_id = zsound.id WHERE mmrs_id=?";
     if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
     {
-        sqlite3_bind_int(statement, 1, zsoundId);
+        sqlite3_bind_int(statement, 1, mmrsId);
     }
 
-    rc = sqlite3_step(statement);
+    
     int i = 0;
 
-    while (rc == SQLITE_ROW)
+    while ((rc = sqlite3_step(statement)) == SQLITE_ROW)
     {
+        mmrs_util::debug() << "!!" << std::endl;
         zsoundAddr[i].size = sqlite3_column_int(statement, 1);
         zsoundAddr[i].sampleAddr = sqlite3_column_int(statement, 2);
-        const unsigned char* zseqData = (const unsigned char*)sqlite3_column_blob(statement, 3);
+        const unsigned char* zsoundData = (const unsigned char*)sqlite3_column_blob(statement, 3);
+
+        mmrs_util::debug() << "Data for zsound " << i << " begins ";
         
-        for (int i = 0; i < zsoundAddr->size; i++)
+        for (int j = 0; j < zsoundAddr[i].size; j++)
         {
-            zsoundAddr[i].data[i ^ 3] = zseqData[i];
+            zsoundAddr[i].data[j ^ 3] = zsoundData[j];
+            if (j < 16)
+            {
+                mmrs_util::debug() << std::format("{:02x} ", zsoundAddr[i].data[j ^ 3]);
+            }
         }
 
-        mmrs_util::debug() << "Successfully copied Zsound with ID " << zsoundId << "!" << std::endl;
-        mmrs_util::debug() << END_PARA;
-        return true;
+        mmrs_util::debug() << std::endl;
+
+        i++;
+        mmrs_util::debug() << "?!";
     }
+    mmrs_util::debug() << "Successfully copied " << i << " custom sounds for MMRS with id " << mmrsId << "!" << std::endl;
+    mmrs_util::debug() << END_PARA;
+
     if (rc == SQLITE_DONE && i == 0)
     {
             mmrs_util::error() << "No matching Zseq found for Zsound ID " << zsoundAddr << std::endl;
@@ -780,9 +744,13 @@ bool _load_zsound(Zsound* zsoundAddr, int zsoundId)
     }
     else if (i == 0)
     {
-        mmrs_util::error() << "Error fetching Zseq: " << sqlite3_errmsg(db) << std::endl;
+        mmrs_util::error() << "Error fetching Zsound: " << sqlite3_errmsg(db) << std::endl;
         mmrs_util::debug() << END_PARA;
         return false;
+    }
+    else
+    {
+        return true;
     }
 }
 
@@ -809,11 +777,11 @@ bool retrieve_filenames(int* ids, std::string* filenames)
     }
     if (rc == SQLITE_DONE)
     {
-        mmrs_util::debug() << "Finished selecting filenames" << std::endl;
+        // mmrs_util::debug() << "Finished selecting filenames" << std::endl;
     }
     else 
     {
-        mmrs_util::debug() << "Error selecting filenames:" << sqlite3_errmsg(db) << std::endl;
+        mmrs_util::error() << "Error retrieving MMRS filenames: " << sqlite3_errmsg(db) << std::endl;
         return false;
     }
 
@@ -822,8 +790,6 @@ bool retrieve_filenames(int* ids, std::string* filenames)
 
 bool remove_mmrs(int mmrsId)
 {
-
-    mmrs_util::debug() << START_PARA;
     sqlite3_reset(statement);
 
     const char *query = "DELETE FROM mmrs WHERE id=? RETURNING id";
@@ -839,7 +805,7 @@ bool remove_mmrs(int mmrsId)
     if (rc == SQLITE_ROW)
     {
         mmrsId = sqlite3_column_int(statement, 0);
-        mmrs_util::debug() << "Successfully deleted MMRS with ID " << mmrsId << std::endl;
+        mmrs_util::info() << "Successfully removed MMRS with ID " << mmrsId << " from the database." << std::endl;
     }
     else
     {
@@ -862,9 +828,7 @@ bool remove_mmrs(int mmrsId)
     rc = sqlite3_step(statement);
     if (rc == SQLITE_ROW)
     {
-        mmrs_util::debug() << "Successfully deleted MMRS relation with ID " << mmrsId << std::endl;
         zseqId = sqlite3_column_int(statement, 0);
-        mmrs_util::debug() << "Zseq id is " << zseqId << std::endl;
     }
     else
     {
@@ -887,7 +851,6 @@ bool remove_mmrs(int mmrsId)
     if (rc == SQLITE_ROW)
     {
         zseqId = sqlite3_column_int(statement, 0);
-        mmrs_util::debug() << "Successfully deleted Zseq with ID " << zseqId << std::endl;
     }
     else
     {

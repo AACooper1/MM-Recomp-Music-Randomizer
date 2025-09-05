@@ -16,6 +16,7 @@
 #define my_min(a, b) (((a) < (b)) ? (a) : (b))
 
 sqlite3 *db;
+std::unordered_map<u32, u32> zsound_key_to_pointer;
 
 extern "C" 
 {
@@ -24,10 +25,6 @@ extern "C"
 
 bool read_mmrs(fs::directory_entry file)
 {
-    mmrs_util::debug() << START_PARA;
-    mmrs_util::debug() << "Calling read_mmrs on file " << file.path().string() << "!";
-    mmrs_util::debug() << END_PARA;
-
     // mz vars, defined here so we have access outside the try block
     mz_zip_archive mz_archive;
     mz_zip_error mz_error;
@@ -46,9 +43,9 @@ bool read_mmrs(fs::directory_entry file)
     std::vector<unsigned char> zbankBuffer;
     std::vector<unsigned char> bankmetaBuffer;
 
-    std::vector<Zsound*> zsounds;
+    std::vector<Zsound> zsounds;
 
-    for (int i = 0; i < MAX_DATA_SIZE; i++)
+    for (int i = 0; i < MAX_ZSEQ_SIZE; i++)
     {
         zseq.data[i] = 0xFF;
     }
@@ -58,11 +55,15 @@ bool read_mmrs(fs::directory_entry file)
         int zip_filesize = fs::file_size(in_path);
         std::string zip_filename = in_path.filename().stem().string();
 
-        mmrs_util::debug() << "File size: " << zip_filesize << "\n";
-
         for (int i = 0; i < zip_filename.length(); i++) 
         {
             mmrs.songName[i] = zip_filename[i];
+        }
+
+        // Initialize categories to 0
+        for(int j = 0; j < 256; j++)
+        {
+            mmrs.categories[j] = false;
         }
 
         mmrs.songName[zip_filename.length()] = '\0';
@@ -81,9 +82,6 @@ bool read_mmrs(fs::directory_entry file)
 
         int num_files = (int)mz_zip_reader_get_num_files(&mz_archive);
 
-        // Hooray!
-        mmrs_util::debug() << "Successfully opened ZIP with " << num_files << " files!\n";
-
         for (int i = 0; i < num_files; i++) 
         {
             mz_zip_archive_file_stat stat;
@@ -99,7 +97,6 @@ bool read_mmrs(fs::directory_entry file)
             std::vector<char> filebuffer(filesize);
 
             std::string filename = stat.m_filename;
-            mmrs_util::debug() << "\nReading file " <<  filename << " with size " << filesize << "\n";
 
             mz_status = mz_zip_reader_extract_to_mem(&mz_archive, i, filebuffer.data(), filebuffer.size(), 0);
             if (!mz_status) 
@@ -109,25 +106,9 @@ bool read_mmrs(fs::directory_entry file)
 
             if (filename.ends_with(".zseq") || filename.ends_with(".seq")) 
             {
-                mmrs_util::debug() << "Reading sequence file\n";
-
-                // Make sure the extraction really succeeded.
-                mmrs_util::debug() << "Data was: ";
-                for (int j = 0; j < 16; j++) 
+                if (filesize > MAX_ZSEQ_SIZE)
                 {
-                    if (j >= filebuffer.size()) break;
-                    mmrs_util::debug() << std::format("{:02x} ", filebuffer[j]);
-                }
-                mmrs_util::debug() << "...\n";
-
-                if ((unsigned char)filebuffer.at(0) != 0xD3 || (unsigned char)filebuffer.at(1) != 0x20) 
-                {
-                    throw std::runtime_error("Invalid zseq header");
-                }
-
-                if (filesize > MAX_DATA_SIZE)
-                {
-                    throw std::runtime_error("File is too large - max 32 KiB");
+                    throw std::runtime_error("Zseq file is too large - max 1 MiB!\n");
                 }
 
                 for (int j = 0; j < filesize; j++) 
@@ -135,22 +116,12 @@ bool read_mmrs(fs::directory_entry file)
                     zseq.data[j] = (unsigned char)filebuffer[j];
                 }
 
-                mmrs_util::debug() << "Successfully read!\n";
-
                 mmrs.bankNo = std::stoi(filename, 0, 16);
                 zseq.size = filesize;
             }
             else if (filename == "categories.txt") 
             {
-                mmrs_util::debug() << "Reading categories.txt file\n";
-                mmrs_util::debug() << "Categories: ";
-
                 char* c = std::strtok(filebuffer.data(), ",");
-
-                for(int j = 0; j < 256; j++)
-                {
-                    mmrs.categories[j] = false;
-                }
 
                 while (c != nullptr) 
                 {
@@ -158,59 +129,35 @@ bool read_mmrs(fs::directory_entry file)
                     if (cat < 256) 
                     {
                         mmrs.categories[cat] = true;
-                        mmrs_util::debug() << cat << " ";
                     }
                     c = std::strtok(nullptr, ",");
                 }
-                mmrs_util::debug() << "\n";
             }
             else if (filename.ends_with(".zbank")) 
             {
                 found_zbank = true;
-                mmrs_util::debug() << "Reading zbank file" << std::endl;
 
                 zbankBuffer.resize(filesize);
 
-                // Make sure the extraction really succeeded.
-                mmrs_util::debug() << "Data was: ";
-                for (int j = 0; j < 16; j++) 
+                if (filesize > MAX_ZBANK_SIZE)
                 {
-                    if (j >= filebuffer.size()) break;
-                    mmrs_util::debug() << std::format("{:02x} ", filebuffer[j]);
-                }
-                mmrs_util::debug() << "...\n";
-
-                if (filesize > MAX_DATA_SIZE)
-                {
-                    throw std::runtime_error("File is too large - max 32 KiB");
+                    throw std::runtime_error("Zbank file is too large - max 32 KiB!");
                 }
 
                 for (int j = 0; j < filesize; j++) 
                 {
                     zbankBuffer[j] = (unsigned char)filebuffer[j];
                 }
-
-                mmrs_util::debug() << "Successfully read!\n";
             }
             else if (filename.ends_with(".bankmeta")) 
             {
                 found_bankmeta = true;
-                mmrs_util::debug() << "Reading zbank file" << std::endl;
 
                 bankmetaBuffer.resize(filesize);
 
-                // Make sure the extraction really succeeded.
-                mmrs_util::debug() << "Data was: ";
-                for (int j = 0; j < 16; j++) 
+                if (filesize > MAX_ZBANK_SIZE)
                 {
-                    if (j >= filebuffer.size()) break;
-                    mmrs_util::debug() << std::format("{:02x} ", filebuffer[j]);
-                }
-                mmrs_util::debug() << "...\n";
-
-                if (filesize > MAX_DATA_SIZE)
-                {
-                    throw std::runtime_error("File is too large - max 32 KiB");
+                    throw std::runtime_error("File is too large - max 32 KiB!");
                 }
 
                 for (int j = 0; j < filebuffer.size(); j++) 
@@ -218,21 +165,30 @@ bool read_mmrs(fs::directory_entry file)
                     if (j >= filebuffer.size()) break;
                     bankmetaBuffer[j] = (unsigned char)filebuffer[j];
                 }
-
-                mmrs_util::debug() << "Successfully read!\n";
             }
             else if (filename.ends_with(".zsound"))
             {
-                // mmrs_util::info() << "Custom sounds are not supported yet. " << zip_filename << "will be skipped." << std::endl;
                 mmrs_util::debug() << "Reading zsound file" << std::endl;
 
                 Zsound zsound;
                 zsound.size = filesize;
-                std::string foreignKey = filename.substr(filename.length() - 8);
-
-                for (int j = 0; j < MAX_DATA_SIZE; j++)
+                std::string foreignKey = filename.substr(filename.length() - 15);
+                
+                try
                 {
-                    zsound.data[i] = 0;
+                    zsound.sampleAddr = std::stoi(foreignKey, 0, 16);
+                }
+                catch(const std::exception& e)
+                {
+                    mmrs_util::error() << "Could not parse int for zsound " << filename << " in MMRS " << mmrs.songName << ". Song will be skipped." << std:: endl;
+                    return false;
+                }
+                
+
+
+                for (int j = 0; j < MAX_ZSOUND_SIZE; j++)
+                {
+                    zsound.data[j] = 0;
                 }
 
                 // Make sure the extraction really succeeded.
@@ -244,9 +200,9 @@ bool read_mmrs(fs::directory_entry file)
                 }
                 mmrs_util::debug() << "...\n";
 
-                if (filesize > MAX_DATA_SIZE)
+                if (filesize > MAX_ZSOUND_SIZE)
                 {
-                    throw std::runtime_error("File is too large - max 32 KiB");
+                    throw std::runtime_error("Zsound file is too large - max 128 KiB");
                 }
 
                 for (int j = 0; j < filesize; j++) 
@@ -254,7 +210,7 @@ bool read_mmrs(fs::directory_entry file)
                     zsound.data[j] = (unsigned char)filebuffer[j];
                 }
 
-                zsounds.push_back(&zsound);
+                zsounds.push_back(zsound);
 
                 mmrs_util::debug() << "Successfully read!\n";
             }
@@ -272,17 +228,17 @@ bool read_mmrs(fs::directory_entry file)
         {
             for (int s = 0; s < zsounds.size(); s++)
             {
-                insert_zsound(*(zsounds[s]), mmrsId);
+                mmrs_util::debug() << "SampleAddr is " << std::hex << zsounds[s].sampleAddr << std::endl;
+                insert_zsound(zsounds[s], mmrsId);
             }
         }
-        
         if (found_zbank && found_bankmeta)
         {
             Zbank zbank;
             zbank.metaSize = bankmetaBuffer.size();
             zbank.bankSize = zbankBuffer.size();
             // Initialize to 255 ("End of data")
-            for (int j = 0; j < MAX_DATA_SIZE; j++)
+            for (int j = 0; j < MAX_ZBANK_SIZE; j++)
             {
                 zbank.bankData[j] = '\0';
                 zbank.metaData[j] = '\0';
@@ -307,7 +263,7 @@ bool read_mmrs(fs::directory_entry file)
     } 
     catch (const std::exception &e) 
     {
-        std::cerr << "MMRS Read error: " << e.what() << "\n";
+        std::cerr << "MMRS Read error for song " << file.path().filename().string() << ": " << e.what() << "\n";
         success = false;
     } 
     catch (...) 
@@ -319,10 +275,8 @@ bool read_mmrs(fs::directory_entry file)
     mz_error = mz_zip_get_last_error(&mz_archive);
     if (mz_error != MZ_ZIP_NO_ERROR) 
     {
-        mmrs_util::debug() << "mz_error: " << mz_zip_get_error_string(mz_error) << "\n";
+        mmrs_util::error() << "mz_error: " << mz_zip_get_error_string(mz_error) << "\n";
     }
-
-    mmrs_util::debug() << "================================================================================\n\n";
 
     // Cleanup
     mz_zip_reader_end(&mz_archive);
@@ -333,10 +287,6 @@ bool read_mmrs(fs::directory_entry file)
 
 int read_seq_directory(const char* dbPath)
 {
-    mmrs_util::debug() << START_PARA;
-    mmrs_util::debug() << "Calling read_seq_directory!";
-    mmrs_util::debug() << END_PARA;
-
     const fs::path dir = "music";
 
     int status = 0;
@@ -349,7 +299,6 @@ int read_seq_directory(const char* dbPath)
     {
         int i = 0;
         for(const fs::directory_entry entry: fs::directory_iterator(dir)) {
-            mmrs_util::debug() << "i: " << i << std::endl << std::endl;
 
             std::string filename = entry.path().filename().string();
             std::string songNameStr = entry.path().filename().stem().string();
@@ -358,7 +307,7 @@ int read_seq_directory(const char* dbPath)
             // If file has an extension other than .mmrs, print that to the console and continue
             if (entry.path().extension() != ".mmrs") 
             {
-                mmrs_util::debug() << "File " << filename.c_str() << " is not a .mmrs file, skipping." << std::endl;
+                mmrs_util::info() << "File " << filename.c_str() << " is not a .mmrs file, skipping." << std::endl;
             }
             else 
             {
@@ -370,13 +319,13 @@ int read_seq_directory(const char* dbPath)
                 }
                 else 
                 {
-                    mmrs_util::debug() << fs::absolute(entry.path()) << std::endl;
+                    mmrs_util::debug() << "Reading file " << fs::absolute(entry.path()) << std::endl;
 
                     bool success = read_mmrs(entry);
 
                     if (!success) 
                     {
-                        mmrs_util::error() << "Could not read file " << entry.path().filename().string() << std::endl;
+                        mmrs_util::error() << "Could not read file " << entry.path().filename().string() << "." << std::endl;
                         continue;
                     }
 
@@ -457,8 +406,6 @@ RECOMP_DLL_FUNC(sql_init)
     std::string dbPathStr = RECOMP_ARG_STR(0);
     const char* dbPath = dbPathStr.c_str();
 
-    mmrs_util::debug() << dbPath << std::endl;
-
     if(_sql_init(dbPath))
     {
         RECOMP_RETURN(bool, true);
@@ -484,15 +431,12 @@ RECOMP_DLL_FUNC(sql_init)
 RECOMP_DLL_FUNC(read_mmrs_files)
 {    
     mmrs_util::debug() << START_PARA;
-    mmrs_util::debug() << "START EXTLIB";
-    mmrs_util::debug() << END_PARA;
+    mmrs_util::debug() << "START EXTLIB\n";
 
     std::string dbPathStr = RECOMP_ARG_STR(0);
     const char *dbPath = dbPathStr.c_str();
     
     bool initDb = false;
-    
-    mmrs_util::debug() << "Calling init_mmrs_cache!" << std::endl;
     try
     {
         initDb = init_mmrs_cache();
@@ -500,7 +444,7 @@ RECOMP_DLL_FUNC(read_mmrs_files)
     catch (std::exception e)
     {
 
-        mmrs_util::debug() << "Error initalizing music DB: " << e.what() << std::endl;
+        mmrs_util::error() << "Error initalizing music DB: " << e.what() << std::endl;
         RECOMP_RETURN(int, -1);
     }
     
@@ -517,7 +461,7 @@ RECOMP_DLL_FUNC(count_zsound)
 {
     int mmrsId = RECOMP_ARG(int, 0);
 
-    RECOMP_RETURN(int, count_zsound(mmrsId));
+    RECOMP_RETURN(int, _count_zsound(mmrsId));
 }
 
 /*
@@ -538,15 +482,10 @@ RECOMP_DLL_FUNC(load_mmrs_table)
 {
     MMRS* allMmrs = RECOMP_ARG(MMRS*, 0);
 
-    bool success = _load_mmrs_table(allMmrs);
+    bool error = _load_mmrs_table(allMmrs);
 
-    if(success)
+    if(error)
     {
-        for (int n = 0; n < strlen(allMmrs[0].songName); n++)
-        {
-            mmrs_util::debug() << allMmrs[0].songName[n];
-        }
-        mmrs_util::debug() << std::endl;
         RECOMP_RETURN(bool, false);
     }
     else
@@ -589,12 +528,12 @@ RECOMP_DLL_FUNC(load_zbank)
     }
 }
 
-RECOMP_DLL_FUNC(load_zsound)
+RECOMP_DLL_FUNC(load_zsounds)
 {
     Zsound* zsoundAddr = RECOMP_ARG(Zsound*, 0);
-    int zsoundId = RECOMP_ARG(int, 1);
+    int mmrsId = RECOMP_ARG(int, 1);
 
-    bool success = _load_zsound(zsoundAddr, zsoundId);
+    bool success = _load_zsound(zsoundAddr, mmrsId);
     
     if(success)
     {
@@ -603,6 +542,37 @@ RECOMP_DLL_FUNC(load_zsound)
     else
     {
         RECOMP_RETURN(bool, false);
+    }
+}
+
+RECOMP_DLL_FUNC(zsound_key_add)
+{
+    u32 key = RECOMP_ARG(u32, 0);
+    u32 value = RECOMP_ARG(u32, 1);
+
+    zsound_key_to_pointer[key] = value;
+
+    mmrs_util::debug() << "Added map entry " << std::format("{:02x} ", key) << " : " << std::format("{:02x} ", value) << std::endl;
+}
+
+RECOMP_DLL_FUNC(zsound_key_remove)
+{
+    u32 key = RECOMP_ARG(u32, 0);
+
+    zsound_key_to_pointer.erase(key);
+}
+
+RECOMP_DLL_FUNC(zsound_key_lookup)
+{
+    u32 key = RECOMP_ARG(u32, 0);
+
+    if (zsound_key_to_pointer.contains(key))
+    {
+        RECOMP_RETURN(u32, zsound_key_to_pointer.at(key));
+    }
+    else
+    {
+        RECOMP_RETURN(u32, 0);
     }
 }
 

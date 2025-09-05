@@ -27,29 +27,20 @@ void print_bytes(void* addr, int n)
 Vector* CAT_SEQ_INIT(int seqIdArray[], size_t size, Vector** SeqCatArray,  int seqCatIdx)
 {
     Vector* seqVec = vec_init(sizeof(int)); 
-    // log_debug("\nInitialized seqVec at address %p.\n", seqVec->dataStart);
 
     int rc;
 
     for (size_t i = 0; i < size; i++) 
     { 
-        // log_debug("Data in seqIdArray at index %i:\t%i.\n", i, seqIdArray[i])
         if( (rc = vec_push_back(seqVec, &(seqIdArray[i]))) != VEC_SUCCESS )
         {
             vec_errmsg(rc);
         }
-        log_debug("Pushing %i to seqCatElement[%i]\n", seqCatIdx, seqIdArray[i])
         if( (rc = vec_push_back(SeqCatArray[seqIdArray[i]], &seqCatIdx)) != VEC_SUCCESS )
         {
             vec_errmsg(rc);
         }
     }
-
-    // log_debug("\n(Printing from within CAT_SEQ_INIT.)")
-    // if (logLevel >= LOG_DEBUG)
-    // {
-    //     vec_printData(seqVec);
-    // }
 
     return seqVec;
 }
@@ -117,7 +108,6 @@ Vector* vec_init(size_t elementSize)
 // Add an element to the end of the vector. Θ(1)
 u32 vec_push_back(Vector* self, void* data)
 {
-    // log_debug("Called vec_push_back on vector at %p with %i elements of size %i.\n", self, self->numElements, self->elementSize);
     int rc;
 
     // Resize vector (or chastise user) if full
@@ -127,7 +117,6 @@ u32 vec_push_back(Vector* self, void* data)
         {
             return rc;
         }
-        // log_debug("Resized vector. New capacity: %i\n", self->capacity);
     }
     
     // Add the element
@@ -177,7 +166,6 @@ u32 vec_pop_back(Vector* self, void* addr)
         {
             return rc;
         }
-        log_debug("Resized vector. Now size %i, with %i elements.\n", self->capacity, self->numElements);
     }
     
 
@@ -270,31 +258,17 @@ u32 vec_randomize(Vector* self)
     }
     else
     {
-        if (logLevel >= LOG_DEBUG)
-        {
-            log_debug("\n==CALLED vec_randomize.==\n");
-            log_debug("\nVector before randomization:\n")
-            vec_printData(self);
-        }
-
         void* tempData = recomp_alloc(self->elementSize);
 
         for (int i = self->numElements - 1; i > 0; i--)
         {
             u32 rand_idx = Rand_Next() % i;
-            // log_debug("Got random int %i\n", rand_idx);
             Lib_MemCpy(tempData, self->dataStart + (i * self->elementSize), self->elementSize);
             memmove(self->dataStart + (i * self->elementSize), self->dataStart + (rand_idx * self->elementSize), self->elementSize);
             Lib_MemCpy(self->dataStart + (rand_idx * self->elementSize), tempData, self->elementSize);
         }
         
         recomp_free(tempData);
-    }
-
-    if (logLevel >= LOG_DEBUG)
-    {
-        log_debug("Vector after randomization:\n")
-        vec_printData(self);
     }
 
     return VEC_SUCCESS;

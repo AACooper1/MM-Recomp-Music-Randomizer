@@ -9,18 +9,12 @@ RECOMP_DECLARE_EVENT(music_rando_on_init());
 // Initializes the categories table and populates them with vanilla sequences.
 void init_vanilla_sequence_categories()
 {
-    log_debug("Initializing category sequence table. Probably about to crash. \n");
     categorySequences = init_catSeq_table();
-    log_debug("CatSeq table at address %p.\n", categorySequences);
-    // print_bytes(categorySequences, sizeof(Vector*));
+    log_debug("Initialized Category-->Sequences table at address %p.\n", categorySequences);
 
-    // print_bytes(categorySequences[0], sizeof(Vector));
     for (size_t i = 0; i < 127; i++)
     {
-        log_debug("%s (index %i) at %p\n", vanillaSongNames[i], i, &(vanillaSongNames[i]))
-        log_debug("songNames vector at %p.\n", songNames);
         vec_push_back(songNames, vanillaSongNames[i]);
-        log_debug("Pushed.\n")
         char* thisSongName = (char*)recomp_alloc(sizeof(char) * 256);
         Lib_MemSet(thisSongName, 0, 256);
         vec_at(songNames, i, thisSongName);
@@ -30,32 +24,24 @@ void init_vanilla_sequence_categories()
 // Add all custom sequences to the categories table.
 void add_custom_sequence_categories(MMRS* allMmrs, int numMmrs)
 {
-    log_debug("\nCALLED add_custom_sequence_categories()\n");
-
-    // STOP_EXECUTION("\n...\n");
-
     for (int i = 0; i < numMmrs; i++)
     {
         // Custom music tracks start at index 256 in Mage's API. Subject to change.
         int seqId = i + 256;
-        log_debug("Song name is %s.\n", allMmrs[i].songName);
         vec_push_back(songNames, allMmrs[i].songName);
         for (int c = 0; c < 256; c++)
         {
             if (allMmrs[i].categories[c])
             {
-                log_debug("Song %s has category %i!\n", allMmrs[i].songName, c)
                 // Canonical "Category"
                 if (c < 0x16)
                 {
-                    log_debug("Pushing %i to %p...\n", seqId, categorySequences[i+12]);
                     vec_push_back(categorySequences[c], &seqId);
                 }
                 // Final Hours/Title Screen
                 else if (c == 0x16)
                 {
                     int c_offset = 11;
-                    log_debug("Pushing %i to %p...\n", seqId, categorySequences[i+12]);
                     vec_push_back(categorySequences[c_offset], &seqId);
                 }
                 // Should not exist
@@ -68,10 +54,8 @@ void add_custom_sequence_categories(MMRS* allMmrs, int numMmrs)
                 else
                 {
                     int c_offset = c - 0xF5;
-                    log_debug("Pushing %i to %p...\n", seqId, categorySequences[i+12]);
                     vec_push_back(categorySequences[c_offset], &seqId);
                 }
-                log_debug("Success!\n");
             }
         }
     }
@@ -91,7 +75,7 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int 
 
     // print_bytes(gAudioCtx.sequenceFontTable, gAudioCtx.sequenceTable->header.numEntries * 5);
 
-    log_debug("Copying AudioTable...\n")
+    log_debug("Copying AudioTable... ")
     
     // Header
     AudioTableHeader copyHeader = {
@@ -101,9 +85,6 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int 
         /*      pad       */ {0, 0, 0, 0, 0, 0, 0, 0}
     };
     sequenceTableImpostor.header = copyHeader;
-    log_debug("\nCopy header:\n");
-    
-
 
     // Entries
     for (int i = 0; i < gAudioCtx.sequenceTable->header.numEntries; i++)
@@ -127,7 +108,7 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int 
 
     if (logLevel >= LOG_DEBUG)
     {
-        log_debug("Copied! First (musical) entry:\n");
+        log_debug("Copied!\n");
         print_bytes(&(sequenceTableImpostor.entries[2]), sizeof(AudioTableEntry));
     }
 
@@ -135,20 +116,16 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int 
 }
 
 RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
-{
-    recomp_printf("Path length: %i\n", strlen(recomp_get_save_file_path()));
-    
+{    
     unsigned char* save_file_path_temp = recomp_get_save_file_path();
     unsigned char* save_file_path = recomp_alloc(strlen(save_file_path_temp));
     strcpy(save_file_path, save_file_path_temp);
     recomp_free(save_file_path_temp);
-    recomp_printf("Initial path: %s\n", save_file_path);
     
     save_file_path+=strlen(save_file_path) - 15;
-    recomp_printf("End of path: %s\n", save_file_path);
 
     int randSeed = fucking_use_stoi(save_file_path);
-    recomp_printf("Seed: %i\n\n", randSeed);
+    log_info("Randomizing music for seed %i...\n\n", randSeed);
 
     Rand_Seed((u32)randSeed);
 
@@ -204,16 +181,15 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
                 )
                 {
                     alreadyRolled[newSeqId] = true;
-                    log_debug("Rolled 0x%02x, which is a pointer. Rerolling...")
+                    log_debug("Rolled 0x%02x for song %i, which is a pointer. Rerolling...", newSeqId, i)
                     continue;
                 }
-                log_debug("\nPopped value is %02x.\n", newSeqId);
                 // 15% chance of reroll if not custom song (possibly tweak later)
                 if (newSeqId < 256)
                 {
                     if (Rand_Next() % 100 < 15)
                     {
-                        log_debug("Rerolling 0x%02x because custom music makers are GREEDY...\n", newSeqId);
+                        log_debug("Rolled 0x%02x, a vanilla track, for song %i. Rerolling...\n", newSeqId, i);
                         continue;
                     }
                 }
@@ -243,7 +219,7 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
                 }
                 else
                 {
-                    log_debug("Already rolled %02x. Rerolling...\n", newSeqId);
+                    log_debug("Already rolled %02x for song %i. Rerolling...\n", newSeqId, i);
                 }
             }
         }
@@ -277,13 +253,11 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
             log_debug("[MUSIC RANDOMIZER] Replaced sequence %i with sequence %i.\n", i, newSeqId);
             log_info("[MUSIC RANDOMIZER] Replaced sequence %s with sequence %s.\n", oldSeqName, newSeqName)
             AudioApi_ReplaceSequenceFont(i, 0, sequenceFontTableImpostor[((u16*)sequenceFontTableImpostor)[newSeqId] + 1]);
-            // log_info("Loaded audiobank %i.\n", sequenceFontTableImpostor[((u16*)sequenceFontTableImpostor)[newSeqId] + 1]);
         }
 
     }
 
-    // print_bytes(sequenceFontTableImpostor, gAudioCtx.sequenceTable->header.numEntries * 5);
-
+    // Cleanup
     for (int i = 0; i < 139; i++)
     {
         vec_teardown(categorySequences[i]);
@@ -296,13 +270,5 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
     }
     recomp_free(sequenceCategories);
     
-    recomp_free(sequenceFontTableImpostor);
-    // recomp_free(&sequenceTableImpostor);
-
-
-
-    
+    recomp_free(sequenceFontTableImpostor);    
 }
-
-// Cleanup. Remember to add this at the end of randomization algorithm.
-// vec_teardown(categorySequences);

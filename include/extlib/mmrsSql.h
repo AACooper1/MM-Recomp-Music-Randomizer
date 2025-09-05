@@ -8,7 +8,7 @@
         }                                                                                \
         else                                                                             \
         {                                                                                \
-            mmrs_util::debug() << okMsg << std::endl;                                     \
+            mmrs_util::debug() << okMsg;                                                 \
         }
 // #endif
 
@@ -16,7 +16,7 @@ bool _sql_init(const char* dbPath);
 
 int count_mmrs();
 
-int count_zsound(int mmrsId);
+int _count_zsound(int mmrsId);
 
 bool init_mmrs_cache();
 

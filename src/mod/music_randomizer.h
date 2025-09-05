@@ -393,13 +393,8 @@ Vector** init_catSeq_table()
     // And also if category[i] == 16 add it to category 11.
     for (int i = 12; i < 139; i++)
     {
-        log_debug("\nCreating entry for song %i\n", i);
         Vector* songSlot = CAT_SEQ_INIT((int[]){i}, 1, sequenceCategories, i);
-        log_debug("Created!\n");
-        log_debug("Data is %i\n", *((int*)songSlot->dataStart));
-        log_debug("%p, %p\n", &(catSeqPerm[i]), &songSlot);
         Lib_MemCpy(&(catSeqPerm[i]), &songSlot, sizeof(Vector*));
-        log_debug("Copied to address %p!\n", &(catSeqPerm[i]));
     }
 
     return catSeqPerm;
