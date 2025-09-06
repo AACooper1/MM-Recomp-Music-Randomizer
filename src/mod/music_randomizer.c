@@ -12,7 +12,7 @@ void init_vanilla_sequence_categories()
     categorySequences = init_catSeq_table();
     log_debug("Initialized Category-->Sequences table at address %p.\n", categorySequences);
 
-    for (size_t i = 0; i < 127; i++)
+    for (size_t i = 0; i < 128; i++)
     {
         vec_push_back(songNames, vanillaSongNames[i]);
         char* thisSongName = (char*)recomp_alloc(sizeof(char) * 256);
@@ -246,8 +246,8 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
             }
             else
             {
-                vec_at(songNames, newSeqId - 129, &(newSeqName[0]));
-                randomizedIds[i] = newSeqId - 129;
+                vec_at(songNames, newSeqId - 128, &(newSeqName[0]));
+                randomizedIds[i] = newSeqId - 128;
             }
 
             log_debug("[MUSIC RANDOMIZER] Replaced sequence %i with sequence %i.\n", i, newSeqId);

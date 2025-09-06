@@ -568,7 +568,9 @@ RECOMP_DLL_FUNC(zsound_key_lookup)
 
     if (zsound_key_to_pointer.contains(key))
     {
-        RECOMP_RETURN(u32, zsound_key_to_pointer.at(key));
+        u32 value = zsound_key_to_pointer.at(key);
+        
+        RECOMP_RETURN(u32, value);
     }
     else
     {
