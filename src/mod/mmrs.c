@@ -45,8 +45,6 @@ extern int* randomizedIds;
 MMRS *allMmrs;
 int numMmrs;
 
-Vector* zsoundTable;
-
 int logLevel;
 
 /*
@@ -66,7 +64,6 @@ RECOMP_HOOK_RETURN("ConsoleLogo_Init") void on_ConsoleLogo_Init()
 RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 {
     logLevel = set_log_level(recomp_get_config_u32("log_level"));
-    zsoundTable = vec_init(MAX_ZSOUND_SIZE);
 
     log_info("Loading MMRS files...\n");
     const char *dbPath = "assets/musicDB.db";
@@ -179,16 +176,8 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
             
             for (int s = 0; s < numZsound; s++)
             {
-                vec_push_back(zsoundTable, this_zsoundTable[s].data);
-                log_debug("Pushed back to address %p...\n", zsoundTable->dataStart + (MAX_ZSOUND_SIZE * (zsoundTable->numElements - 1)));
-                // char* the = recomp_alloc(MAX_ZSOUND_SIZE);
-                // vec_at(zsoundTable, zsoundTable->numElements - 1, the);
-                // print_bytes(the, 64);
-                // recomp_free(the);
-
-                zsound_key_add(this_zsoundTable[s].sampleAddr, (uintptr_t)zsoundTable->dataStart + (MAX_ZSOUND_SIZE * (zsoundTable->numElements - 1)));
+                zsound_key_add(this_zsoundTable[s].sampleAddr, (uintptr_t)this_zsoundTable[s].data);
                 log_debug("Added key %x...... \n", this_zsoundTable[s].sampleAddr);
-                print_bytes((void*)zsound_key_lookup(this_zsoundTable[s].sampleAddr), 64);
             }
 
             log_debug("Bank number: %d\n", allMmrs[i].bankNo);
@@ -340,7 +329,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
             for (int s = 0; s < numZsound; s++)
             {
                 log_debug("%x: %x\n", this_zsoundTable[s].sampleAddr, zsound_key_lookup(this_zsoundTable[s].sampleAddr));
-                print_bytes((u8*)zsound_key_lookup(this_zsoundTable[s].sampleAddr), 64);
+                // print_bytes((u8*)zsound_key_lookup(this_zsoundTable[s].sampleAddr), 64);
                 log_debug("\n");
             }
 

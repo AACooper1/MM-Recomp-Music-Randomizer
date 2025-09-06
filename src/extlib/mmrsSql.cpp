@@ -860,6 +860,51 @@ bool remove_mmrs(int mmrsId)
 
     sqlite3_reset(statement);
 
+    query = "DELETE FROM zsound_to_mmrs WHERE mmrs_id=? RETURNING zsound_id";
+
+    rc = 0;
+    int zsoundId = 0;
+
+    if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
+    {
+        sqlite3_bind_int(statement, 1, mmrsId);
+    }
+
+    rc = sqlite3_step(statement);
+    if (rc == SQLITE_ROW)
+    {
+        zsoundId = sqlite3_column_int(statement, 0);
+    }
+    else
+    {
+        mmrs_util::error() << "Error deleting Zsound-to-MMRS with ID " << mmrsId << ": " << sqlite3_errmsg(db) << std::endl;
+        return false;
+    }
+
+    sqlite3_reset(statement);
+
+    query = "DELETE FROM zsound WHERE id=? RETURNING id";
+
+    rc = 0;
+
+    if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
+    {
+        sqlite3_bind_int(statement, 1, zsoundId);
+    }
+
+    rc = sqlite3_step(statement);
+    if (rc == SQLITE_ROW)
+    {
+        zsoundId = sqlite3_column_int(statement, 0);
+    }
+    else
+    {
+        mmrs_util::error() << "Error deleting Zsound with ID " << zsoundId << ": " << sqlite3_errmsg(db) << std::endl;
+        return false;
+    }
+
+    sqlite3_reset(statement);
+
     return true;
 }
 

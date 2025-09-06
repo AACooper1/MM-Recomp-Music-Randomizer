@@ -116,7 +116,15 @@ bool read_mmrs(fs::directory_entry file)
                     zseq.data[j] = (unsigned char)filebuffer[j];
                 }
 
-                mmrs.bankNo = std::stoi(filename, 0, 16);
+                try 
+                {
+                    mmrs.bankNo = std::stoi(filename, 0, 16);
+                }
+                catch(const std::exception& e)
+                    {
+                        mmrs_util::error() << "Could not parse int for zseq " << filename << " in MMRS " << mmrs.songName << ". Song will be skipped." << std:: endl;
+                        return false;
+                    }
                 zseq.size = filesize;
             }
             else if (filename == "categories.txt") 
@@ -125,7 +133,16 @@ bool read_mmrs(fs::directory_entry file)
 
                 while (c != nullptr) 
                 {
-                    int cat = std::stoi(std::string(c), 0, 16);
+                    int cat = 0;
+                    try
+                    {
+                        int cat = std::stoi(std::string(c), 0, 16);
+                    }
+                    catch(const std::exception& e)
+                    {
+                        mmrs_util::error() << "Could not parse int for category " << c << " in MMRS " << mmrs.songName << ". Song will be skipped." << std:: endl;
+                        return false;
+                    }
                     if (cat < 256) 
                     {
                         mmrs.categories[cat] = true;
