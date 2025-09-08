@@ -12,7 +12,7 @@ void init_vanilla_sequence_categories()
     categorySequences = init_catSeq_table();
     log_debug("Initialized Category-->Sequences table at address %p.\n", categorySequences);
 
-    for (size_t i = 0; i < 127; i++)
+    for (size_t i = 0; i < 128; i++)
     {
         vec_push_back(songNames, vanillaSongNames[i]);
         char* thisSongName = (char*)recomp_alloc(sizeof(char) * 256);

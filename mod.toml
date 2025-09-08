@@ -125,3 +125,12 @@ description = "Controls whether combat music plays while fighting a normal enemy
 type = "Enum"
 options = [ "Off", "On" ]
 default = "Off"
+
+[[manifest.config_options]]
+
+id = "show_song_titles"
+name = "Show Song Titles"
+description = "Controls whether the songs' titles are displayed on screen."
+type = "Enum"
+options = [ "Off", "On" ]
+default = "On"

@@ -330,7 +330,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
             {
                 log_debug("%x: %x\n", this_zsoundTable[s].sampleAddr, zsound_key_lookup(this_zsoundTable[s].sampleAddr));
                 // print_bytes((u8*)zsound_key_lookup(this_zsoundTable[s].sampleAddr), 64);
-                log_debug("\n");
+                // log_debug("\n");
             }
 
             for (int s = 0; s < numZsound; s++)
@@ -382,6 +382,10 @@ RECOMP_HOOK("AudioLoad_SyncLoadSeq") void prepare_display_song_name(s32 seqId)
 
 RECOMP_HOOK("Play_PostWorldDraw") void drawSongName(PlayState* this)
 {
+    if (!recomp_get_config_u32("show_song_titles"))
+    {
+        return;
+    }
     if (osGetTime() > lastSongLoadTime + OS_USEC_TO_CYCLES(5 * 1000 * 1000))
     {
         return;
@@ -401,12 +405,18 @@ RECOMP_HOOK("Play_PostWorldDraw") void drawSongName(PlayState* this)
 
     GfxPrint_SetPos(&songNamePrinter, 0, 29);
 
-    vec_at(songNames, randomizedIds[currSeqId], currSongName);
+    int offsetSeqId = currSeqId;
+    if (currSeqId >= 256)
+    {
+        offsetSeqId -= 128;
+    }
+
+    vec_at(songNames, randomizedIds[offsetSeqId], currSongName);
 
     GfxPrint_Printf(&songNamePrinter, currSongName);
     if (!currSongName[0] != '\0' && logLevel >= LOG_DEBUG)
     {
-        GfxPrint_Printf(&songNamePrinter, "(slot 0x%02x --> song 0x%02x)", currSeqId, randomizedIds[currSeqId] + 128);
+        GfxPrint_Printf(&songNamePrinter, "(slot 0x%02x --> song 0x%02x)", currSeqId, randomizedIds[currSeqId]);
     }
 
     gfx = GfxPrint_Close(&songNamePrinter);

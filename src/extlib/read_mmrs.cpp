@@ -136,18 +136,43 @@ bool read_mmrs(fs::directory_entry file)
                     int cat = 0;
                     try
                     {
-                        int cat = std::stoi(std::string(c), 0, 16);
+                        cat = std::stoi(std::string(c), 0, 16);
+                        mmrs_util::debug() << std::string(c) << " : " << cat << std::endl;
+                        if (cat < 256) 
+                        {
+                            mmrs.categories[cat] = true;
+                            mmrs_util::debug() << "Set category " << cat << " to " << mmrs.categories[cat] << ". " << std::endl;
+                        }   
+                        c = std::strtok(nullptr, ",");
                     }
                     catch(const std::exception& e)
                     {
                         mmrs_util::error() << "Could not parse int for category " << c << " in MMRS " << mmrs.songName << ". Song will be skipped." << std:: endl;
                         return false;
                     }
-                    if (cat < 256) 
+                }
+
+                c = std::strtok(filebuffer.data(), "-");
+
+                while (c != nullptr) 
+                {
+                    int cat = 0;
+                    try
                     {
-                        mmrs.categories[cat] = true;
+                        int cat = std::stoi(std::string(c), 0, 16);
+                        mmrs_util::debug() << std::string(c) << " : " << cat << std::endl;
+                        if (cat < 256) 
+                        {
+                            mmrs.categories[cat] = true;
+                        }
+                        c = std::strtok(nullptr, "-");
                     }
-                    c = std::strtok(nullptr, ",");
+                    catch(const std::exception& e)
+                    {
+                        mmrs_util::error() << "Could not parse int for category " << c << " in MMRS " << mmrs.songName << ". Song will be skipped." << std:: endl;
+                        return false;
+                    }
+                    
                 }
             }
             else if (filename.ends_with(".zbank")) 
@@ -239,6 +264,15 @@ bool read_mmrs(fs::directory_entry file)
 
         success = true;
         // Update the database
+        mmrs_util::debug() << "Categories: ";
+        for (int c = 0; c < 256; c++)
+        {
+            if (mmrs.categories[c])
+            {
+                mmrs_util::debug() << c << " ";
+            }
+        }
+        mmrs_util::debug() << std::endl;
         int mmrsId = insert_mmrs(mmrs, zseq, file);
 
         if (zsounds.size() > 0)
