@@ -28,6 +28,9 @@ void add_custom_sequence_categories(MMRS* allMmrs, int numMmrs)
     {
         // Custom music tracks start at index 256 in Mage's API. Subject to change.
         int seqId = i + 256;
+        // Offset to account for 0xXFE and 0xXFF being reserved
+        seqId += ((seqId - 256)/254) * 2;
+
         vec_push_back(songNames, allMmrs[i].songName);
         for (int c = 0; c < 256; c++)
         {
@@ -246,8 +249,8 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
             }
             else
             {
-                vec_at(songNames, newSeqId - 129, &(newSeqName[0]));
-                randomizedIds[i] = newSeqId - 129;
+                vec_at(songNames, newSeqId - 128, &(newSeqName[0]));
+                randomizedIds[i] = newSeqId - 128;
             }
 
             log_debug("[MUSIC RANDOMIZER] Replaced sequence %i with sequence %i.\n", i, newSeqId);

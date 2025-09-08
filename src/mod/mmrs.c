@@ -408,6 +408,7 @@ RECOMP_HOOK("Play_PostWorldDraw") void drawSongName(PlayState* this)
     int offsetSeqId = currSeqId;
     if (currSeqId >= 256)
     {
+        offsetSeqId -= (((currSeqId - 256)/254) * 2);
         offsetSeqId -= 128;
     }
 
