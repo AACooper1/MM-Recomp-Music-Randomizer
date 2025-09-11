@@ -17,7 +17,7 @@ void print_bytes(void* addr, int n)
             
             recomp_printf("%02x ", *(unsigned char*)(addr + i));
         }
-        recomp_printf("\n");
+        recomp_printf("\n\n");
 }
 
 

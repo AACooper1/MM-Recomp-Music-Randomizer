@@ -30,7 +30,7 @@ bool init_mmrs_cache()
            songName TEXT,                           \
            categories BLOB,                         \
            bankNo INTEGER,                          \
-           formMask INTEGER                         \
+           formMask BLOB                            \
            );",
         nullptr,
         nullptr,
@@ -248,13 +248,13 @@ int insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
         sqlite3_bind_text(statement, 3, mmrs.songName, strlen(mmrs.songName), SQLITE_STATIC);
         sqlite3_bind_blob(statement, 4, mmrs.categories, sizeof(bool) * 256, SQLITE_STATIC);
         sqlite3_bind_int(statement, 5, mmrs.bankNo);
-        sqlite3_bind_int(statement, 6, mmrs.formmask);
+        sqlite3_bind_blob(statement, 6, mmrs.formmask, sizeof(u16) * 17, SQLITE_STATIC);
 
         sqlite3_bind_int64(statement, 7, timestamp);
         sqlite3_bind_text(statement, 8, mmrs.songName, strlen(mmrs.songName), SQLITE_STATIC);
         sqlite3_bind_blob(statement, 9, mmrs.categories, sizeof(bool) * 256, SQLITE_STATIC);
         sqlite3_bind_int(statement, 10, mmrs.bankNo);
-        sqlite3_bind_int(statement, 11, mmrs.formmask);
+        sqlite3_bind_blob(statement, 11, mmrs.formmask, sizeof(u16) * 17, SQLITE_STATIC);
     }
 
     SQL_ERR_CHECK("Error preparing MMRS UPSERT statement", "");
@@ -560,7 +560,12 @@ bool _load_mmrs_table(MMRS* allMmrs)
         allMmrs[i].bankNo = sqlite3_column_int(statement, 5);
 
         // Form mask
-        allMmrs[i].formmask = sqlite3_column_int(statement, 6);
+        unsigned char* formmask = (unsigned char*)sqlite3_column_blob(statement, 6);
+
+        for (int j = 0; j < 36; j++)
+        {
+            ((unsigned char*)&(allMmrs[i].formmask))[j] = formmask[j ^ 2];
+        }
 
         // Zseq ID
         const char* subquery = "SELECT * FROM mmrs_relation WHERE mmrs_id=?";

@@ -50,6 +50,11 @@ bool read_mmrs(fs::directory_entry file)
         zseq.data[i] = 0xFF;
     }
 
+    for (int s = 0; s < 17; s++)
+    {
+        mmrs.formmask[s] = UINT16_MAX;
+    }
+
     try 
     {
         int zip_filesize = fs::file_size(in_path);
@@ -126,6 +131,90 @@ bool read_mmrs(fs::directory_entry file)
                         return false;
                     }
                 zseq.size = filesize;
+            }
+            else if (filename.ends_with(".formmask"))
+            {
+                filebuffer.push_back('\0');
+                std::istringstream formmask(filebuffer.data());
+                std::string line;
+                int lineIdx = 0;
+
+                for (int s = 0; s < 17; s++)
+                {
+                    mmrs.formmask[s] = 0;
+                }
+
+                std::string playStates[13] = 
+                {
+                    "FierceDeity",
+                    "Goron",
+                    "Zora",
+                    "Deku",
+                    "Human",
+                    "Outdoors",
+                    "Indoors",
+                    "Cave",
+                    "Epona",
+                    "Swim",
+                    "SpikeRolling",
+                    "Combat",
+                    "CriticalHealth"
+                };
+
+                
+                std::string unusedCumulCheck(filebuffer.data());
+                for (int c = 5; c < 13; c++)
+                {
+                    if (!unusedCumulCheck.contains(playStates[c]))
+                    {
+                        mmrs_util::debug() << playStates[c] << " not in formmask, will be added as cumulative state..." << std::endl;
+                        mmrs.formmask[16] += (1 << c);
+                    }
+                }
+
+                int l = 0;
+                while (std::getline(formmask, line, '"'))
+                {
+                    if (l++ % 2 == 0)
+                    {
+                        continue;
+                    }
+                    else if (!(line.contains("[") || line.contains("]")))
+                    {
+                        mmrs_util::debug() << lineIdx << "(" << l << ") : " << line << std::endl;
+                        if (lineIdx > 16)
+                        {
+                            mmrs_util::error() << "Formmask for " << zip_filename << " has more than 16 rows " << "(" << lineIdx << "), skipping!";
+                            return false;
+                        }
+
+                        int stateIdx = 0;
+
+                        if (line.contains("None"))
+                        {
+                            stateIdx = 5;
+                        }
+                        else if (line.contains("All"))
+                        {
+                            mmrs.formmask[lineIdx] += FIERCE_DEITY | GORON | ZORA | DEKU | HUMAN;
+                            stateIdx = 5;
+                        }
+
+                        for (stateIdx; stateIdx < 12; stateIdx++)
+                        {
+                            if (line.contains(playStates[stateIdx]))
+                            {
+                                mmrs.formmask[lineIdx] += (1 << stateIdx);
+                            }
+                        }
+
+                        lineIdx++;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
             }
             else if (filename == "categories.txt") 
             {

@@ -10,6 +10,8 @@
 #include "recomputils.h"
 #include "recompconfig.h"
 
+#include "audio/lib/seqplayer.c"
+
 // Required Mods
 #include "audio_api/all.h"
 
@@ -38,9 +40,13 @@ RECOMP_IMPORT(".", bool sql_teardown());
 
 RECOMP_DECLARE_EVENT(music_rando_begin());
 RECOMP_DECLARE_EVENT(mmrs_reader_done(MMRS *allMmrs, int numMmrs));
+RECOMP_DECLARE_EVENT(on_apply_formmask(PlayState* play, Player* this))
+
+extern u32 LifeMeter_IsCritical(void);
 
 extern Vector* songNames;
 extern int* randomizedIds;
+Vector* formmaskAddrs;
 
 MMRS *allMmrs;
 int numMmrs;
@@ -84,7 +90,15 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
     }
 
     allMmrs = recomp_alloc(sizeof(MMRS) * numMmrs);
+    formmaskAddrs = vec_init(sizeof(u16*));
+
     log_info("Number of MMRS sequences: %i\n", numMmrs);
+
+    if (numMmrs == 0)
+    {
+        return true;
+    }
+
     Lib_MemSet(allMmrs, 0, sizeof(MMRS) * numMmrs);
 
     load_mmrs_table(allMmrs);
@@ -94,7 +108,6 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 
     AudioTableEntry *mySeq;
     AudioTableEntry *bankEntry;
-
 
     for (int i = 0; i < numMmrs; i++)
     {
@@ -109,10 +122,9 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
         }
         else
         {
-            // log_debug("Loaded zseq!\n");
+            log_debug("Loaded zseq!\n");
         }
 
-        // log_debug("\nSize is %d", allMmrs[i].zseq.size);
         if (zseq->size == 0) 
         {
             continue;
@@ -124,11 +136,17 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
         mySeq->size = zseq->size;
         mySeq->medium = MEDIUM_CART;
         mySeq->cachePolicy = CACHE_EITHER;
-        mySeq->shortData1 = 0;
+        mySeq->shortData1 = formmaskAddrs->numElements;
         mySeq->shortData2 = 0;
         mySeq->shortData3 = 0;
 
         s32 sequenceId = AudioApi_AddSequence(mySeq);
+
+        u16* formmaskAddr = &(allMmrs[i].formmask[0]);
+
+        vec_push_back(formmaskAddrs, &formmaskAddr);
+
+        // print_bytes(allMmrs[i].formmask, 34);
 
         if (allMmrs[i].bankInfoId != -1)
         {
@@ -340,7 +358,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
         }
         // AudioApi_ReplaceSequence(sequenceId, mySeq);
         AudioApi_AddSequenceFont(sequenceId, allMmrs[i].bankNo);
-        log_info("Successfully added sequence %s", allMmrs[i].songName);
+        log_debug("Successfully added sequence %s", allMmrs[i].songName);
         log_debug(", uses bank %i", allMmrs[i].bankNo);
 
         if (*(u32*)&(allMmrs[i].categories[8]))
@@ -353,16 +371,154 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
             log_debug(" and is not a fanfare");
         }
 
-        log_info("!\n\n");
+        log_debug("!\n");
 
         recomp_free(mySeq);
     }
+
+    gAudioCtx.sequenceFontTable[NA_BGM_MILK_BAR_DUPLICATE] = gAudioCtx.sequenceFontTable[NA_BGM_MILK_BAR];
 
     sql_teardown();
 
     mmrs_reader_done(allMmrs, numMmrs);
 
     return true;
+}
+
+RECOMP_CALLBACK(".", on_apply_formmask) void apply_formmask(PlayState* play, Player* this)
+{
+    u16 seqId = AudioSeq_GetActiveSeqId(SEQ_PLAYER_BGM_MAIN);
+
+    int offsetSeqId = randomizedIds[seqId];
+    if (offsetSeqId >= 128)
+    {
+        offsetSeqId += (((offsetSeqId)/254) * 2);
+        offsetSeqId += 128;
+    }
+
+    if (offsetSeqId == 29)
+    {
+        if (randomizedIds[0x15 + gSaveContext.save.day - 1] < 128)
+        {
+            // log_debug("Okay the thing now is %i. that's the clock town day %i id\n", randomizedIds[0x15 + gSaveContext.save.day - 1], gSaveContext.save.day - 1)
+            return;
+        }
+    }
+    else if (offsetSeqId < 128 || seqId % 256 > 253 || offsetSeqId > gAudioCtx.sequenceTable->header.numEntries)
+    {
+        log_debug("Not doing the thing now because it um. because it's the randomizedIds[seqId] is %i sorry\n", randomizedIds[seqId])
+        return;
+    }
+
+    log_debug("SeqId is %i, randomizedId[seqId] is %i]\n", seqId, offsetSeqId)
+
+    u16** formMaskAddr = recomp_alloc(sizeof(u16*));
+    vec_at(formmaskAddrs, gAudioCtx.sequenceTable->entries[offsetSeqId].shortData1, formMaskAddr);
+
+    u16* mask = *formMaskAddr;
+
+    // Get cumulative states
+    u16 cumulativeStates  = mask[16];
+
+    // Form
+    u16 state = 1 << gSaveContext.save.playerForm;
+
+    // Indoors/Outdoors/Cave
+    // Copied from MMR code
+
+    switch (play->sceneId) 
+    {
+        case SCENE_KAKUSIANA: // Grottos
+        case SCENE_DEKUTES: // Deku Scrub Playground
+        case SCENE_YOUSEI_IZUMI: // Fairy's Fountain
+        case SCENE_GORON_HAKA: // Goron Graveyard
+            state = cumulativeStates & CAVE ? state |= CAVE : CAVE;
+            break;
+        case SCENE_WITCH_SHOP: // Potion Shop
+        case SCENE_AYASHIISHOP: // Curiosity Shop
+        case SCENE_OMOYA: // Ranch House and Barn
+        case SCENE_BOWLING: // Honey and Darling
+        case SCENE_SONCHONOIE: // Mayor's Residence
+        //case SCENE_MILK_BAR: // Milk Bar
+        case SCENE_TAKARAYA: // Treasure Chest Shop
+        case SCENE_SYATEKI_MIZU: // Town Shooting Gallery
+        case SCENE_SYATEKI_MORI: // Swamp Shooting Gallery
+        case SCENE_KAJIYA: // Mountain Smithy
+        case SCENE_POSTHOUSE: // Post Office
+        case SCENE_LABO: // Marine Research Lab
+        case SCENE_8ITEMSHOP: // Trading Post
+        case SCENE_TAKARAKUJI: // Lottery Shop
+        case SCENE_FISHERMAN: // Fisherman's Hut
+        case SCENE_GORONSHOP: // Goron Shop
+        case SCENE_BANDROOM: // Zora Hall Rooms
+        case SCENE_TOUGITES: // Poe Hut
+        case SCENE_DOUJOU: // Swordsman's School
+        case SCENE_MAP_SHOP: // Tourist Information
+        case SCENE_YADOYA: // Stock Pot Inn
+        case SCENE_BOMYA: // Bomb Shop
+            state = cumulativeStates & INDOORS ? state |= INDOORS : INDOORS;
+            break;
+        default:
+            state = cumulativeStates & OUTDOORS ? state |= OUTDOORS : OUTDOORS;
+        }
+
+    // Epona
+    if (this->rideActor)
+    {
+        state = cumulativeStates & EPONA ? state |= EPONA : EPONA;
+    }
+
+    // Swim
+    if (this->stateFlags1 & PLAYER_STATE1_8000000 || this->stateFlags3 & PLAYER_STATE3_8000)
+    {
+        state = cumulativeStates & SWIM ? state |= SWIM : SWIM;
+    }
+
+    // Spikes
+    if (this->stateFlags3 & PLAYER_STATE3_80000)
+    {
+        state = cumulativeStates & SPIKES ? state |= SPIKES : SPIKES;
+    }
+
+    // Combat
+    if (play->actorCtx.attention.bgmEnemy != NULL)
+    {
+        state = cumulativeStates & COMBAT ? state |= COMBAT : COMBAT;
+    }
+
+    // Critical Health
+    if (LifeMeter_IsCritical())
+    {
+        state = cumulativeStates & CRITICAL_HEALTH ? state |= CRITICAL_HEALTH : CRITICAL_HEALTH;
+    }
+
+    for (int i = 0; i < 16; i++)
+    {
+        SequenceChannel* channel = gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].channels[i];
+
+        if (state & mask[i])
+        {
+            channel->muted = false;
+        }
+        else
+        {
+            channel->muted = true;
+        }
+    }
+
+    log_debug(" %x \n ", state)
+    for (int i = 0; i < 16; i++)
+    {
+        log_debug("%i ", (mask[2] & 1 << i == 0))
+    }
+    log_debug("\n(")
+    for (int i = 0; i < 16; i++)
+    {
+        log_debug("%i ", !(gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].channels[i]->muted))
+    }
+    log_debug(")\n")
+
+    recomp_free(formMaskAddr);
 }
 
 RECOMP_CALLBACK("magemods_audio_api", AudioApi_SoundFontLoaded) bool mmrs_loader_font_loaded(s32 fontId, u8* fontData)
@@ -417,7 +573,7 @@ RECOMP_HOOK("Play_PostWorldDraw") void drawSongName(PlayState* this)
     GfxPrint_Printf(&songNamePrinter, currSongName);
     if (!currSongName[0] != '\0' && logLevel >= LOG_DEBUG)
     {
-        GfxPrint_Printf(&songNamePrinter, "(slot 0x%02x --> song 0x%02x)", currSeqId, randomizedIds[currSeqId]);
+        GfxPrint_Printf(&songNamePrinter, "(0x%02x --> 0x%02x)", currSeqId, randomizedIds[currSeqId]);
     }
 
     gfx = GfxPrint_Close(&songNamePrinter);
@@ -544,6 +700,8 @@ RECOMP_PATCH void Player_UpdateCamAndSeqModes(PlayState* play, Player* this) {
 
             Camera_ChangeMode(camera, camMode);
         }
+
+        on_apply_formmask(play, this);
 
         if (!recomp_get_config_u32("disable_enemy_bgm"))
         {

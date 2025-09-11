@@ -149,8 +149,18 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
         randomizedIds[z] = z;
     }
 
+    Vector* randomOrder = vec_init(sizeof(int));
+
     for (int i = 2; i < sequenceTableImpostor.header.numEntries; i++)
     {
+        vec_push_back(randomOrder, &i);
+    }
+    vec_randomize(randomOrder);
+
+    while (randomOrder->numElements > 0)
+    {
+        int i = 0;
+        vec_pop_back(randomOrder, &i);
         Vector* availableSeqs = vec_init(sizeof(int));
 
         // Get the pool of sequences to pull from
@@ -240,25 +250,35 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
             AudioApi_ReplaceSequence(i, &(sequenceTableImpostor.entries[newSeqId]));
             char oldSeqName[256];
             char newSeqName[256];
+
+            int offsetSeqId = newSeqId;
+    
+            if (offsetSeqId >= 256)
+            {
+                offsetSeqId -= (((newSeqId - 256)/254) * 2);
+                offsetSeqId -= 128;
+            }
+    
             vec_at(songNames, i, oldSeqName);
 
-            if (newSeqId < 256)
+            if (offsetSeqId < 256)
             {
-                vec_at(songNames, newSeqId, &(newSeqName[0]));
-                randomizedIds[i] = newSeqId;
+                vec_at(songNames, offsetSeqId, &(newSeqName[0]));
+                randomizedIds[i] = offsetSeqId;
             }
             else
             {
-                vec_at(songNames, newSeqId - 128, &(newSeqName[0]));
-                randomizedIds[i] = newSeqId - 128;
+                vec_at(songNames, offsetSeqId, &(newSeqName[0]));
+                randomizedIds[i] = offsetSeqId;
             }
 
             log_debug("[MUSIC RANDOMIZER] Replaced sequence %i with sequence %i.\n", i, newSeqId);
             log_info("[MUSIC RANDOMIZER] Replaced sequence %s with sequence %s.\n", oldSeqName, newSeqName)
             AudioApi_ReplaceSequenceFont(i, 0, sequenceFontTableImpostor[((u16*)sequenceFontTableImpostor)[newSeqId] + 1]);
         }
-
     }
+
+    log_debug("Randomization finished. %i\n", sequenceTableImpostor.header.numEntries)
 
     // Cleanup
     for (int i = 0; i < 139; i++)
