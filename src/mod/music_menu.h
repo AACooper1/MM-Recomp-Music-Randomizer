@@ -7,6 +7,8 @@
 
 #include "overlays/kaleido_scope/ovl_kaleido_scope/z_kaleido_scope.h"
 
+void display_song_name(char* songName, int seqId, OSTime t);
+
 /*
     NOTES ON PAUSE MENU CODE:
 

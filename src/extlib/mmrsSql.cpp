@@ -437,9 +437,9 @@ int insert_zbank(Zbank zbank, int mmrsId)
 
 bool insert_zsound(Zsound zsound, int mmrsId)
 {
-    mmrs_util::debug() << START_PARA;
-    mmrs_util::debug() << "Called insert_zsound!";
-    mmrs_util::debug() << END_PARA;
+    // mmrs_util::debug() << START_PARA;
+    // mmrs_util::debug() << "Called insert_zsound!";
+    // mmrs_util::debug() << END_PARA;
     sqlite3_reset(statement);
 
     int rc = 0;
@@ -464,7 +464,7 @@ bool insert_zsound(Zsound zsound, int mmrsId)
 
     SQL_ERR_CHECK("Error preparing Zsound INSERT statement", "");
 
-    mmrs_util::debug() << "sampleAddr: " << zsound.sampleAddr << std::endl;
+    // mmrs_util::debug() << "sampleAddr: " << zsound.sampleAddr << std::endl;
 
     rc = sqlite3_step(statement);
     int zsoundId = -1;
@@ -698,9 +698,9 @@ bool _load_zbank(Zbank* zbankAddr, int zbankId)
 
 bool _load_zsound(Zsound* zsoundAddr, int mmrsId)
 {
-    mmrs_util::debug() << START_PARA;
-    mmrs_util::debug() << "Called load_zsound";
-    mmrs_util::debug() << END_PARA;
+    // mmrs_util::debug() << START_PARA;
+    // mmrs_util::debug() << "Called load_zsound";
+    // mmrs_util::debug() << END_PARA;
 
     sqlite3_reset(statement);
 
@@ -717,29 +717,29 @@ bool _load_zsound(Zsound* zsoundAddr, int mmrsId)
 
     while ((rc = sqlite3_step(statement)) == SQLITE_ROW)
     {
-        mmrs_util::debug() << "!!" << std::endl;
+        // mmrs_util::debug() << "!!" << std::endl;
         zsoundAddr[i].size = sqlite3_column_int(statement, 1);
         zsoundAddr[i].sampleAddr = sqlite3_column_int(statement, 2);
         const unsigned char* zsoundData = (const unsigned char*)sqlite3_column_blob(statement, 3);
 
-        mmrs_util::debug() << "Data for zsound " << i << " begins ";
+        // mmrs_util::debug() << "Data for zsound " << i << " begins ";
         
         for (int j = 0; j < zsoundAddr[i].size; j++)
         {
             zsoundAddr[i].data[j ^ 3] = zsoundData[j];
-            if (j < 16)
-            {
-                mmrs_util::debug() << std::format("{:02x} ", zsoundAddr[i].data[j ^ 3]);
-            }
+            // if (j < 16)
+            // {
+            //     mmrs_util::debug() << std::format("{:02x} ", zsoundAddr[i].data[j ^ 3]);
+            // }
         }
 
-        mmrs_util::debug() << std::endl;
+        // mmrs_util::debug() << std::endl;
 
         i++;
-        mmrs_util::debug() << "?!";
+        // mmrs_util::debug() << "?!";
     }
-    mmrs_util::debug() << "Successfully copied " << i << " custom sounds for MMRS with id " << mmrsId << "!" << std::endl;
-    mmrs_util::debug() << END_PARA;
+    // mmrs_util::debug() << "Successfully copied " << i << " custom sounds for MMRS with id " << mmrsId << "!" << std::endl;
+    // mmrs_util::debug() << END_PARA;
 
     if (rc == SQLITE_DONE && i == 0)
     {

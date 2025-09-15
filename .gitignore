@@ -26,3 +26,8 @@ N64Recomp/
 src/mod/test2.c_ignorepls
 unit_tests/
 .vscode/c_cpp_properties.json
+src/mod/sound_randomizer.c
+src/mod/sound_randomizer.h
+src/mod/song_name_display.c
+.gitignore
+src/mod/song_name_display.h

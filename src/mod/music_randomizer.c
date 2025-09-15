@@ -10,7 +10,7 @@ RECOMP_DECLARE_EVENT(music_rando_on_init());
 void init_vanilla_sequence_categories()
 {
     categorySequences = init_catSeq_table();
-    log_debug("Initialized Category-->Sequences table at address %p.\n", categorySequences);
+    // log_debug("Initialized Category-->Sequences table at address %p.\n", categorySequences);
 
     for (size_t i = 0; i < 128; i++)
     {
@@ -78,7 +78,7 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int 
 
     // print_bytes(gAudioCtx.sequenceFontTable, gAudioCtx.sequenceTable->header.numEntries * 5);
 
-    log_debug("Copying AudioTable... ")
+    // log_debug("Copying AudioTable... ")
     
     // Header
     AudioTableHeader copyHeader = {
@@ -109,11 +109,11 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int 
         sequenceTableImpostor.entries[i] = copyEntry;
     }
 
-    if (logLevel >= LOG_DEBUG)
-    {
-        log_debug("Copied!\n");
-        print_bytes(&(sequenceTableImpostor.entries[2]), sizeof(AudioTableEntry));
-    }
+    // if (logLevel >= LOG_DEBUG)
+    // {
+    //     log_debug("Copied!\n");
+    //     print_bytes(&(sequenceTableImpostor.entries[2]), sizeof(AudioTableEntry));
+    // }
 
     music_rando_on_init();
 }
@@ -194,7 +194,7 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
                 )
                 {
                     alreadyRolled[newSeqId] = true;
-                    log_debug("Rolled 0x%02x for song %i, which is a pointer. Rerolling...", newSeqId, i)
+                    log_debug("Rolled 0x%02x for song %i, which is a pointer. Rerolling...", newSeqId, i);
                     continue;
                 }
                 // 15% chance of reroll if not custom song (possibly tweak later)
@@ -272,13 +272,14 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
                 randomizedIds[i] = offsetSeqId;
             }
 
-            log_debug("[MUSIC RANDOMIZER] Replaced sequence %i with sequence %i.\n", i, newSeqId);
-            log_info("[MUSIC RANDOMIZER] Replaced sequence %s with sequence %s.\n", oldSeqName, newSeqName)
+            log_info("[MUSIC RANDOMIZER] Replaced sequence %s with sequence %s.", oldSeqName, newSeqName)
+            log_debug("(%i --> %i)", i, newSeqId);
+            log_info("\n");
             AudioApi_ReplaceSequenceFont(i, 0, sequenceFontTableImpostor[((u16*)sequenceFontTableImpostor)[newSeqId] + 1]);
         }
     }
 
-    log_debug("Randomization finished. %i\n", sequenceTableImpostor.header.numEntries)
+    log_debug("Randomization finished! %i\n", sequenceTableImpostor.header.numEntries)
 
     // Cleanup
     for (int i = 0; i < 139; i++)

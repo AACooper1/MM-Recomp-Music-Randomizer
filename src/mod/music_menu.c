@@ -1,5 +1,5 @@
 #include "music_menu.h"
-
+/*
 extern f32 sQuestStatusCursorsX[];
 extern f32 sQuestStatusCursorsY[];
 
@@ -597,4 +597,4 @@ RECOMP_HOOK("KaleidoScope_SetVertices") void music_buttons_init(PlayState* play,
     sQuestVtxRectTop[QUEST_FORWARD] = -44;
     sQuestVtxWidths[QUEST_TRACKS] = 16;
     sQuestVtxHeights[QUEST_TRACKS] = 16;
-}
+}*/

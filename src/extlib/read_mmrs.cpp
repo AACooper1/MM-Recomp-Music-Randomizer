@@ -181,7 +181,7 @@ bool read_mmrs(fs::directory_entry file)
                     }
                     else if (!(line.contains("[") || line.contains("]")))
                     {
-                        mmrs_util::debug() << lineIdx << "(" << l << ") : " << line << std::endl;
+                        // mmrs_util::debug() << lineIdx << "(" << l << ") : " << line << std::endl;
                         if (lineIdx > 16)
                         {
                             mmrs_util::error() << "Formmask for " << zip_filename << " has more than 16 rows " << "(" << lineIdx << "), skipping!";
@@ -226,11 +226,11 @@ bool read_mmrs(fs::directory_entry file)
                     try
                     {
                         cat = std::stoi(std::string(c), 0, 16);
-                        mmrs_util::debug() << std::string(c) << " : " << cat << std::endl;
+                        // mmrs_util::debug() << std::string(c) << " : " << cat << std::endl;
                         if (cat < 256) 
                         {
                             mmrs.categories[cat] = true;
-                            mmrs_util::debug() << "Set category " << cat << " to " << mmrs.categories[cat] << ". " << std::endl;
+                            // mmrs_util::debug() << "Set category " << cat << " to " << mmrs.categories[cat] << ". " << std::endl;
                         }   
                         c = std::strtok(nullptr, ",");
                     }
@@ -249,7 +249,7 @@ bool read_mmrs(fs::directory_entry file)
                     try
                     {
                         int cat = std::stoi(std::string(c), 0, 16);
-                        mmrs_util::debug() << std::string(c) << " : " << cat << std::endl;
+                        // mmrs_util::debug() << std::string(c) << " : " << cat << std::endl;
                         if (cat < 256) 
                         {
                             mmrs.categories[cat] = true;
@@ -299,7 +299,7 @@ bool read_mmrs(fs::directory_entry file)
             }
             else if (filename.ends_with(".zsound"))
             {
-                mmrs_util::debug() << "Reading zsound file" << std::endl;
+                // mmrs_util::debug() << "Reading zsound file" << std::endl;
 
                 Zsound zsound;
                 zsound.size = filesize;
@@ -323,13 +323,13 @@ bool read_mmrs(fs::directory_entry file)
                 }
 
                 // Make sure the extraction really succeeded.
-                mmrs_util::debug() << "Data was: ";
-                for (int j = 0; j < 16; j++) 
-                {
-                    if (j >= filebuffer.size()) break;
-                    mmrs_util::debug() << std::format("{:02x} ", filebuffer[j]);
-                }
-                mmrs_util::debug() << "...\n";
+                // mmrs_util::debug() << "Data was: ";
+                // for (int j = 0; j < 16; j++) 
+                // {
+                //     if (j >= filebuffer.size()) break;
+                //     mmrs_util::debug() << std::format("{:02x} ", filebuffer[j]);
+                // }
+                // mmrs_util::debug() << "...\n";
 
                 if (filesize > MAX_ZSOUND_SIZE)
                 {
@@ -343,7 +343,7 @@ bool read_mmrs(fs::directory_entry file)
 
                 zsounds.push_back(zsound);
 
-                mmrs_util::debug() << "Successfully read!\n";
+                // mmrs_util::debug() << "Successfully read!\n";
             }
             else 
             {
@@ -353,22 +353,22 @@ bool read_mmrs(fs::directory_entry file)
 
         success = true;
         // Update the database
-        mmrs_util::debug() << "Categories: ";
-        for (int c = 0; c < 256; c++)
-        {
-            if (mmrs.categories[c])
-            {
-                mmrs_util::debug() << c << " ";
-            }
-        }
-        mmrs_util::debug() << std::endl;
+        // mmrs_util::debug() << "Categories: ";
+        // for (int c = 0; c < 256; c++)
+        // {
+        //     if (mmrs.categories[c])
+        //     {
+        //         mmrs_util::debug() << c << " ";
+        //     }
+        // }
+        // mmrs_util::debug() << std::endl;
         int mmrsId = insert_mmrs(mmrs, zseq, file);
 
         if (zsounds.size() > 0)
         {
             for (int s = 0; s < zsounds.size(); s++)
             {
-                mmrs_util::debug() << "SampleAddr is " << std::hex << zsounds[s].sampleAddr << std::endl;
+                // mmrs_util::debug() << "SampleAddr is " << std::hex << zsounds[s].sampleAddr << std::endl;
                 insert_zsound(zsounds[s], mmrsId);
             }
         }
@@ -475,11 +475,11 @@ int read_seq_directory(const char* dbPath)
             }
         }
 
-        mmrs_util::debug() << std::endl;
-        for (auto& it: filenames)
-        {
-            mmrs_util::debug() << it << std::endl;
-        }
+        // mmrs_util::debug() << std::endl;
+        // for (auto& it: filenames)
+        // {
+        //     mmrs_util::debug() << it << std::endl;
+        // }
 
         // Now remove any that are in the db but not the folder
         int mmrsCount = count_mmrs();
@@ -692,7 +692,7 @@ RECOMP_DLL_FUNC(zsound_key_add)
 
     zsound_key_to_pointer[key] = value;
 
-    mmrs_util::debug() << "Added map entry " << std::format("{:02x} ", key) << " : " << std::format("{:02x} ", value) << std::endl;
+    // mmrs_util::debug() << "Added map entry " << std::format("{:02x} ", key) << " : " << std::format("{:02x} ", value) << std::endl;
 }
 
 RECOMP_DLL_FUNC(zsound_key_remove)
