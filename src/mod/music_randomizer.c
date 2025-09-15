@@ -10,7 +10,7 @@ RECOMP_DECLARE_EVENT(music_rando_on_init());
 void init_vanilla_sequence_categories()
 {
     categorySequences = init_catSeq_table();
-    // log_debug("Initialized Category-->Sequences table at address %p.\n", categorySequences);
+    log_debug("Initialized Category-->Sequences table at address %p.\n", categorySequences);
 
     for (size_t i = 0; i < 128; i++)
     {
@@ -78,7 +78,7 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int 
 
     // print_bytes(gAudioCtx.sequenceFontTable, gAudioCtx.sequenceTable->header.numEntries * 5);
 
-    // log_debug("Copying AudioTable... ")
+    log_debug("Copying AudioTable... ")
     
     // Header
     AudioTableHeader copyHeader = {

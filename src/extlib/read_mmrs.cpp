@@ -435,8 +435,12 @@ int read_seq_directory(const char* dbPath)
     int sqlErrCode;
     std::unordered_set<std::string> filenames;
 
-    if(fs::exists(dir)) 
+    if(fs::exists(dir))
     {
+        if (fs::is_empty(dir))
+        {
+            return 0;
+        }
         int i = 0;
         for(const fs::directory_entry entry: fs::directory_iterator(dir)) {
 
@@ -503,8 +507,9 @@ int read_seq_directory(const char* dbPath)
     } 
     else 
     {
-        mmrs_util::error() << "\ndir" << fs::current_path().string() << "\\" << dir.string() << "does not exist.\n";
-        return -2;
+        mmrs_util::error() << std::endl << "Created path " << dir.string() << std::endl;
+        fs::create_directory("music");
+        return 0;
     }
 
     return -1;
@@ -545,13 +550,16 @@ RECOMP_DLL_FUNC(sql_init)
 {
     std::string dbPathStr = RECOMP_ARG_STR(0);
     const char* dbPath = dbPathStr.c_str();
+    mmrs_util::debug() << "init" << std::endl;
 
     if(_sql_init(dbPath))
     {
+        mmrs_util::debug() << "Initialized SQL database successfully." << std::endl;
         RECOMP_RETURN(bool, true);
     }
     else
     {
+        mmrs_util::error() << "Error initializing sql database: " << sqlite3_errmsg(db) << std::endl;
         RECOMP_RETURN(bool, false);
     }
 }

@@ -20,6 +20,7 @@ bool init_mmrs_cache()
     char *sqlErrMsg;
     int rc;
 
+    mmrs_util::debug() << "Initializing tables..." << std::endl;
     // Initialize all tables    
     rc = sqlite3_exec(
         db, 
@@ -111,7 +112,7 @@ bool init_mmrs_cache()
         &sqlErrMsg
     );
 
-    SQL_ERR_CHECK("Error initializing Zsound table", "");
+    SQL_ERR_CHECK("Error initializing Zsound table", "Successfully initialized all tables!\n");
     
     return true;
 }
