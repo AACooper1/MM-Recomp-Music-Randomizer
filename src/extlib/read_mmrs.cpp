@@ -218,6 +218,7 @@ bool read_mmrs(fs::directory_entry file)
             }
             else if (filename == "categories.txt") 
             {
+                filebuffer.push_back('\0');
                 char* c = std::strtok(filebuffer.data(), ",");
 
                 while (c != nullptr) 

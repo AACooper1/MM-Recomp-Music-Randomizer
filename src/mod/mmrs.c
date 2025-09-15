@@ -349,7 +349,10 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
             for (int s = 0; s < numZsound; s++)
             {
                 log_debug("%x: %x\n", this_zsoundTable[s].sampleAddr, zsound_key_lookup(this_zsoundTable[s].sampleAddr));
-                print_bytes((u8*)zsound_key_lookup(this_zsoundTable[s].sampleAddr), 64);
+                if (logLevel >= LOG_DEBUG)
+                {
+                    print_bytes((u8*)zsound_key_lookup(this_zsoundTable[s].sampleAddr), 64);
+                }
                 log_debug("\n");
             }
 

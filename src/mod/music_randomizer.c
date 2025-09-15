@@ -50,7 +50,7 @@ void add_custom_sequence_categories(MMRS* allMmrs, int numMmrs)
                 // Should not exist
                 else if (c < 0x102)
                 {
-                    log_error("Error: Song %i has category %d, which does not exist.\n", i, c);
+                    log_error("Error: Song %s has category %x, which does not exist.\n", allMmrs[i].songName, c);
                     continue;
                 }
                 // Individual song slot
