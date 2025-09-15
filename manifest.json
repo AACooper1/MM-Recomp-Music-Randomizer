@@ -1,0 +1,8 @@
+{
+    "name": "Music Randomizer",
+    "version_number": "0.1.0",
+    "website_url": "https://github.com/AACooper1/MM-Recomp-Music-Randomizer",
+    "description": "Reads .mmrs files and randomizes music. ",
+    "dependencies": [
+    ]
+}

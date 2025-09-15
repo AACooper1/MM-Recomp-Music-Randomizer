@@ -7,6 +7,8 @@ Reimplements the music randomization features from [MMR](https://github.com/Zoey
 ## Instructions:
 Extract all mod files into your `mods` directory (usually `AppData\Local\Zelda64Recompiled\mods` on Windows).
 
+Additionally, download the latest release of [MageMods' Audio API](https://github.com/magemods/mm-audio-api/tags) and install it in the same way. **This is required.**
+
 To add custom music, create a `music` folder in the same directory as your `Zelda64Recompiled.exe` and drop `.mmrs` files inside that folder. 
 
 A database will be created in the `assets` folder in the same parent directory, which will add or remove tracks based on filenames and modification dates. If you want to reset your music database, you can delete `assets/musicDB.db`.

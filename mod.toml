@@ -15,7 +15,7 @@ display_name = "MM Music Randomizer"
 
 # The description that will show up when this mod is displayed in the mod menu. This should be human readable.
 description =  """
-This mod reads .mmrs files created for ZoeyZoltova's emulated randomizer and (WIP) randomizes music. 
+Reads .mmrs files and randomizes music. 
 """
 
 # A short description that will show up in this mod's entry in the mod list. This should be human readable and kept short
