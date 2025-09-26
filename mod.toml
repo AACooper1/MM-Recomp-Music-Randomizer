@@ -34,8 +34,7 @@ minimum_recomp_version = "1.2.0"
 # Dependency mods. Each entry is the mod's ID and then an optional minimum version of the dependency mod.
 dependencies = [
    "magemods_audio_api:0.5.2",
-   "mm_recomp_rando",
-   "ProxyMM_KV:0.0.5"
+   "mm_recomp_rando"
 ]
 
 # Native libraries (e.g. DLLs) and the functions they export.
