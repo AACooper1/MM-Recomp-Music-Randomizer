@@ -27,7 +27,7 @@
 
 RECOMP_IMPORT(".", int set_log_level(int level));
 RECOMP_IMPORT(".", bool sql_init(const char *dbPath));
-RECOMP_IMPORT(".", int read_mmrs_files());
+RECOMP_IMPORT(".", int read_mmrs_files(const char *dbPath));
 RECOMP_IMPORT(".", int count_zsound(int mmrsId));
 RECOMP_IMPORT(".", bool load_mmrs_table(MMRS* allMmrs));
 RECOMP_IMPORT(".", bool load_zseq(Zseq* zseqAddr, int zseqId));
@@ -37,6 +37,8 @@ RECOMP_IMPORT(".", void zsound_key_add(u32 key, u32 value));
 RECOMP_IMPORT(".", void zsound_key_remove(u32 key));
 RECOMP_IMPORT(".", u32 zsound_key_lookup(u32 key));
 RECOMP_IMPORT(".", bool sql_teardown());
+
+RECOMP_IMPORT("*", unsigned char* recomp_get_mod_folder_path());
 
 RECOMP_DECLARE_EVENT(music_rando_begin());
 RECOMP_DECLARE_EVENT(mmrs_reader_done(MMRS *allMmrs, int numMmrs));
@@ -72,8 +74,9 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 {
     logLevel = set_log_level(recomp_get_config_u32("log_level"));
 
-    log_info("Loading MMRS files...\n");
-    const char *dbPath = "assets/musicDB.db";
+    log_info("Reading MMRS files...");
+    // const char *dbPath = "assets/musicDB.db";
+    const char *dbPath = recomp_get_mod_folder_path();
 
     bool success = sql_init(dbPath);
 
@@ -83,7 +86,8 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
         return false;
     }
 
-    numMmrs = read_mmrs_files();
+    numMmrs = read_mmrs_files(dbPath);
+    log_debug("\n")
 
     if (numMmrs == -1)
     {

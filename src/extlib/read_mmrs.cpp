@@ -426,10 +426,8 @@ bool read_mmrs(fs::directory_entry file)
     return success;
 }
 
-int read_seq_directory(const char* dbPath)
+int read_seq_directory(const char* dbPath, fs::path dir)
 {
-    const fs::path dir = "music";
-
     int status = 0;
 
     char *sqlErrorMsg;
@@ -442,12 +440,31 @@ int read_seq_directory(const char* dbPath)
         {
             return 0;
         }
+
+        int count = 0;
+        for(const fs::directory_entry entry: fs::recursive_directory_iterator(dir)) {
+            count++;
+        }
+
         int i = 0;
-        for(const fs::directory_entry entry: fs::directory_iterator(dir)) {
+        for(const fs::directory_entry entry: fs::recursive_directory_iterator(dir)) {
 
             std::string filename = entry.path().filename().string();
             std::string songNameStr = entry.path().filename().stem().string();
             const char* songName = songNameStr.c_str();
+
+            std::stringstream progress;
+            progress << "(" << i << "/" << count << ")";
+            int eraseLength = progress.str().length();
+
+            if (i > 0)
+            {
+                for (int j = 0; j < eraseLength; j++)
+                {
+                    mmrs_util::info() << "\b";
+                }
+            }
+            mmrs_util::info() << progress.str();
 
             // If file has an extension other than .mmrs, print that to the console and continue
             if (entry.path().extension() != ".mmrs") 
@@ -549,13 +566,21 @@ RECOMP_DLL_FUNC(set_log_level)
 
 RECOMP_DLL_FUNC(sql_init)
 {
-    std::string dbPathStr = RECOMP_ARG_STR(0);
-    const char* dbPath = dbPathStr.c_str();
+    std::u8string dbPathStr = RECOMP_ARG_U8STR(0);
+
+    fs::path dbPathFs = fs::path(dbPathStr).parent_path();
+
+    fs::create_directory(dbPathFs / "mod_data");
+
+    dbPathFs /= "mod_data";
+    dbPathFs /= "musicDB.db";
+
+    const char* dbPath = (const char*)dbPathFs.string().c_str();
     mmrs_util::debug() << "init" << std::endl;
 
     if(_sql_init(dbPath))
     {
-        mmrs_util::debug() << "Initialized SQL database successfully." << std::endl;
+        mmrs_util::debug() << "Initialized SQL database successfully at " << dbPath << std::endl;
         RECOMP_RETURN(bool, true);
     }
     else
@@ -582,8 +607,26 @@ RECOMP_DLL_FUNC(read_mmrs_files)
     mmrs_util::debug() << START_PARA;
     mmrs_util::debug() << "START EXTLIB\n";
 
-    std::string dbPathStr = RECOMP_ARG_STR(0);
-    const char *dbPath = dbPathStr.c_str();
+    std::u8string dbPathStr = RECOMP_ARG_U8STR(0);
+
+    fs::path dbPathFs = fs::path(dbPathStr).parent_path();
+
+    fs::create_directory(dbPathFs / "mod_data");
+
+    dbPathFs /= "mod_data";
+    dbPathFs /= "musicDB.db";
+
+    const char* dbPath = dbPathFs.string().c_str();
+
+    mmrs_util::debug() << "db Path: " << dbPath << std::endl;
+
+    fs::path musPath = fs::path(dbPathStr).parent_path();
+
+    fs::create_directory(musPath / "mod_data");
+    fs::create_directory((musPath / "mod_data") / "music");
+
+    musPath /= "mod_data";
+    musPath /= "music";
     
     bool initDb = false;
     try
@@ -597,7 +640,7 @@ RECOMP_DLL_FUNC(read_mmrs_files)
         RECOMP_RETURN(int, -1);
     }
     
-    int numMmrs = read_seq_directory(dbPath);
+    int numMmrs = read_seq_directory(dbPath, musPath);
 
     mmrs_util::debug() << "Completed extlib function read_mmrs_files(). Number of MMRSes: " << numMmrs;
     mmrs_util::debug() << END_PARA;

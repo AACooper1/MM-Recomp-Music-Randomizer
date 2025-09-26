@@ -9,7 +9,7 @@
 #include "read_mmrs.h"
 
 // Variables
-
+extern int* seqFontTableOffset;
 
 // Enums
 typedef enum Categories_t 

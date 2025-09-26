@@ -180,7 +180,7 @@ def create_package():
     
     if fully_collected:
         print("Fully collected. Zipping mod package.")
-        create_archive(package_dir, info.project_root.joinpath(f"{manifest['name']}.thunderstore.zip"))
+        create_archive(package_dir, info.project_root.joinpath(f"{manifest['name']}_v{manifest['version_number']}.zip"))
     else:
         print("Files are missing.")
     

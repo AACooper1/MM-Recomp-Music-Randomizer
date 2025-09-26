@@ -876,36 +876,41 @@ bool remove_mmrs(int mmrsId)
         sqlite3_bind_int(statement, 1, mmrsId);
     }
 
-    rc = sqlite3_step(statement);
-    if (rc == SQLITE_ROW)
+    while ((rc = sqlite3_step(statement))== SQLITE_ROW)
     {
         zsoundId = sqlite3_column_int(statement, 0);
+
+        const char* subquery = "DELETE FROM zsound WHERE id=? RETURNING id";
+
+        int subRc = 0;
+        sqlite3_stmt* substatement;
+
+        if ((subRc = sqlite3_prepare_v2(db, subquery, -1, &substatement, nullptr)) == SQLITE_OK)
+        {
+            sqlite3_bind_int(substatement, 1, zsoundId);
+        }
+
+        subRc = sqlite3_step(substatement);
+        if (subRc == SQLITE_ROW)
+        {
+            zsoundId = sqlite3_column_int(substatement, 0);
+            mmrs_util::debug() << "Deleted Zsound with id " << zsoundId << std::endl;
+        }
+        else
+        {
+            mmrs_util::error() << "Error deleting Zsound with ID " << zsoundId << ": " << sqlite3_errmsg(db) << std::endl;
+        }
+
+        sqlite3_finalize(substatement);
+
+        mmrs_util::debug() << "Deteled Zsound-to-MMRS with id " << zsoundId << std::endl;
     }
-    else
+    if (rc == SQLITE_DONE)
+    {
+        return true;
+    }
     {
         mmrs_util::error() << "Error deleting Zsound-to-MMRS with ID " << mmrsId << ": " << sqlite3_errmsg(db) << std::endl;
-        return false;
-    }
-
-    sqlite3_reset(statement);
-
-    query = "DELETE FROM zsound WHERE id=? RETURNING id";
-
-    rc = 0;
-
-    if ((rc = sqlite3_prepare_v2(db, query, -1, &statement, nullptr)) == SQLITE_OK)
-    {
-        sqlite3_bind_int(statement, 1, zsoundId);
-    }
-
-    rc = sqlite3_step(statement);
-    if (rc == SQLITE_ROW)
-    {
-        zsoundId = sqlite3_column_int(statement, 0);
-    }
-    else
-    {
-        mmrs_util::error() << "Error deleting Zsound with ID " << zsoundId << ": " << sqlite3_errmsg(db) << std::endl;
         return false;
     }
 
