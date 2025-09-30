@@ -97,3 +97,13 @@ static CursorPointDirection sCursorPointLinksButWithMusicMenu[] = {
         /*Mod slop*/ { QUEST_SONG_LULLABY, CURSOR_NONE_PAUSE, CURSOR_TO_LEFT, QUEST_REWIND },       // !!QUEST_TRACKS!!
         { CURSOR_NONE_PAUSE, QUEST_SONG_STORMS, QUEST_BOMBERS_NOTEBOOK, QUEST_REMAINS_GYORG },      // QUEST_HEART_PIECE
     };
+
+typedef enum PauseState_Extended {
+    /* 0x1C */ PAUSE_STATE_MUSICMENU_OPEN = 0x1C
+};
+
+typedef enum PauseMusicMenuState {
+    /* 0x08 */ PAUSE_MUSICMENU_STATE_APPEARING = 0x08,
+    /* 0x09 */ PAUSE_MUSICMENU_STATE_IDLE,
+    /* 0x10 */ PAUSE_MUSICMENU_STATE_CLOSING
+};

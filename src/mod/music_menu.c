@@ -24,6 +24,8 @@ RECOMP_IMPORT("magemods_audio_api", s32 AudioApi_GetActiveSeqId(u8 seqPlayerInde
 RECOMP_IMPORT("magemods_audio_api", u16 AudioApi_GetActiveSeqArgs(u8 seqPlayerIndex));
 RECOMP_IMPORT("magemods_audio_api", void AudioApi_StartSequence(u8 seqPlayerIndex, s32 seqId, u16 seqArgs, u16 fadeInDuration));
 
+extern s32 ShrinkWindow_Letterbox_GetSize(void);
+
 // Update the X/Y positions of these cursors before calling the function. They are declared outside the function, so it should be good.
 RECOMP_HOOK("KaleidoScope_UpdateCursorSize") void insert_music_buttons(PlayState* play)
 {
@@ -120,6 +122,7 @@ RECOMP_HOOK("KaleidoScope_UpdateQuestCursor") void check_music_menu_close(PlaySt
     {
         if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->press.button, BTN_B | BTN_START | BTN_Z | BTN_R))
         {
+            Audio_PlaySfx(NA_SE_SY_DECIDE);
             recompui_hide_context(context);
             music_menu_close(play);
             is_music_menu_open = false;
@@ -173,12 +176,120 @@ RECOMP_CALLBACK(".", music_buttons_interact) void on_music_buttons_interact(u16 
     {
         if (CHECK_BTN_ALL(CONTROLLER1(&play->state)->press.button, BTN_A))
         {
-            recompui_show_context(context);
-            is_music_menu_open = true;
-            music_menu_close(play);
+            if (!is_music_menu_open)
+            {
+                Audio_PlaySfx(NA_SE_SY_DECIDE);
+                play->pauseCtx.state = PAUSE_STATE_SAVEPROMPT;
+                play->pauseCtx.savePromptState = PAUSE_MUSICMENU_STATE_APPEARING;
+            }
         }
-        
     }
+}
+
+extern f32 D_8082B90C;
+extern s16 sPauseCursorLeftX;
+extern s16 sPauseCursorRightX;
+
+extern f32 sPauseCursorLeftMoveOffsetX;
+extern f32 sPauseCursorRightMoveOffsetX;
+
+RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState* play)
+{
+    log_debug("questPageRoll: %f\n", play->pauseCtx.questPageRoll);
+    log_debug("roll: %f\n", play->pauseCtx.roll);
+
+    Input* input = CONTROLLER1(&play->state);
+    PauseContext* pauseCtx = &play->pauseCtx;
+    
+    switch (pauseCtx->state)
+    {
+        case PAUSE_STATE_SAVEPROMPT:
+            switch (pauseCtx->savePromptState)
+            {
+                case PAUSE_MUSICMENU_STATE_APPEARING:
+                        pauseCtx->questPageRoll -= 78.5f;
+                        sPauseCursorLeftX -= TRUNCF_BINANG(sPauseCursorLeftMoveOffsetX / 4);
+                        sPauseCursorRightX -= TRUNCF_BINANG(sPauseCursorRightMoveOffsetX / 4);
+                        if (pauseCtx->questPageRoll <= -628.0f) {
+                            pauseCtx->questPageRoll = -628.0f;
+                            pauseCtx->state = PAUSE_STATE_SAVEPROMPT;
+                            pauseCtx->savePromptState = PAUSE_MUSICMENU_STATE_IDLE;
+                        }
+                    break;
+                case PAUSE_MUSICMENU_STATE_IDLE:
+                    if (!is_music_menu_open)
+                    {
+                        recompui_show_context(context);
+                        is_music_menu_open = true;
+                        music_menu_close(play);
+                    }
+
+                    if (CHECK_BTN_ALL(input->press.button, BTN_B)) {
+                        Interface_SetAButtonDoAction(play, DO_ACTION_NONE);
+                        pauseCtx->savePromptState = PAUSE_MUSICMENU_STATE_CLOSING;
+                        D_8082B90C = pauseCtx->questPageRoll;
+                    }
+                    break;
+                case PAUSE_MUSICMENU_STATE_CLOSING:
+                        pauseCtx->questPageRoll += 78.5f;
+                        sPauseCursorLeftX -= TRUNCF_BINANG(sPauseCursorLeftMoveOffsetX / 4);
+                        sPauseCursorRightX -= TRUNCF_BINANG(sPauseCursorRightMoveOffsetX / 4);
+                        if (pauseCtx->questPageRoll >= 0.0f) {
+                            pauseCtx->questPageRoll = 0.0f;
+                            pauseCtx->state = PAUSE_STATE_MAIN;
+                        }
+                    break;
+            }
+            break;
+    }
+}
+
+extern f32 sPauseMenuVerticalOffset;
+extern TexturePtr sMapPageBgTextures;
+PlayState* thisPlay;
+GraphicsContext* thisGfxCtx;
+
+extern Gfx* KaleidoScope_DrawPageSections(Gfx* gfx, Vtx* vertices, TexturePtr* textures);
+
+RECOMP_HOOK("KaleidoScope_DrawPages") void Pre_replace_quest_texture(PlayState* play, GraphicsContext* gfxCtx)
+{
+    thisPlay = play;
+    thisGfxCtx = gfxCtx;
+}
+
+RECOMP_HOOK_RETURN("KaleidoScope_DrawPages")void replace_quest_texture()
+{
+    PlayState* play = thisPlay;
+    GraphicsContext* gfxCtx = thisGfxCtx;
+
+    PauseContext* pauseCtx = &play->pauseCtx;
+
+    OPEN_DISPS(gfxCtx);
+
+    if (pauseCtx->pageIndex == PAUSE_QUEST && pauseCtx->savePromptState == PAUSE_MUSICMENU_STATE_IDLE)
+    {
+        gDPPipeSync(POLY_OPA_DISP++);
+
+        gDPSetCombineLERP(POLY_OPA_DISP++, TEXEL0, 0, PRIMITIVE, 0, TEXEL0, 0, SHADE, 0, TEXEL0, 0, PRIMITIVE,
+                            0, TEXEL0, 0, SHADE, 0);
+
+        gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 180, 180, 120, 255);
+
+        gDPSetTextureFilter(POLY_OPA_DISP++, G_TF_BILERP);
+
+        Matrix_RotateYF(-3.14f, MTXMODE_NEW);
+        Matrix_Translate(0.0f, sPauseMenuVerticalOffset / 100.0f, -93.0f, MTXMODE_APPLY);
+        Matrix_Scale(0.78f, 0.78f, 0.78f, MTXMODE_APPLY);
+        Matrix_RotateXFApply(-pauseCtx->questPageRoll / 100.0f);
+
+        MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, gfxCtx);
+
+        log_debug("Drawing here\n");
+        POLY_OPA_DISP =
+            KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->questPageVtx, sMapPageBgTextures);
+    }
+
+    CLOSE_DISPS(gfxCtx);
 }
 
 // Unfortunately I have to RECOMP_PATCH this one, as sCursorPointLinks is defined within the function.
