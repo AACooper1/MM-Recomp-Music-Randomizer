@@ -51,6 +51,7 @@ extern int* randomizedIds;
 Vector* formmaskAddrs;
 
 MMRS *allMmrs;
+MMRS *usedMmrs;
 int numMmrs;
 
 int logLevel;
@@ -92,6 +93,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
     if (numMmrs == -1)
     {
         log_error("Error: Could not initialize MMRS database.");
+        mmrs_reader_done(allMmrs, 0);
         return -1;
     }
     else if (numMmrs == 0)
@@ -101,6 +103,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
     }
 
     allMmrs = recomp_alloc(sizeof(MMRS) * numMmrs);
+    usedMmrs = recomp_alloc(sizeof(MMRS) * 0xFE);
     formmaskAddrs = vec_init(sizeof(u16*));
 
     log_info("Number of MMRS sequences: %i\n", numMmrs);
@@ -116,8 +119,21 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
     AudioTableEntry *mySeq;
     AudioTableEntry *bankEntry;
 
-    for (int i = 0; i < numMmrs; i++)
+    bool alreadyRolled[0xFE];
+
+    for (int i = 0; i < 0xFE; i++)
     {
+        alreadyRolled[i] = false;
+    }
+
+    for (int z = 0; z < 0xFE && z < numMmrs; z++)
+    {
+        int i = 0;
+        do
+        {
+            i = Rand_Next() % numMmrs;
+        } while (alreadyRolled[i]);
+        
         zseq = recomp_alloc(sizeof(Zseq));
         bool loaded = load_zseq(zseq, allMmrs[i].zseqId);
         bool is_fanfare = false;
@@ -129,7 +145,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
         }
         else
         {
-            log_debug("Loaded zseq for %s!\n", allMmrs[i].songName);
+            log_debug("Loaded zseq for %s!", allMmrs[i].songName);
         }
 
         if (zseq->size == 0) 
@@ -148,6 +164,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
         mySeq->shortData3 = 0;
 
         s32 sequenceId = AudioApi_AddSequence(mySeq);
+        log_debug(" (id: %x)\n", sequenceId)
 
         u16* formmaskAddr = &(allMmrs[i].formmask[0]);
 
@@ -170,6 +187,32 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
                     zbank->metaData[5],                         // numDrums
                     zbank->metaData[6]                          // numSfx
                 );
+
+                // // REMOVE WHEN API FIX IS DONE
+                // while (bankNo > 0xFF)
+                // {
+                //     int randSeqNo = Rand_Next() % (gAudioCtx.sequenceTable->header.numEntries - 0x100) + 0x100;
+                //     if (AudioApi_GetSequenceFont(randSeqNo, 0) <= 0x28)
+                //     {
+                //         continue;
+                //     }
+                //     else
+                //     {
+                //         AudioTableEntry* replEntry = &gAudioCtx.soundFontTable->entries[bankNo];
+
+                //         AudioApi_ReplaceSequence(randSeqNo, mySeq);
+                //         s32 seqFont = AudioApi_GetSequenceFont(randSeqNo, 0);
+                //         AudioApi_ReplaceSoundFont(seqFont, replEntry);
+
+                //         bankNo = seqFont;
+
+                //         log_debug("Replaced sequence %i (%s) to fit soundfont %i for %s!\n", randSeqNo, allMmrs[randSeqNo - 0x100 - (((randSeqNo - 256)/254) * 2)].songName, bankNo, allMmrs[i].songName)
+
+                //         allMmrs[randSeqNo - 0x100 - (((randSeqNo - 256)/254) * 2)] = allMmrs[i];
+                //         allMmrs[randSeqNo - 0x100 - (((randSeqNo - 256)/254) * 2)].bankNo = bankNo;
+                //     }
+                // }
+                // // END REMOVE
 
                 allMmrs[i].bankNo = bankNo;
             }
@@ -222,10 +265,10 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
             Instrument* inst;
             s32 d;
 
-            if (logLevel >= LOG_DEBUG)
-            {
-                print_bytes(font, sizeof(CustomSoundFont));
-            }
+            // if (logLevel >= LOG_DEBUG)
+            // {
+            //     print_bytes(font, sizeof(CustomSoundFont));
+            // }
 
             // log_debug("\nType   : %x\n", font->type);
             // log_debug("Bank1  : %x\n", font->sampleBank1);
@@ -370,10 +413,10 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
         log_debug("Successfully added sequence %s", allMmrs[i].songName);
         log_debug(", uses bank %x", allMmrs[i].bankNo);
 
-        if (*(u32*)&(allMmrs[i].categories[8]))
+        if (*(u32*)&(allMmrs[i].categories[8]) || allMmrs[i].categories[0x10])
         {
             AudioApi_SetSequenceFlags(sequenceId, SEQ_FLAG_FANFARE);
-            log_debug(" and is a fanfare\n");
+            log_debug(" and is a fanfare");
         }
         else
         {
@@ -383,13 +426,15 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
         log_debug("!\n");
 
         recomp_free(mySeq);
+
+        usedMmrs[z] = allMmrs[i];
     }
 
-    gAudioCtx.sequenceFontTable[NA_BGM_MILK_BAR_DUPLICATE] = gAudioCtx.sequenceFontTable[NA_BGM_MILK_BAR];
+    // gAudioCtx.sequenceFontTable[NA_BGM_MILK_BAR_DUPLICATE] = gAudioCtx.sequenceFontTable[NA_BGM_MILK_BAR];
 
     sql_teardown();
 
-    mmrs_reader_done(allMmrs, numMmrs);
+    mmrs_reader_done(usedMmrs, 0xFE);
 
     return true;
 }
@@ -399,11 +444,6 @@ RECOMP_CALLBACK(".", on_apply_formmask) void apply_formmask(PlayState* play, Pla
     u16 seqId = AudioSeq_GetActiveSeqId(SEQ_PLAYER_BGM_MAIN);
 
     int offsetSeqId = randomizedIds[seqId];
-    if (offsetSeqId >= 128)
-    {
-        offsetSeqId += (((offsetSeqId)/254) * 2);
-        offsetSeqId += 128;
-    }
 
     if (offsetSeqId == 29)
     {
@@ -415,8 +455,6 @@ RECOMP_CALLBACK(".", on_apply_formmask) void apply_formmask(PlayState* play, Pla
         else
         {
             offsetSeqId = randomizedIds[0x15 + gSaveContext.save.day - 1];
-            offsetSeqId += (((offsetSeqId)/254) * 2);
-            offsetSeqId += 128;
 
             // log_debug("The thing um the clock down day %i id is uh. %i\n", gSaveContext.save.day - 1, ((randomizedIds[0x15 + gSaveContext.save.day - 1]/254) * 2) + 128)
         }
@@ -579,11 +617,11 @@ RECOMP_HOOK("Play_PostWorldDraw") void drawSongName(PlayState* this)
     GfxPrint_SetPos(&songNamePrinter, 0, 29);
 
     int offsetSeqId = currSeqId;
-    if (currSeqId >= 256)
-    {
-        offsetSeqId -= (((currSeqId - 256)/254) * 2);
-        offsetSeqId -= 128;
-    }
+    // if (currSeqId >= 256)
+    // {
+    //     offsetSeqId -= (((currSeqId - 256)/254) * 2);
+    //     offsetSeqId -= 128;
+    // }
 
     vec_at(songNames, randomizedIds[offsetSeqId], currSongName);
 

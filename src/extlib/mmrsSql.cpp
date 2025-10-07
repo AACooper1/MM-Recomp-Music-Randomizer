@@ -247,13 +247,13 @@ int insert_mmrs(MMRS mmrs, Zseq zseq, fs::directory_entry file)
         sqlite3_bind_text(statement, 1, filepath, strlen(filepath), SQLITE_STATIC);
         sqlite3_bind_int64(statement, 2, timestamp);
         sqlite3_bind_text(statement, 3, mmrs.songName, strlen(mmrs.songName), SQLITE_STATIC);
-        sqlite3_bind_blob(statement, 4, mmrs.categories, sizeof(bool) * 256, SQLITE_STATIC);
+        sqlite3_bind_blob(statement, 4, mmrs.categories, sizeof(bool) * 512, SQLITE_STATIC);
         sqlite3_bind_int(statement, 5, mmrs.bankNo);
         sqlite3_bind_blob(statement, 6, mmrs.formmask, sizeof(u16) * 17, SQLITE_STATIC);
 
         sqlite3_bind_int64(statement, 7, timestamp);
         sqlite3_bind_text(statement, 8, mmrs.songName, strlen(mmrs.songName), SQLITE_STATIC);
-        sqlite3_bind_blob(statement, 9, mmrs.categories, sizeof(bool) * 256, SQLITE_STATIC);
+        sqlite3_bind_blob(statement, 9, mmrs.categories, sizeof(bool) * 512, SQLITE_STATIC);
         sqlite3_bind_int(statement, 10, mmrs.bankNo);
         sqlite3_bind_blob(statement, 11, mmrs.formmask, sizeof(u16) * 17, SQLITE_STATIC);
     }
@@ -552,7 +552,7 @@ bool _load_mmrs_table(MMRS* allMmrs)
         // Categories
         const unsigned char* cats = (const unsigned char*)sqlite3_column_blob(statement, 4);
         
-        for (int c = 0; c < 256; c++)
+        for (int c = 0; c < 512; c++)
         {
             allMmrs[i].categories[c ^ 3] = cats[c];
         }
