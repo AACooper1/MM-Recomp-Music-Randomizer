@@ -1,6 +1,9 @@
 # v0.1.4
 * **Changed music directory to `mod_data/music`.**
 * Added a progress counter to the debug mode when reading the `music` directory.
+* Fixed a bug where an improperly initialized audiotable would overwrite data from other mods, resulting in many unpredictable behaviors.
+* Fixed a bug where individual song slots would not be considered for randomization.
+* Implemented a temporary workaround for a bug with soundfonts above id 255.
 * Fixed a bug where custom sounds were not deleted from the database properly.
 * Removed ProxyMM-KV as a dependency.
 * Updated README.md.

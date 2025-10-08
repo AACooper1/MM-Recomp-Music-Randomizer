@@ -165,7 +165,7 @@ Vector** categorySequences;
 Vector** sequenceCategories;
 int* randomizedIds;
 
-AudioTable sequenceTableImpostor;
+AudioTable* sequenceTableImpostor;
 u8* sequenceFontTableImpostor;
 
 void init_vanilla_sequence_categories();
@@ -399,7 +399,7 @@ Vector** init_catSeq_table()
         if(logLevel >= LOG_DEBUG)
         {
             log_debug("\nAdded 0x%x to sequenceCategories[%i].", i + 0x100, i);
-            vec_printData(sequenceCategories[i]);
+            // vec_printData(sequenceCategories[i]);
         }
         
         catSeqPerm[i + 0x100] = vec_init(sizeof(int));

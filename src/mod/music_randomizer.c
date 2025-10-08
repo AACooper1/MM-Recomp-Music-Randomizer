@@ -6,6 +6,8 @@ RECOMP_IMPORT("magemods_audio_api", void AudioApi_ReplaceSequenceFont(s32 seqId,
 
 RECOMP_DECLARE_EVENT(music_rando_on_init());
 
+extern s32 AudioApi_GetSequenceFont(s32 seqId, s32 fontNum);
+
 // Initializes the categories table and populates them with vanilla sequences.
 void init_vanilla_sequence_categories()
 {
@@ -59,11 +61,14 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* usedMmrs, int
     init_vanilla_sequence_categories();
 
     // Rand_Seed(get_current_time());
+    // print_bytes(gAudioCtx.sequenceFontTable, (sizeof(u16) * gAudioCtx.sequenceTable->header.numEntries) + gAudioCtx.sequenceTable->header.numEntries * 20);
 
     add_custom_sequence_categories(usedMmrs, numMmrs);
 
     sequenceFontTableImpostor = recomp_alloc((sizeof(u16) * gAudioCtx.sequenceTable->header.numEntries) + gAudioCtx.sequenceTable->header.numEntries * 20);
     Lib_MemCpy(sequenceFontTableImpostor, gAudioCtx.sequenceFontTable, (sizeof(u16) * gAudioCtx.sequenceTable->header.numEntries) + gAudioCtx.sequenceTable->header.numEntries * 20);
+    
+    sequenceTableImpostor = recomp_alloc(sizeof(AudioTable) + sizeof(AudioTableEntry) * (numMmrs - 1));
 
     // print_bytes(gAudioCtx.sequenceFontTable, gAudioCtx.sequenceTable->header.numEntries * 5);
 
@@ -76,7 +81,7 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* usedMmrs, int
         /*    romAddr     */ (uintptr_t)recomp_alloc(sizeof(AudioTableEntry) * gAudioCtx.sequenceTable->header.numEntries),
         /*      pad       */ {0, 0, 0, 0, 0, 0, 0, 0}
     };
-    sequenceTableImpostor.header = copyHeader;
+    sequenceTableImpostor->header = copyHeader;
 
     // Entries
     for (int i = 0; i < gAudioCtx.sequenceTable->header.numEntries; i++)
@@ -95,7 +100,7 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* usedMmrs, int
             thisEntry->shortData3
         };
 
-        sequenceTableImpostor.entries[i] = copyEntry;
+        sequenceTableImpostor->entries[i] = copyEntry;
     }
 
     // if (logLevel >= LOG_DEBUG)
@@ -163,7 +168,7 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
         Vector* availableSeqs = vec_init(sizeof(int));
 
         // Get the pool of sequences to pull from
-        AudioTableEntry* thisEntry = &(sequenceTableImpostor.entries[i]);
+        AudioTableEntry* thisEntry = &(sequenceTableImpostor->entries[i]);
         for (u32 c = 0; c < sequenceCategories[i]->numElements; c++)
         {
             int rc;
@@ -253,7 +258,7 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
         }
         else
         {
-            AudioApi_ReplaceSequence(i, &(sequenceTableImpostor.entries[newSeqId]));
+            AudioApi_ReplaceSequence(i, &(sequenceTableImpostor->entries[newSeqId]));
             char oldSeqName[256];
             char newSeqName[256];
 
@@ -283,12 +288,14 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
             log_info("\n");
             
             AudioApi_ReplaceSequenceFont(i, 0, sequenceFontTableImpostor[((u16*)sequenceFontTableImpostor)[newSeqId] + 1]);
+            // log_debug("Sequence font is now %02x\n", AudioApi_GetSequenceFont(newSeqId, 0));
         }
 
         vec_teardown(availableSeqs);
     }
 
-    log_debug("Randomization finished! %i\n", sequenceTableImpostor.header.numEntries)
+    log_debug("Randomization finished! %i\n", sequenceTableImpostor->header.numEntries)
+    // print_bytes(gAudioCtx.sequenceFontTable, (sizeof(u16) * gAudioCtx.sequenceTable->header.numEntries) + gAudioCtx.sequenceTable->header.numEntries * 20);
 
     // Cleanup
     for (int i = 0; i < 139; i++)
