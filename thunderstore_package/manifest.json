@@ -1,8 +1,8 @@
 {
     "name": "Music_Randomizer",
-    "version_number": "0.1.5",
-    "website_url": "https://github.com/AACooper1/MM-Recomp-Music-Randomizer",
-    "description": "Reads .mmrs files and randomizes music. ",
+    "version_number": "0.2.0",
+    "website_url": "https://github.com/AACooper1/MM-Music-Testing.git",
+    "description": "Reads .mmrs files and randomizes music.",
     "dependencies": [
         "RecompRando-MMRecompRando-0.9.3"
     ]

@@ -618,7 +618,6 @@ bool _load_zseq(Zseq* zseqAddr, int zseqId)
     {
         sqlite3_bind_int(statement, 1, zseqId);
     }
-
     rc = sqlite3_step(statement);
 
     if (rc == SQLITE_ROW)
@@ -811,7 +810,7 @@ bool remove_mmrs(int mmrsId)
     if (rc == SQLITE_ROW)
     {
         mmrsId = sqlite3_column_int(statement, 0);
-        mmrs_util::info() << "Successfully removed MMRS with ID " << mmrsId << " from the database." << std::endl;
+        // mmrs_util::info() << "Successfully removed MMRS with ID " << mmrsId << " from the database." << std::endl;
     }
     else
     {

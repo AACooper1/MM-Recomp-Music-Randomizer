@@ -127,6 +127,15 @@ default = "Off"
 
 [[manifest.config_options]]
 
+id = "enable_night_bgm"
+name = "Enable Night Music"
+description = "Controls whether music plays outdoors at night."
+type = "Enum"
+options = [ "Off", "On" ]
+default = "Off"
+
+[[manifest.config_options]]
+
 id = "show_song_titles"
 name = "Show Song Titles"
 description = "Controls whether the songs' titles are displayed on screen."

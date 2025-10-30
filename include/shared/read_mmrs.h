@@ -75,6 +75,8 @@ typedef struct MMRS_t {
     int bankInfoId;
 } MMRS;
 
+extern void music_rando_cleanup();
+
 // #ifdef __cplusplus
 //     extern "C" {
 // #endif

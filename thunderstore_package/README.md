@@ -1,4 +1,4 @@
-# MM Recomp Music Randomizer (v0.1.4)
+# MM Recomp Music Randomizer (v0.2.0)
 
 Reimplements the music randomization features from [MMR](https://github.com/ZoeyZolotova/mm-rando).
 
@@ -9,7 +9,7 @@ Drag and drop all mod files into your `mods` directory (usually `AppData\Local\Z
 
 Additionally, download the latest release of [MageMods' Audio API](https://github.com/magemods/mm-audio-api/tags) and install it in the same way. **This is required.**
 
-To add custom music, create a `mod_data` folder in the same directory as `mods`, then create a `music` folder and drop your `.mmrs` files inside that (i.e., on Windows, `AppData\Local\Zelda64Recompiled\mod_data\music`). These directories will be created on launching the game if they do not exist.
+To add custom music, create a `mod_data` folder in the same directory as `mods`, then create a `music` folder and drop your `.mmrs` files inside that. (i.e., on Windows, `AppData\Local\Zelda64Recompiled\mod_data\music`.) These directories will be created on launching the game if they do not exist.
 
 A database will be created in the `mod_data` folder, which will add or remove tracks based on filenames and modification dates. If you want to reset your music database, you can delete `mod_data\musicDB.db`.
 

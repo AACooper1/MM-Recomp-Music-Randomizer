@@ -454,7 +454,7 @@ int read_seq_directory(const char* dbPath, fs::path dir)
             const char* songName = songNameStr.c_str();
 
             std::stringstream progress;
-            progress << "(" << i << "/" << count << ")";
+            progress << "(" << i << "/" << count << ") ";
             int eraseLength = progress.str().length();
 
             if (i > 0)
@@ -470,6 +470,7 @@ int read_seq_directory(const char* dbPath, fs::path dir)
             if (entry.path().extension() != ".mmrs") 
             {
                 mmrs_util::info() << "File " << filename.c_str() << " is not a .mmrs file, skipping." << std::endl;
+                i++;
             }
             else 
             {

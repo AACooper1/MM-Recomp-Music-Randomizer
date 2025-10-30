@@ -5,6 +5,7 @@ RECOMP_IMPORT("magemods_audio_api", void AudioApi_ReplaceSequence(s32 seqId, Aud
 RECOMP_IMPORT("magemods_audio_api", void AudioApi_ReplaceSequenceFont(s32 seqId, s32 fontNum, s32 fontId));
 
 RECOMP_DECLARE_EVENT(music_rando_on_init());
+RECOMP_DECLARE_EVENT(music_rando_complete());
 
 extern s32 AudioApi_GetSequenceFont(s32 seqId, s32 fontNum);
 
@@ -201,7 +202,8 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
                     newSeqId == NA_BGM_CLOCK_TOWN_DAY_2_PTR ||
                     newSeqId == NA_BGM_MILK_BAR_DUPLICATE ||
                     newSeqId == NA_BGM_MAJORAS_LAIR ||
-                    newSeqId == NA_BGM_OCARINA_LULLABY_INTRO_PTR
+                    newSeqId == NA_BGM_OCARINA_LULLABY_INTRO_PTR ||
+                    newSeqId == NA_BGM_ZELDA_APPEAR
                 )
                 {
                     alreadyRolled[newSeqId] = true;
@@ -296,7 +298,12 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
 
     log_debug("Randomization finished! %i\n", sequenceTableImpostor->header.numEntries)
     // print_bytes(gAudioCtx.sequenceFontTable, (sizeof(u16) * gAudioCtx.sequenceTable->header.numEntries) + gAudioCtx.sequenceTable->header.numEntries * 20);
+    
+    music_rando_complete();
+}
 
+void music_rando_cleanup()
+{
     // Cleanup
     for (int i = 0; i < 139; i++)
     {
@@ -310,5 +317,5 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
     }
     recomp_free(sequenceCategories);
     
-    recomp_free(sequenceFontTableImpostor);    
+    recomp_free(sequenceFontTableImpostor);
 }

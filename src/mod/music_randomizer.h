@@ -91,7 +91,7 @@ const char* vanillaSongNames[256] =
     /* 0x3A */ "Astral Observatory",
     /* 0x3B */ "Cavern",
     /* 0x3C */ "Milk Bar",
-    /* 0x3D */ "Kafei Reveal",
+    /* 0x3D */ "Zelda Appears",
     /* 0x3E */ "Woods of Mystery",
     /* 0x3F */ "Goron Race Goal",
     /* 0x40 */ "Horse Race",
@@ -286,7 +286,6 @@ Vector** init_catSeq_table()
                 NA_BGM_SWORD_TRAINING_HALL,
                 NA_BGM_SHARPS_CURSE,
                 NA_BGM_CHASE,
-                NA_BGM_ZELDA_APPEAR,
                 NA_BGM_MAJORAS_INCARNATION,
                 NA_BGM_ENEMY
             }, 9, sequenceCategories, 5

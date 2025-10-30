@@ -54,6 +54,9 @@ MMRS *allMmrs;
 MMRS *usedMmrs;
 int numMmrs;
 
+int songTestId;
+char songTestName[256];
+
 int logLevel;
 
 /*
@@ -65,6 +68,312 @@ RECOMP_HOOK_RETURN("ConsoleLogo_Init") void on_ConsoleLogo_Init()
 {
     log_debug("starting here\n")
     music_rando_begin();
+}
+
+int load_song(int i)
+{  
+    Zseq *zseq;
+    Zbank *zbank;
+
+    AudioTableEntry *mySeq;
+    AudioTableEntry *bankEntry;
+    zseq = recomp_alloc(sizeof(Zseq));
+    log_debug("Calling load_zseq on MMRS with ID %i.\n", i);
+
+    bool loaded = load_zseq(zseq, allMmrs[i].zseqId);
+    bool is_fanfare = false;
+
+    if (!loaded)
+    {
+        log_error("Error: Failed to load zseq %s.\n", allMmrs[i].songName);
+        return -1;
+    }
+    else
+    {
+        log_debug("Loaded zseq for %s!", allMmrs[i].songName);
+    }
+
+    if (zseq->size == 0) 
+    {
+        return -2;
+    }
+
+    mySeq = recomp_alloc(sizeof(AudioTableEntry));
+
+    mySeq->romAddr = (uintptr_t) &zseq->data[0];
+    mySeq->size = zseq->size;
+    mySeq->medium = MEDIUM_CART;
+    mySeq->cachePolicy = CACHE_EITHER;
+    mySeq->shortData1 = formmaskAddrs->numElements;
+    mySeq->shortData2 = 0;
+    mySeq->shortData3 = 0;
+
+    s32 sequenceId = AudioApi_AddSequence(mySeq);
+    log_debug(" (id: %x)\n", sequenceId)
+
+    u16* formmaskAddr = &(allMmrs[i].formmask[0]);
+
+    vec_push_back(formmaskAddrs, &formmaskAddr);
+
+    // log_debug("Has formmask: %p.\n", mySeq->shortData1)
+    // print_bytes(allMmrs[i].formmask, 34);
+
+    if (allMmrs[i].bankInfoId != -1)
+    {
+        zbank = recomp_alloc(sizeof(Zbank));
+        bankEntry = recomp_alloc(sizeof(AudioTableEntry));
+
+        if(load_zbank(zbank, allMmrs[i].bankInfoId))
+        {
+            s32 bankNo = AudioApi_ImportVanillaSoundFont(
+                (uintptr_t*)&(zbank->bankData[0]),          // Addr
+                zbank->metaData[2],                         // sampleBank0
+                zbank->metaData[3],                         // sampleBank1
+                zbank->metaData[4],                         // numInstruments
+                zbank->metaData[5],                         // numDrums
+                zbank->metaData[6]                          // numSfx
+            );
+
+            // // REMOVE WHEN API FIX IS DONE
+            // while (bankNo > 0xFF)
+            // {
+            //     int randSeqNo = Rand_Next() % (gAudioCtx.sequenceTable->header.numEntries - 0x100) + 0x100;
+            //     if (AudioApi_GetSequenceFont(randSeqNo, 0) <= 0x28)
+            //     {
+            //         continue;
+            //     }
+            //     else
+            //     {
+            //         AudioTableEntry* replEntry = &gAudioCtx.soundFontTable->entries[bankNo];
+
+            //         AudioApi_ReplaceSequence(randSeqNo, mySeq);
+            //         s32 seqFont = AudioApi_GetSequenceFont(randSeqNo, 0);
+            //         AudioApi_ReplaceSoundFont(seqFont, replEntry);
+
+            //         bankNo = seqFont;
+
+            //         log_debug("Replaced sequence %i (%s) to fit soundfont %i for %s!\n", randSeqNo, allMmrs[randSeqNo - 0x100 - (((randSeqNo - 256)/254) * 2)].songName, bankNo, allMmrs[i].songName)
+
+            //         allMmrs[randSeqNo - 0x100 - (((randSeqNo - 256)/254) * 2)] = allMmrs[i];
+            //         allMmrs[randSeqNo - 0x100 - (((randSeqNo - 256)/254) * 2)].bankNo = bankNo;
+            //     }
+            // }
+            // // END REMOVE
+
+            allMmrs[i].bankNo = bankNo;
+        }
+        else
+        {
+            log_error("Could not load zbank.");
+        }
+
+        recomp_free(bankEntry);
+    }
+
+    int numZsound = count_zsound(allMmrs[i].id);
+
+    if (numZsound > 0)
+    {
+        Zsound* this_zsoundTable = recomp_alloc(sizeof(Zsound) * numZsound);
+        // log_debug("=====================================================\nLoading sound for song %s.\n", allMmrs[i].songName)
+        // log_debug("Allocated size for %d zsounds, starting from address %p.\n", numZsound, this_zsoundTable);
+
+        if (!load_zsounds(this_zsoundTable, allMmrs[i].id))
+        {
+            log_error("Error loading custom samples for MMRS %s. Song will be skipped.\n", allMmrs[i].songName);
+            return -3;
+        }
+        else
+        {
+            // log_debug("Successfully loaded sounds for MMRS %s!\n", allMmrs[i].songName);
+        }
+        
+        for (int s = 0; s < numZsound; s++)
+        {
+            zsound_key_add(this_zsoundTable[s].sampleAddr, (uintptr_t)this_zsoundTable[s].data);
+            // log_debug("Added key %x...... \n", this_zsoundTable[s].sampleAddr);
+        }
+
+        // log_debug("Bank number: %d\n", allMmrs[i].bankNo);
+        // log_debug("Custom sounds: %d\n", numZsound);
+
+        CustomSoundFont* font = (CustomSoundFont*)(gAudioCtx.soundFontTable->entries[allMmrs[i].bankNo].romAddr);
+
+        // if (logLevel >= LOG_DEBUG)
+        // {
+        //     print_bytes(&(gAudioCtx.soundFontTable->entries[allMmrs[i].bankNo]), sizeof(AudioTableEntry));
+        // }
+
+        // log_debug("\n");
+
+        Drum* drum;
+        SoundEffect* soundEffect;
+        Instrument* inst;
+        s32 d;
+
+        // if (logLevel >= LOG_DEBUG)
+        // {
+        //     print_bytes(font, sizeof(CustomSoundFont));
+        // }
+
+        // log_debug("\nType   : %x\n", font->type);
+        // log_debug("Bank1  : %x\n", font->sampleBank1);
+        // log_debug("Bank2  : %x\n", font->sampleBank2);
+        // log_debug("nInsts : %x\n", font->numInstruments);
+        // log_debug("nDrums : %x\n", font->numDrums);
+        // log_debug("maxInst: %x\n", font->instrumentsCapacity);
+        // log_debug("maxDrum: %x\n", font->drumsCapacity);
+        // log_debug("maxSFX : %x\n", font->sfxCapacity);
+        // log_debug("Insts  : %x\n", font->instruments);
+        // log_debug("Drums  : %x\n", font->drums);
+        // log_debug("SFX    : %x\n", font->soundEffects);
+
+        // Print addresses of drums, SFX, instruments
+        for (d = 0; d < font->numDrums; d++) {
+            drum = font->drums[d];
+            if (drum == NULL) {
+                // log_debug("Drum %d is null, skipping.\n", d)
+                continue;
+            }
+
+            // log_debug("Drum: %d\n", d);
+            // log_debug(" - sample: %p is ", drum->tunedSample.sample->sampleAddr);
+
+            u32 sampleAddr = zsound_key_lookup((uintptr_t)drum->tunedSample.sample->sampleAddr);
+
+            if(sampleAddr)
+            {
+                drum->tunedSample.sample->sampleAddr = (u8*)sampleAddr;
+                // log_debug("custom.\n");
+            }
+            else
+            {
+                // log_debug("vanilla.\n");
+            }
+        }
+
+        for (d = 0; d < font->numSfx; d++) {
+            soundEffect = &font->soundEffects[d];
+            if (soundEffect == NULL || soundEffect->tunedSample.sample == NULL) {
+                continue;
+            }
+
+            // log_debug("Sfx: %d\n", d);
+            // log_debug(" - sample: %p\n", soundEffect->tunedSample.sample->sampleAddr);
+
+            u32 sampleAddr = zsound_key_lookup((uintptr_t)soundEffect->tunedSample.sample->sampleAddr);
+
+            if(sampleAddr)
+            {
+                soundEffect->tunedSample.sample->sampleAddr = (u8*)sampleAddr;
+                // log_debug("custom.\n");
+            }
+            else
+            {
+                // log_debug("vanilla.\n");
+            }
+        }
+
+        for (d = 0; d < font->numInstruments; d++) 
+        {
+            inst = font->instruments[d];
+            if (inst == NULL) {
+                continue;
+            }
+
+            // log_debug("Instrument: %d\n", d);
+            // log_debug(" - sample: %p is ", inst->normalPitchTunedSample.sample->sampleAddr);
+
+            u32 sampleAddr = zsound_key_lookup((uintptr_t)inst->normalPitchTunedSample.sample->sampleAddr);
+
+            if(sampleAddr)
+            {
+                inst->normalPitchTunedSample.sample->sampleAddr = (u8*)sampleAddr;
+                // log_debug("custom.\n");
+                // if (logLevel >= LOG_DEBUG)
+                // {
+                //     print_bytes(inst->normalPitchTunedSample.sample->sampleAddr, 64);
+                //     log_debug("\n");
+                // }
+            }
+            else
+            {
+                // log_debug("vanilla.\n");
+            }
+
+            if (inst->normalRangeLo != 0) {
+                // log_debug(" - Low sample: %p is\n", inst->lowPitchTunedSample.sample->sampleAddr);
+                
+                u32 sampleAddr = zsound_key_lookup((uintptr_t)inst->lowPitchTunedSample.sample->sampleAddr);
+
+                if(sampleAddr)
+                {
+                    inst->lowPitchTunedSample.sample->sampleAddr = (u8*)sampleAddr;
+                    // log_debug("custom.\n");
+                    // if (logLevel >= LOG_DEBUG)
+                    // {
+                    //     print_bytes(inst->lowPitchTunedSample.sample->sampleAddr, 64);
+                    //     log_debug("\n");
+                    // }
+                }
+                else
+                {
+                    // log_debug("vanilla.\n");
+                }
+            }
+            if (inst->normalRangeHi != 0x7F) {
+                // log_debug(" - High sample: %p is \n", inst->highPitchTunedSample.sample->sampleAddr);
+
+                u32 sampleAddr = zsound_key_lookup((uintptr_t)inst->highPitchTunedSample.sample->sampleAddr);
+
+                if(sampleAddr)
+                {
+                    inst->highPitchTunedSample.sample->sampleAddr = (u8*)sampleAddr;
+                    // log_debug("custom.\n");
+                    // if (logLevel >= LOG_DEBUG)
+                    // {
+                    //     print_bytes(inst->highPitchTunedSample.sample->sampleAddr, 64);
+                    //     log_debug("\n");
+                    // }
+                }
+            }
+        }
+
+        for (int s = 0; s < numZsound; s++)
+        {
+            // log_debug("%x: %x\n", this_zsoundTable[s].sampleAddr, zsound_key_lookup(this_zsoundTable[s].sampleAddr));
+            // if (logLevel >= LOG_DEBUG)
+            // {
+            //     print_bytes((u8*)zsound_key_lookup(this_zsoundTable[s].sampleAddr), 64);
+            // }
+            // log_debug("\n");
+        }
+
+        for (int s = 0; s < numZsound; s++)
+        {
+            zsound_key_remove(this_zsoundTable[s].sampleAddr);
+        }
+    }
+    // AudioApi_ReplaceSequence(sequenceId, mySeq);
+    AudioApi_AddSequenceFont(sequenceId, allMmrs[i].bankNo);
+    log_debug("Successfully added sequence %s", allMmrs[i].songName);
+    log_debug(", uses bank %x", allMmrs[i].bankNo);
+
+    if (*(u32*)&(allMmrs[i].categories[8]) || allMmrs[i].categories[0x10])
+    {
+        AudioApi_SetSequenceFlags(sequenceId, SEQ_FLAG_FANFARE);
+        log_debug(" and is a fanfare");
+    }
+    else
+    {
+        log_debug(" and is not a fanfare");
+    }
+
+    log_debug("!\n");
+
+    recomp_free(mySeq);
+
+    return sequenceId;
 }
 
 /*
@@ -103,7 +412,7 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
     }
 
     allMmrs = recomp_alloc(sizeof(MMRS) * numMmrs);
-    usedMmrs = recomp_alloc(sizeof(MMRS) * 0xFE);
+    usedMmrs = recomp_alloc(sizeof(MMRS) * 0xFD);
     formmaskAddrs = vec_init(sizeof(u16*));
 
     log_info("Number of MMRS sequences: %i\n", numMmrs);
@@ -113,331 +422,118 @@ RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool mmrs_loader_init()
 
     load_mmrs_table(allMmrs);
 
-    Zseq *zseq;
-    Zbank *zbank;
+    bool alreadyRolled[0xFD];
 
-    AudioTableEntry *mySeq;
-    AudioTableEntry *bankEntry;
-
-    bool alreadyRolled[0xFE];
-
-    for (int i = 0; i < 0xFE; i++)
+    for (int i = 0; i < 0xFD; i++)
     {
         alreadyRolled[i] = false;
     }
 
-    for (int z = 0; z < 0xFE && z < numMmrs; z++)
+    Rand_Seed(allMmrs[numMmrs - 1].id);
+
+    for (int z = 0; z < 0xFD && z < numMmrs; z++)
     {
         int i = 0;
         do
         {
             i = Rand_Next() % numMmrs;
         } while (alreadyRolled[i]);
-        
-        zseq = recomp_alloc(sizeof(Zseq));
-        bool loaded = load_zseq(zseq, allMmrs[i].zseqId);
-        bool is_fanfare = false;
 
-        if (!loaded)
-        {
-            log_error("Error: Failed to load zseq %s.\n", allMmrs[i].songName);
-            continue;
-        }
-        else
-        {
-            log_debug("Loaded zseq for %s!", allMmrs[i].songName);
-        }
+        alreadyRolled[i] = true;
 
-        if (zseq->size == 0) 
-        {
-            continue;
-        }
-
-        mySeq = recomp_alloc(sizeof(AudioTableEntry));
-
-        mySeq->romAddr = (uintptr_t) &zseq->data[0];
-        mySeq->size = zseq->size;
-        mySeq->medium = MEDIUM_CART;
-        mySeq->cachePolicy = CACHE_EITHER;
-        mySeq->shortData1 = formmaskAddrs->numElements;
-        mySeq->shortData2 = 0;
-        mySeq->shortData3 = 0;
-
-        s32 sequenceId = AudioApi_AddSequence(mySeq);
-        log_debug(" (id: %x)\n", sequenceId)
-
-        u16* formmaskAddr = &(allMmrs[i].formmask[0]);
-
-        vec_push_back(formmaskAddrs, &formmaskAddr);
-
-        // print_bytes(allMmrs[i].formmask, 34);
-
-        if (allMmrs[i].bankInfoId != -1)
-        {
-            zbank = recomp_alloc(sizeof(Zbank));
-            bankEntry = recomp_alloc(sizeof(AudioTableEntry));
-
-            if(load_zbank(zbank, allMmrs[i].bankInfoId))
-            {
-                s32 bankNo = AudioApi_ImportVanillaSoundFont(
-                    (uintptr_t*)&(zbank->bankData[0]),          // Addr
-                    zbank->metaData[2],                         // sampleBank0
-                    zbank->metaData[3],                         // sampleBank1
-                    zbank->metaData[4],                         // numInstruments
-                    zbank->metaData[5],                         // numDrums
-                    zbank->metaData[6]                          // numSfx
-                );
-
-                // // REMOVE WHEN API FIX IS DONE
-                // while (bankNo > 0xFF)
-                // {
-                //     int randSeqNo = Rand_Next() % (gAudioCtx.sequenceTable->header.numEntries - 0x100) + 0x100;
-                //     if (AudioApi_GetSequenceFont(randSeqNo, 0) <= 0x28)
-                //     {
-                //         continue;
-                //     }
-                //     else
-                //     {
-                //         AudioTableEntry* replEntry = &gAudioCtx.soundFontTable->entries[bankNo];
-
-                //         AudioApi_ReplaceSequence(randSeqNo, mySeq);
-                //         s32 seqFont = AudioApi_GetSequenceFont(randSeqNo, 0);
-                //         AudioApi_ReplaceSoundFont(seqFont, replEntry);
-
-                //         bankNo = seqFont;
-
-                //         log_debug("Replaced sequence %i (%s) to fit soundfont %i for %s!\n", randSeqNo, allMmrs[randSeqNo - 0x100 - (((randSeqNo - 256)/254) * 2)].songName, bankNo, allMmrs[i].songName)
-
-                //         allMmrs[randSeqNo - 0x100 - (((randSeqNo - 256)/254) * 2)] = allMmrs[i];
-                //         allMmrs[randSeqNo - 0x100 - (((randSeqNo - 256)/254) * 2)].bankNo = bankNo;
-                //     }
-                // }
-                // // END REMOVE
-
-                allMmrs[i].bankNo = bankNo;
-            }
-            else
-            {
-                log_error("Could not load zbank.");
-            }
-
-            recomp_free(bankEntry);
-        }
-
-        int numZsound = count_zsound(allMmrs[i].id);
-
-        if (numZsound > 0)
-        {
-            Zsound* this_zsoundTable = recomp_alloc(sizeof(Zsound) * numZsound);
-            // log_debug("=====================================================\nLoading sound for song %s.\n", allMmrs[i].songName)
-            // log_debug("Allocated size for %d zsounds, starting from address %p.\n", numZsound, this_zsoundTable);
-
-            if (!load_zsounds(this_zsoundTable, allMmrs[i].id))
-            {
-                log_error("Error loading custom samples for MMRS %s. Song will be skipped.\n", allMmrs[i].songName);
-                continue;
-            }
-            else
-            {
-                // log_debug("Successfully loaded sounds for MMRS %s!\n", allMmrs[i].songName);
-            }
-            
-            for (int s = 0; s < numZsound; s++)
-            {
-                zsound_key_add(this_zsoundTable[s].sampleAddr, (uintptr_t)this_zsoundTable[s].data);
-                // log_debug("Added key %x...... \n", this_zsoundTable[s].sampleAddr);
-            }
-
-            // log_debug("Bank number: %d\n", allMmrs[i].bankNo);
-            // log_debug("Custom sounds: %d\n", numZsound);
-
-            CustomSoundFont* font = (CustomSoundFont*)(gAudioCtx.soundFontTable->entries[allMmrs[i].bankNo].romAddr);
-
-            // if (logLevel >= LOG_DEBUG)
-            // {
-            //     print_bytes(&(gAudioCtx.soundFontTable->entries[allMmrs[i].bankNo]), sizeof(AudioTableEntry));
-            // }
-
-            // log_debug("\n");
-
-            Drum* drum;
-            SoundEffect* soundEffect;
-            Instrument* inst;
-            s32 d;
-
-            // if (logLevel >= LOG_DEBUG)
-            // {
-            //     print_bytes(font, sizeof(CustomSoundFont));
-            // }
-
-            // log_debug("\nType   : %x\n", font->type);
-            // log_debug("Bank1  : %x\n", font->sampleBank1);
-            // log_debug("Bank2  : %x\n", font->sampleBank2);
-            // log_debug("nInsts : %x\n", font->numInstruments);
-            // log_debug("nDrums : %x\n", font->numDrums);
-            // log_debug("maxInst: %x\n", font->instrumentsCapacity);
-            // log_debug("maxDrum: %x\n", font->drumsCapacity);
-            // log_debug("maxSFX : %x\n", font->sfxCapacity);
-            // log_debug("Insts  : %x\n", font->instruments);
-            // log_debug("Drums  : %x\n", font->drums);
-            // log_debug("SFX    : %x\n", font->soundEffects);
-
-            // Print addresses of drums, SFX, instruments
-            for (d = 0; d < font->numDrums; d++) {
-                drum = font->drums[d];
-                if (drum == NULL) {
-                    // log_debug("Drum %d is null, skipping.\n", d)
-                    continue;
-                }
-
-                // log_debug("Drum: %d\n", d);
-                // log_debug(" - sample: %p is ", drum->tunedSample.sample->sampleAddr);
-
-                u32 sampleAddr = zsound_key_lookup((uintptr_t)drum->tunedSample.sample->sampleAddr);
-
-                if(sampleAddr)
-                {
-                    drum->tunedSample.sample->sampleAddr = (u8*)sampleAddr;
-                    // log_debug("custom.\n");
-                }
-                else
-                {
-                    // log_debug("vanilla.\n");
-                }
-            }
-
-            for (d = 0; d < font->numSfx; d++) {
-                soundEffect = &font->soundEffects[d];
-                if (soundEffect == NULL || soundEffect->tunedSample.sample == NULL) {
-                    continue;
-                }
-
-                // log_debug("Sfx: %d\n", d);
-                // log_debug(" - sample: %p\n", soundEffect->tunedSample.sample->sampleAddr);
-
-                u32 sampleAddr = zsound_key_lookup((uintptr_t)soundEffect->tunedSample.sample->sampleAddr);
-
-                if(sampleAddr)
-                {
-                    soundEffect->tunedSample.sample->sampleAddr = (u8*)sampleAddr;
-                    // log_debug("custom.\n");
-                }
-                else
-                {
-                    // log_debug("vanilla.\n");
-                }
-            }
-
-            for (d = 0; d < font->numInstruments; d++) 
-            {
-                inst = font->instruments[d];
-                if (inst == NULL) {
-                    continue;
-                }
-
-                // log_debug("Instrument: %d\n", d);
-                // log_debug(" - sample: %p is ", inst->normalPitchTunedSample.sample->sampleAddr);
-
-                u32 sampleAddr = zsound_key_lookup((uintptr_t)inst->normalPitchTunedSample.sample->sampleAddr);
-
-                if(sampleAddr)
-                {
-                    inst->normalPitchTunedSample.sample->sampleAddr = (u8*)sampleAddr;
-                    // log_debug("custom.\n");
-                    // if (logLevel >= LOG_DEBUG)
-                    // {
-                    //     print_bytes(inst->normalPitchTunedSample.sample->sampleAddr, 64);
-                    //     log_debug("\n");
-                    // }
-                }
-                else
-                {
-                    // log_debug("vanilla.\n");
-                }
-
-                if (inst->normalRangeLo != 0) {
-                    // log_debug(" - Low sample: %p is\n", inst->lowPitchTunedSample.sample->sampleAddr);
-                    
-                    u32 sampleAddr = zsound_key_lookup((uintptr_t)inst->lowPitchTunedSample.sample->sampleAddr);
-
-                    if(sampleAddr)
-                    {
-                        inst->lowPitchTunedSample.sample->sampleAddr = (u8*)sampleAddr;
-                        // log_debug("custom.\n");
-                        // if (logLevel >= LOG_DEBUG)
-                        // {
-                        //     print_bytes(inst->lowPitchTunedSample.sample->sampleAddr, 64);
-                        //     log_debug("\n");
-                        // }
-                    }
-                    else
-                    {
-                        // log_debug("vanilla.\n");
-                    }
-                }
-                if (inst->normalRangeHi != 0x7F) {
-                    // log_debug(" - High sample: %p is \n", inst->highPitchTunedSample.sample->sampleAddr);
-
-                    u32 sampleAddr = zsound_key_lookup((uintptr_t)inst->highPitchTunedSample.sample->sampleAddr);
-
-                    if(sampleAddr)
-                    {
-                        inst->highPitchTunedSample.sample->sampleAddr = (u8*)sampleAddr;
-                        // log_debug("custom.\n");
-                        // if (logLevel >= LOG_DEBUG)
-                        // {
-                        //     print_bytes(inst->highPitchTunedSample.sample->sampleAddr, 64);
-                        //     log_debug("\n");
-                        // }
-                    }
-                }
-            }
-
-            for (int s = 0; s < numZsound; s++)
-            {
-                // log_debug("%x: %x\n", this_zsoundTable[s].sampleAddr, zsound_key_lookup(this_zsoundTable[s].sampleAddr));
-                // if (logLevel >= LOG_DEBUG)
-                // {
-                //     print_bytes((u8*)zsound_key_lookup(this_zsoundTable[s].sampleAddr), 64);
-                // }
-                // log_debug("\n");
-            }
-
-            for (int s = 0; s < numZsound; s++)
-            {
-                zsound_key_remove(this_zsoundTable[s].sampleAddr);
-            }
-        }
-        // AudioApi_ReplaceSequence(sequenceId, mySeq);
-        AudioApi_AddSequenceFont(sequenceId, allMmrs[i].bankNo);
-        log_debug("Successfully added sequence %s", allMmrs[i].songName);
-        log_debug(", uses bank %x", allMmrs[i].bankNo);
-
-        if (*(u32*)&(allMmrs[i].categories[8]) || allMmrs[i].categories[0x10])
-        {
-            AudioApi_SetSequenceFlags(sequenceId, SEQ_FLAG_FANFARE);
-            log_debug(" and is a fanfare");
-        }
-        else
-        {
-            log_debug(" and is not a fanfare");
-        }
-
-        log_debug("!\n");
-
-        recomp_free(mySeq);
+        load_song(i);
 
         usedMmrs[z] = allMmrs[i];
-    }
+    }   
 
-    // gAudioCtx.sequenceFontTable[NA_BGM_MILK_BAR_DUPLICATE] = gAudioCtx.sequenceFontTable[NA_BGM_MILK_BAR];
-
-    sql_teardown();
-
-    mmrs_reader_done(usedMmrs, 0xFE);
+    mmrs_reader_done(usedMmrs, 0xFD);
 
     return true;
 }
+
+RECOMP_CALLBACK(".", music_rando_complete) void songtest_check()
+{
+    for (int i = 0; i < numMmrs; i++)
+    {
+        char* name = allMmrs[i].songName;
+        char* songtest = "songtest";
+
+        for (int j = 0; name[j] != '\0'; j++)
+        {
+            for (int k = 0; k < 8; k++)
+            {
+                if (name[j + k] != songtest[k] || name[j+k] == '\0')
+                {
+                    break;
+                }
+                else if (k == 7)
+                {
+                    // Songtest replace
+                    s32 seqId = load_song(i);
+                    strcpy(songTestName, allMmrs[i].songName);
+                    songTestId = i;
+
+                    AudioApi_ReplaceSequence(NA_BGM_FILE_SELECT, &gAudioCtx.sequenceTable->entries[seqId]);
+                    AudioApi_ReplaceSequenceFont(NA_BGM_FILE_SELECT, 0, allMmrs[i].bankNo);
+                    log_info("[Songtest] Replaced File Select (Fairy's Fountain) with %s.\n", songTestName);
+                    randomizedIds[NA_BGM_FILE_SELECT] = songTestId;
+
+                    if (!AudioApi_GetSequenceFlags(seqId) && SEQ_FLAG_FANFARE)
+                    {
+                        log_debug("%i\n", AudioApi_GetSequenceFlags(seqId))
+                        AudioApi_ReplaceSequence(NA_BGM_CLOCK_TOWN_DAY_1, &gAudioCtx.sequenceTable->entries[seqId]);
+                        AudioApi_ReplaceSequence(NA_BGM_CLOCK_TOWN_DAY_2, &gAudioCtx.sequenceTable->entries[seqId]);
+                        AudioApi_ReplaceSequence(NA_BGM_CLOCK_TOWN_DAY_3, &gAudioCtx.sequenceTable->entries[seqId]);
+                        AudioApi_ReplaceSequence(NA_BGM_CLOCK_TOWN_MAIN_SEQUENCE, &gAudioCtx.sequenceTable->entries[seqId]);
+                        
+                        AudioApi_ReplaceSequenceFont(NA_BGM_CLOCK_TOWN_DAY_1, 0, allMmrs[i].bankNo);
+                        AudioApi_ReplaceSequenceFont(NA_BGM_CLOCK_TOWN_DAY_2, 0, allMmrs[i].bankNo);
+                        AudioApi_ReplaceSequenceFont(NA_BGM_CLOCK_TOWN_DAY_3, 0, allMmrs[i].bankNo);
+                        AudioApi_ReplaceSequenceFont(NA_BGM_CLOCK_TOWN_MAIN_SEQUENCE, 0, allMmrs[i].bankNo);
+                        log_info("[Songtest] Replaced Clock Town (All Days) with %s.\n", songTestName);
+                        randomizedIds[NA_BGM_CLOCK_TOWN_DAY_1] = songTestId;
+                        randomizedIds[NA_BGM_CLOCK_TOWN_DAY_2] = songTestId;
+                        randomizedIds[NA_BGM_CLOCK_TOWN_DAY_3] = songTestId;
+                        randomizedIds[NA_BGM_CLOCK_TOWN_MAIN_SEQUENCE] = songTestId;
+
+                        AudioApi_ReplaceSequence(NA_BGM_TERMINA_FIELD, &gAudioCtx.sequenceTable->entries[seqId]);
+                        AudioApi_ReplaceSequenceFont(NA_BGM_TERMINA_FIELD, 0, allMmrs[i].bankNo);
+                        randomizedIds[NA_BGM_TERMINA_FIELD] = songTestId;
+                        log_info("[Songtest] Replaced Termina Field with %s.\n", songTestName);
+                    }
+
+                    extern Vector** categorySequences;
+
+                    for (int c = 0; c < 512; c++)
+                    {
+                        if (allMmrs[i].categories[c])
+                        {
+                            for (int s = 0; s < categorySequences[c]->numElements; s++)
+                            {
+                                s32 id;
+                                vec_at(categorySequences[c], s, &id);
+                                if (id < 0x80)
+                                {
+                                    AudioApi_ReplaceSequence(id, &gAudioCtx.sequenceTable->entries[seqId]);
+                                    AudioApi_ReplaceSequenceFont(id, 0, allMmrs[i].bankNo);
+
+                                    char replacedSong[256];
+                                    vec_at(songNames, id, replacedSong);
+                                    log_info("[Songtest] Replaced %s with %s.\n", replacedSong, songTestName);
+                                    randomizedIds[id] = songTestId;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    sql_teardown();
+    // music_rando_cleanup();
+}
+
 
 RECOMP_CALLBACK(".", on_apply_formmask) void apply_formmask(PlayState* play, Player* this)
 {
@@ -465,10 +561,17 @@ RECOMP_CALLBACK(".", on_apply_formmask) void apply_formmask(PlayState* play, Pla
         return;
     }
 
-    // log_debug("SeqId is %i, randomizedId[seqId] is %i\n", seqId, offsetSeqId)
+    // log_debug("SeqId is %i, randomizedId[seqId] is %i. Songtest id is %i\n", seqId, offsetSeqId, songTestId)
+    // log_debug("formmaskAddr: %p\n", gAudioCtx.sequenceTable->entries[offsetSeqId].shortData1)
 
     u16** formMaskAddr = recomp_alloc(sizeof(u16*));
     vec_at(formmaskAddrs, gAudioCtx.sequenceTable->entries[offsetSeqId].shortData1, formMaskAddr);
+
+    // WHY DOES THIS MAKE A DIFFERENCE??
+    if (offsetSeqId == songTestId)
+    {
+        vec_at(formmaskAddrs, formmaskAddrs->numElements - 1, formMaskAddr);
+    }
 
     u16* mask = *formMaskAddr;
 
@@ -623,12 +726,19 @@ RECOMP_HOOK("Play_PostWorldDraw") void drawSongName(PlayState* this)
     //     offsetSeqId -= 128;
     // }
 
-    vec_at(songNames, randomizedIds[offsetSeqId], currSongName);
-
-    GfxPrint_Printf(&songNamePrinter, currSongName);
-    if (!currSongName[0] != '\0' && logLevel >= LOG_DEBUG)
+    if (randomizedIds[currSeqId] == songTestId)
     {
-        GfxPrint_Printf(&songNamePrinter, "(%02x -> %02x)", currSeqId, randomizedIds[currSeqId]);
+        GfxPrint_Printf(&songNamePrinter, songTestName);
+    }
+    else
+    {
+        vec_at(songNames, randomizedIds[offsetSeqId], currSongName);
+
+        GfxPrint_Printf(&songNamePrinter, currSongName);
+        if (currSongName[0] != '\0' && logLevel >= LOG_DEBUG)
+        {
+            GfxPrint_Printf(&songNamePrinter, "(%02x -> %02x)", currSeqId, randomizedIds[currSeqId]);
+        }
     }
 
     gfx = GfxPrint_Close(&songNamePrinter);
@@ -767,5 +877,39 @@ RECOMP_PATCH void Player_UpdateCamAndSeqModes(PlayState* play, Player* this) {
         }
 
         Audio_SetSequenceMode(seqMode);
+    }
+}
+
+// RECOMP_HOOK("Environment_UpdateTimeBasedSequence") void enable_night_bgm(PlayState* play)
+// {
+//     if(recomp_get_config_u32("enable_night_bgm"))
+//     {
+//         play->envCtx.timeSeqState = TIMESEQ_DAY_BGM;
+//     }
+//     return;
+// }
+
+
+// Move this to utils eventually
+RECOMP_PATCH void Scene_CommandSoundSettings(PlayState* play, SceneCmd* cmd) {
+    u8 ambienceId;
+
+    ambienceId = cmd->soundSettings.ambienceId;
+    if(recomp_get_config_u32("enable_night_bgm"))
+    {
+        log_debug("Time: %i\n", gSaveContext.save.time)
+        // DAWN OF... checks. Day 2 & 3 occur at 16384 (6 AM), Day 1 occurs at 16383 (6 AM - 1)
+        if (ambienceId == 0 && !(gSaveContext.save.time == CLOCK_TIME(6,0) || gSaveContext.save.time == CLOCK_TIME(18,0) || gSaveContext.save.time == 16383))
+        {
+            ambienceId = AMBIENCE_ID_13;
+        }
+    }
+
+    play->sceneSequences.seqId = cmd->soundSettings.seqId;
+    play->sceneSequences.ambienceId = ambienceId;
+
+    if (gSaveContext.seqId == (u8)NA_BGM_DISABLED ||
+        AudioSeq_GetActiveSeqId(SEQ_PLAYER_BGM_MAIN) == NA_BGM_FINAL_HOURS) {
+        Audio_SetSpec(cmd->soundSettings.specId);
     }
 }
