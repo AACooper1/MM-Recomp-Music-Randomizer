@@ -1,4 +1,4 @@
-#include "music_menu.h"
+/*#include "music_menu.h"
 
 extern f32 sQuestStatusCursorsX[];
 extern f32 sQuestStatusCursorsY[];
@@ -195,8 +195,8 @@ extern f32 sPauseCursorRightMoveOffsetX;
 
 RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState* play)
 {
-    log_debug("questPageRoll: %f\n", play->pauseCtx.questPageRoll);
-    log_debug("roll: %f\n", play->pauseCtx.roll);
+    // log_debug("questPageRoll: %f\n", play->pauseCtx.questPageRoll);
+    // log_debug("roll: %f\n", play->pauseCtx.roll);
 
     Input* input = CONTROLLER1(&play->state);
     PauseContext* pauseCtx = &play->pauseCtx;
@@ -284,7 +284,7 @@ RECOMP_HOOK_RETURN("KaleidoScope_DrawPages")void replace_quest_texture()
 
         MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, gfxCtx);
 
-        log_debug("Drawing here\n");
+        // log_debug("Drawing here\n");
         POLY_OPA_DISP =
             KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->questPageVtx, sMapPageBgTextures);
     }
@@ -708,4 +708,4 @@ RECOMP_HOOK("KaleidoScope_SetVertices") void music_buttons_init(PlayState* play,
     sQuestVtxRectTop[QUEST_FORWARD] = -44;
     sQuestVtxWidths[QUEST_TRACKS] = 16;
     sQuestVtxHeights[QUEST_TRACKS] = 16;
-}
+}*/

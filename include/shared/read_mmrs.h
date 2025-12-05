@@ -68,12 +68,14 @@ typedef struct Zsound_t {
 typedef struct MMRS_t {
     int id;
     char songName[256];
-    bool categories[256];
+    bool categories[512];
     int bankNo;
     u16 formmask[20];
     int zseqId;
     int bankInfoId;
 } MMRS;
+
+extern void music_rando_cleanup();
 
 // #ifdef __cplusplus
 //     extern "C" {

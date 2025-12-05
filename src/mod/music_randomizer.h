@@ -91,7 +91,7 @@ const char* vanillaSongNames[256] =
     /* 0x3A */ "Astral Observatory",
     /* 0x3B */ "Cavern",
     /* 0x3C */ "Milk Bar",
-    /* 0x3D */ "Kafei Reveal",
+    /* 0x3D */ "Zelda Appears",
     /* 0x3E */ "Woods of Mystery",
     /* 0x3F */ "Goron Race Goal",
     /* 0x40 */ "Horse Race",
@@ -165,11 +165,11 @@ Vector** categorySequences;
 Vector** sequenceCategories;
 int* randomizedIds;
 
-AudioTable sequenceTableImpostor;
+AudioTable* sequenceTableImpostor;
 u8* sequenceFontTableImpostor;
 
 void init_vanilla_sequence_categories();
-void add_custom_sequence_categories(MMRS* allMmrs, int numMmrs);
+void add_custom_sequence_categories(MMRS* usedMmrs, int numMmrs);
 
 Vector** init_catSeq_table()
 {
@@ -286,7 +286,6 @@ Vector** init_catSeq_table()
                 NA_BGM_SWORD_TRAINING_HALL,
                 NA_BGM_SHARPS_CURSE,
                 NA_BGM_CHASE,
-                NA_BGM_ZELDA_APPEAR,
                 NA_BGM_MAJORAS_INCARNATION,
                 NA_BGM_ENEMY
             }, 9, sequenceCategories, 5
@@ -372,7 +371,7 @@ Vector** init_catSeq_table()
                 NA_BGM_SNOWHEAD_CLEAR,
                 NA_BGM_MOONS_DESTRUCTION,
                 NA_BGM_GOODBYE_GIANT,
-            }, 5, sequenceCategories, 10
+            }, 5, sequenceCategories, 0x10
         ),
         
         /* CAT_SPECIAL */
@@ -382,19 +381,28 @@ Vector** init_catSeq_table()
                 NA_BGM_GATHERING_GIANTS,
                 NA_BGM_TITLE_THEME,
                 NA_BGM_FINAL_HOURS
-            }, 3, sequenceCategories, 11
+            }, 3, sequenceCategories, 0x16
         )
     };
 
-    Vector** catSeqPerm = recomp_alloc(sizeof(Vector*) * (12 + 127));
+    Vector** catSeqPerm = recomp_alloc(sizeof(Vector*) * (12 + 127 + 0x100));
+    for (int i = 0; i < 12 + 127 + 0x100; i++)
+    {
+        catSeqPerm[i] = vec_init(sizeof(int));
+    }
     Lib_MemCpy(catSeqPerm, catSeqTemp, sizeof(Vector*) * 12);
 
-    // REMINDER! When adding logic for individual song slots, remember to subtract 0xF4 if category[i] > 16.
-    // And also if category[i] == 16 add it to category 11.
-    for (int i = 12; i < 139; i++)
+    for (int i = 0; i < 128; i++)
     {
-        Vector* songSlot = CAT_SEQ_INIT((int[]){i}, 1, sequenceCategories, i);
-        Lib_MemCpy(&(catSeqPerm[i]), &songSlot, sizeof(Vector*));
+        Vector* songSlot = CAT_SEQ_INIT((int[]){i}, 1, sequenceCategories, i + 0x100);
+        if(logLevel >= LOG_DEBUG)
+        {
+            log_debug("\nAdded 0x%x to sequenceCategories[%i].", i + 0x100, i);
+            // vec_printData(sequenceCategories[i]);
+        }
+        
+        catSeqPerm[i + 0x100] = vec_init(sizeof(int));
+        vec_push_back(catSeqPerm[i + 0x100], &i);
     }
 
     return catSeqPerm;

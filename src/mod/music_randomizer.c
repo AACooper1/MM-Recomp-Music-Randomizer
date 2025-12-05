@@ -5,12 +5,14 @@ RECOMP_IMPORT("magemods_audio_api", void AudioApi_ReplaceSequence(s32 seqId, Aud
 RECOMP_IMPORT("magemods_audio_api", void AudioApi_ReplaceSequenceFont(s32 seqId, s32 fontNum, s32 fontId));
 
 RECOMP_DECLARE_EVENT(music_rando_on_init());
+RECOMP_DECLARE_EVENT(music_rando_complete());
+
+extern s32 AudioApi_GetSequenceFont(s32 seqId, s32 fontNum);
 
 // Initializes the categories table and populates them with vanilla sequences.
 void init_vanilla_sequence_categories()
 {
     categorySequences = init_catSeq_table();
-    log_debug("Initialized Category-->Sequences table at address %p.\n", categorySequences);
 
     for (size_t i = 0; i < 128; i++)
     {
@@ -19,62 +21,55 @@ void init_vanilla_sequence_categories()
         Lib_MemSet(thisSongName, 0, 256);
         vec_at(songNames, i, thisSongName);
     }
+    for (int i = 128; i < 256; i++)
+    {
+        vec_push_back(songNames, vanillaSongNames[0]);
+    }
+    log_debug("End of init_vanilla_sequence_categories()\n");
 }
 
 // Add all custom sequences to the categories table.
-void add_custom_sequence_categories(MMRS* allMmrs, int numMmrs)
+void add_custom_sequence_categories(MMRS* usedMmrs, int numMmrs)
 {
     for (int i = 0; i < numMmrs; i++)
     {
+        log_debug("%i ", i)
         // Custom music tracks start at index 256 in Mage's API. Subject to change.
-        int seqId = i + 256;
+        int seqId = i + 0x100;
         // Offset to account for 0xXFE and 0xXFF being reserved
-        seqId += ((seqId - 256)/254) * 2;
-
-        vec_push_back(songNames, allMmrs[i].songName);
-        for (int c = 0; c < 256; c++)
+        if (seqId % 0xFE <= 1)
         {
-            if (allMmrs[i].categories[c])
+            vec_push_back(songNames, "Unused (??)");
+            seqId++;
+        }
+
+        // seqId += ((seqId - 256)/254) * 2;
+
+        vec_push_back(songNames, usedMmrs[i].songName);
+        for (int c = 0; c < 512; c++)
+        {
+            if (usedMmrs[i].categories[c])
             {
-                // Canonical "Category"
-                if (c < 0x16)
-                {
-                    vec_push_back(categorySequences[c], &seqId);
-                }
-                // Final Hours/Title Screen
-                else if (c == 0x16)
-                {
-                    int c_offset = 11;
-                    vec_push_back(categorySequences[c_offset], &seqId);
-                }
-                // Should not exist
-                else if (c < 0x102)
-                {
-                    log_error("Error: Song %s has category %x, which does not exist.\n", allMmrs[i].songName, c);
-                    continue;
-                }
-                // Individual song slot
-                else
-                {
-                    int c_offset = c - 0xF5;
-                    vec_push_back(categorySequences[c_offset], &seqId);
-                }
+                vec_push_back(categorySequences[c], &seqId);
             }
         }
     }
 }
 
-RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int numMmrs)
+RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* usedMmrs, int numMmrs)
 {
     songNames = vec_init(256);
     init_vanilla_sequence_categories();
 
     // Rand_Seed(get_current_time());
+    // print_bytes(gAudioCtx.sequenceFontTable, (sizeof(u16) * gAudioCtx.sequenceTable->header.numEntries) + gAudioCtx.sequenceTable->header.numEntries * 20);
 
-    add_custom_sequence_categories(allMmrs, numMmrs);
+    add_custom_sequence_categories(usedMmrs, numMmrs);
 
     sequenceFontTableImpostor = recomp_alloc((sizeof(u16) * gAudioCtx.sequenceTable->header.numEntries) + gAudioCtx.sequenceTable->header.numEntries * 20);
     Lib_MemCpy(sequenceFontTableImpostor, gAudioCtx.sequenceFontTable, (sizeof(u16) * gAudioCtx.sequenceTable->header.numEntries) + gAudioCtx.sequenceTable->header.numEntries * 20);
+    
+    sequenceTableImpostor = recomp_alloc(sizeof(AudioTable) + sizeof(AudioTableEntry) * (numMmrs - 1));
 
     // print_bytes(gAudioCtx.sequenceFontTable, gAudioCtx.sequenceTable->header.numEntries * 5);
 
@@ -87,7 +82,7 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int 
         /*    romAddr     */ (uintptr_t)recomp_alloc(sizeof(AudioTableEntry) * gAudioCtx.sequenceTable->header.numEntries),
         /*      pad       */ {0, 0, 0, 0, 0, 0, 0, 0}
     };
-    sequenceTableImpostor.header = copyHeader;
+    sequenceTableImpostor->header = copyHeader;
 
     // Entries
     for (int i = 0; i < gAudioCtx.sequenceTable->header.numEntries; i++)
@@ -106,7 +101,7 @@ RECOMP_CALLBACK(".", mmrs_reader_done) void init_music_rando(MMRS* allMmrs, int 
             thisEntry->shortData3
         };
 
-        sequenceTableImpostor.entries[i] = copyEntry;
+        sequenceTableImpostor->entries[i] = copyEntry;
     }
 
     // if (logLevel >= LOG_DEBUG)
@@ -136,26 +131,36 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
     {
         vec_randomize(categorySequences[i]);
     }
+    log_debug("Passed catSeq randomization...\n")
 
     bool alreadyRolled[gAudioCtx.sequenceTable->header.numEntries];
     for (int i = 0; i < gAudioCtx.sequenceTable->header.numEntries; i++)
     {
         alreadyRolled[i] = false;
     }
+    log_debug("Initialized alreadyRolled table...\n")
 
     randomizedIds = recomp_alloc(sizeof(int) * gAudioCtx.sequenceTable->header.numEntries);
     for (int z = 0; z < gAudioCtx.sequenceTable->header.numEntries; z++)
     {
         randomizedIds[z] = z;
     }
+    log_debug("Initialized randomizedIds...\n")
 
     Vector* randomOrder = vec_init(sizeof(int));
 
-    for (int i = 2; i < sequenceTableImpostor.header.numEntries; i++)
+    for (int i = 2; i < 128; i++)
     {
         vec_push_back(randomOrder, &i);
     }
     vec_randomize(randomOrder);
+    log_debug("Initialized randomOrder...\n")
+
+    if (logLevel >= LOG_DEBUG)
+    {
+        log_debug("\nsequenceCategories for Termina Field (id 2):")
+        // vec_printData(sequenceCategories[2]);
+    }
 
     while (randomOrder->numElements > 0)
     {
@@ -164,7 +169,7 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
         Vector* availableSeqs = vec_init(sizeof(int));
 
         // Get the pool of sequences to pull from
-        AudioTableEntry* thisEntry = &(sequenceTableImpostor.entries[i]);
+        AudioTableEntry* thisEntry = &(sequenceTableImpostor->entries[i]);
         for (u32 c = 0; c < sequenceCategories[i]->numElements; c++)
         {
             int rc;
@@ -176,6 +181,13 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
             }
         }
         vec_randomize(availableSeqs);
+
+        if (logLevel >= LOG_DEBUG)
+        {
+            // log_debug("\nAvailable sequences for song %i (%s):", i, vanillaSongNames[i]);
+            // vec_printData(availableSeqs);
+        }
+
 
         // Now just vec_pop_back and replace the thing.
         int newSeqId;
@@ -190,7 +202,8 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
                     newSeqId == NA_BGM_CLOCK_TOWN_DAY_2_PTR ||
                     newSeqId == NA_BGM_MILK_BAR_DUPLICATE ||
                     newSeqId == NA_BGM_MAJORAS_LAIR ||
-                    newSeqId == NA_BGM_OCARINA_LULLABY_INTRO_PTR
+                    newSeqId == NA_BGM_OCARINA_LULLABY_INTRO_PTR ||
+                    newSeqId == NA_BGM_ZELDA_APPEAR
                 )
                 {
                     alreadyRolled[newSeqId] = true;
@@ -247,17 +260,17 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
         }
         else
         {
-            AudioApi_ReplaceSequence(i, &(sequenceTableImpostor.entries[newSeqId]));
+            AudioApi_ReplaceSequence(i, &(sequenceTableImpostor->entries[newSeqId]));
             char oldSeqName[256];
             char newSeqName[256];
 
             int offsetSeqId = newSeqId;
     
-            if (offsetSeqId >= 256)
-            {
-                offsetSeqId -= (((newSeqId - 256)/254) * 2);
-                offsetSeqId -= 128;
-            }
+            // if (offsetSeqId >= 256)
+            // {
+            //     offsetSeqId -= (((newSeqId - 256)/254) * 2);
+            //     offsetSeqId -= 128;
+            // }
     
             vec_at(songNames, i, oldSeqName);
 
@@ -275,12 +288,22 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
             log_info("[MUSIC RANDOMIZER] Replaced sequence %s with sequence %s.", oldSeqName, newSeqName)
             log_debug("(%i --> %i)", i, newSeqId);
             log_info("\n");
+            
             AudioApi_ReplaceSequenceFont(i, 0, sequenceFontTableImpostor[((u16*)sequenceFontTableImpostor)[newSeqId] + 1]);
+            // log_debug("Sequence font is now %02x\n", AudioApi_GetSequenceFont(newSeqId, 0));
         }
+
+        vec_teardown(availableSeqs);
     }
 
-    log_debug("Randomization finished! %i\n", sequenceTableImpostor.header.numEntries)
+    log_debug("Randomization finished! %i\n", sequenceTableImpostor->header.numEntries)
+    // print_bytes(gAudioCtx.sequenceFontTable, (sizeof(u16) * gAudioCtx.sequenceTable->header.numEntries) + gAudioCtx.sequenceTable->header.numEntries * 20);
+    
+    music_rando_complete();
+}
 
+void music_rando_cleanup()
+{
     // Cleanup
     for (int i = 0; i < 139; i++)
     {
@@ -294,5 +317,5 @@ RECOMP_CALLBACK(".", music_rando_begin) void randomize_music()
     }
     recomp_free(sequenceCategories);
     
-    recomp_free(sequenceFontTableImpostor);    
+    recomp_free(sequenceFontTableImpostor);
 }

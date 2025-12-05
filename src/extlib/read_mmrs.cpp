@@ -66,7 +66,7 @@ bool read_mmrs(fs::directory_entry file)
         }
 
         // Initialize categories to 0
-        for(int j = 0; j < 256; j++)
+        for(int j = 0; j < 512; j++)
         {
             mmrs.categories[j] = false;
         }
@@ -228,11 +228,11 @@ bool read_mmrs(fs::directory_entry file)
                     {
                         cat = std::stoi(std::string(c), 0, 16);
                         // mmrs_util::debug() << std::string(c) << " : " << cat << std::endl;
-                        if (cat < 256) 
+                        if (cat < 512) 
                         {
                             mmrs.categories[cat] = true;
                             // mmrs_util::debug() << "Set category " << cat << " to " << mmrs.categories[cat] << ". " << std::endl;
-                        }   
+                        }
                         c = std::strtok(nullptr, ",");
                     }
                     catch(const std::exception& e)
@@ -251,7 +251,7 @@ bool read_mmrs(fs::directory_entry file)
                     {
                         int cat = std::stoi(std::string(c), 0, 16);
                         // mmrs_util::debug() << std::string(c) << " : " << cat << std::endl;
-                        if (cat < 256) 
+                        if (cat < 512) 
                         {
                             mmrs.categories[cat] = true;
                         }
@@ -454,7 +454,7 @@ int read_seq_directory(const char* dbPath, fs::path dir)
             const char* songName = songNameStr.c_str();
 
             std::stringstream progress;
-            progress << "(" << i << "/" << count << ")";
+            progress << "(" << i << "/" << count << ") ";
             int eraseLength = progress.str().length();
 
             if (i > 0)
@@ -470,6 +470,7 @@ int read_seq_directory(const char* dbPath, fs::path dir)
             if (entry.path().extension() != ".mmrs") 
             {
                 mmrs_util::info() << "File " << filename.c_str() << " is not a .mmrs file, skipping." << std::endl;
+                i++;
             }
             else 
             {
