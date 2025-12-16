@@ -68,7 +68,7 @@ bool init_mmrs_cache()
 
     SQL_ERR_CHECK("Error initializing MMRS Relation table", "");
 
-        rc = sqlite3_exec(
+    rc = sqlite3_exec(
         db,
         "CREATE TABLE IF NOT EXISTS zsound_to_mmrs (        "
            "zsound_id INTEGER PRIMARY KEY,                     "
@@ -693,8 +693,6 @@ bool _load_zbank(Zbank* zbankAddr, int zbankId)
         return false;
     }
 }
-
-
 
 bool _load_zsound(Zsound* zsoundAddr, int mmrsId)
 {

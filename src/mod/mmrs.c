@@ -64,9 +64,8 @@ int logLevel;
     This ensures that it loads after the rando has changed the save path.
     Will be replaced once rando update with declared event is out.
 */
-RECOMP_HOOK_RETURN("ConsoleLogo_Init") void on_ConsoleLogo_Init()
+RECOMP_CALLBACK("mm_recomp_rando", rando_on_start) void on_rando_start()
 {
-    log_debug("starting here\n")
     music_rando_begin();
 }
 
