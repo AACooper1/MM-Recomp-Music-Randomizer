@@ -4,7 +4,20 @@
 #include "recomputils.h"
 #include "recompconfig.h"
 
-RECOMP_CALLBACK("magemods_audio_api", AudioApi_Init) bool prepare_music_rando()
+#include "logging.h"
+
+RECOMP_IMPORT("*", unsigned char* recomp_get_mod_folder_path());
+RECOMP_IMPORT(".", int update_database(char* savePath));
+
+struct Logger logger;
+
+RECOMP_HOOK("ConsoleLogo_Init") bool test_pass_function()
 {
-    int 
+    logger_init(&logger);
+    unsigned char* savePath = recomp_get_mod_folder_path();
+    recomp_printf("Save path: %s\n", savePath);
+
+    int rc = update_database(savePath);
+
+    logger.debug("And the %c side of it works too!\n\n", 67);
 }

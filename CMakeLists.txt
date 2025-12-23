@@ -12,7 +12,6 @@ include_directories("./include/extlib")
 include_directories("./include/shared")
 include_directories("./src/extlib")
 include_directories("/usr/local/include")
-include_directories("lib/spdlog/include")
 
 add_library(${TARGET_NAME} SHARED)
 

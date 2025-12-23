@@ -79,7 +79,7 @@ LD      := $(call get_python_func,get_mod_linker,)
 # Recomp Tools Building Info:
 N64RECOMP_DIR := N64Recomp
 N64RECOMP_BUILD_DIR := $(N64RECOMP_DIR)/build
-RECOMP_MOD_TOOL := $(N64RECOMP_BUILD_DIR)/RecompModTool
+RECOMP_MOD_TOOL := $(N64RECOMP_BUILD_DIR)/RecompModTool.exe
 OFFLINE_MOD_TOOL := $(N64RECOMP_BUILD_DIR)/OfflineModRecomp
 
 # Mod Building Info:
@@ -138,7 +138,8 @@ runtime_native:
 # Mod Recipes:
 nrm: $(MOD_FILE)
 
-$(MOD_FILE): $(RECOMP_MOD_TOOL) $(MOD_ELF) 
+# $(MOD_FILE): $(RECOMP_MOD_TOOL) $(MOD_ELF) 
+$(MOD_FILE): $(MOD_ELF) 
 	$(RECOMP_MOD_TOOL) $(MOD_TOML) $(BUILD_DIR)
 
 offline: nrm
@@ -163,11 +164,11 @@ $(C_OBJS): $(BUILD_DIR)/%.o : %.c | $(ASSETS_INCLUDE_DIR) $(BUILD_DIR) $(BUILD_D
 	$(CC) $(CFLAGS) $(CPPFLAGS) $< -MMD -MF $(@:.o=.d) -c -o $@
 
 
-# Recomp Tools Recipes:
-$(RECOMP_MOD_TOOL): $(N64RECOMP_BUILD_DIR) 
-	cmake -DCMAKE_TOOLCHAIN_FILE="../zig_toolchain.cmake" -DZIG_TARGET="$(MOD_TOOL_ZIG_TRIPLET)" -G Ninja \
-		-DCMAKE_BUILD_TYPE=Release -S $(N64RECOMP_DIR) -B $(N64RECOMP_BUILD_DIR) 
-	cmake --build $(N64RECOMP_BUILD_DIR)
+# # Recomp Tools Recipes:
+# $(RECOMP_MOD_TOOL): $(N64RECOMP_BUILD_DIR) 
+# 	cmake -DCMAKE_TOOLCHAIN_FILE="../zig_toolchain.cmake" -DZIG_TARGET="$(MOD_TOOL_ZIG_TRIPLET)" -G Ninja \
+# 		-DCMAKE_BUILD_TYPE=Release -S $(N64RECOMP_DIR) -B $(N64RECOMP_BUILD_DIR) 
+# 	cmake --build $(N64RECOMP_BUILD_DIR)
 
 # Extlib Recipes:
 extlib-all: extlib-win extlib-macos extlib-linux

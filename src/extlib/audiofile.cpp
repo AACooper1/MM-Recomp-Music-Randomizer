@@ -16,3 +16,8 @@ void Sequence::read_from_database(int index)
 {
     TrackTable* table;
 }
+
+void Sequence::read_into_mod_memory(void* modAddr) {};
+void Sound::read_into_mod_memory(void* modAddr) {};
+void Bank::read_into_mod_memory(void* modAddr) {};
+void Stream::read_into_mod_memory(void* modAddr) {};

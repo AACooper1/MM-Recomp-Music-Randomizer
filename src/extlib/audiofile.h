@@ -34,7 +34,7 @@ class AudioFile
         virtual void read_into_database(std::vector<char> file) = 0;
         virtual void read_from_database(int id) = 0;
 
-        virtual void read_into_mod_memory(void* modAddr);
+        virtual void read_into_mod_memory(void* modAddr) = 0;
 
         int get_database_id() { return databaseIndex; }
     protected:
@@ -52,12 +52,17 @@ class Sequence : public AudioFile
     public:
         void read_into_database(std::vector<char> file) override;
         void read_from_database(int id) override;
+
+        void read_into_mod_memory(void* modAddr) override;
 };
 
 class Bank : public AudioFile
 {
     public:
         void read_into_database(std::vector<char> file) override;
+        void read_from_database(int id) override;
+
+        void read_into_mod_memory(void* modAddr) override;
     private:
         unsigned char header[8];
 };
@@ -66,6 +71,9 @@ class Sound : public AudioFile
 {
     public:
         void read_into_database(std::vector<char> file) override;
+        void read_from_database(int id) override;
+
+        void read_into_mod_memory(void* modAddr) override;
     private:
         u32 sampleAddr;
 };
@@ -74,6 +82,9 @@ class Stream : public AudioFile
 {
     public:
         void read_into_database(std::vector<char> file) override;
+        void read_from_database(int id) override;
+
+        void read_into_mod_memory(void* modAddr) override;
 };
 
 class AudioFileFactory
@@ -90,5 +101,21 @@ class AudioFileFactory
             }
         }
 };
+
+
+
+class FormMask
+{
+    public:
+        unsigned short state;
+};
+
+extern "C"
+{
+    struct CustomSong
+    {
+        
+    };
+}
 
 #endif
