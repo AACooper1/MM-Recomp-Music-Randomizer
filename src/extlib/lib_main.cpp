@@ -13,6 +13,8 @@ Log logger;
 
 RECOMP_DLL_FUNC(update_database) {
     logger.set_log_level(LogLevel::LOG_DEV);
+    logger.dev << "If you're seeing this, the extlib's logger works." << std::endl;
+
     std::string modPath = RECOMP_ARG_STR(0);
 
     fs::path dbPath = (fs::path)modPath;
@@ -21,8 +23,6 @@ RECOMP_DLL_FUNC(update_database) {
 
     try 
     {
-        logger.debug << "If you're seeing this, the extlib's logger works." << std::endl;
-        logger.info("You can even treat it like std::format {:c}", 33);
         db = Database::get_db(dbPath);
     }
     catch (std::exception e)
@@ -30,8 +30,19 @@ RECOMP_DLL_FUNC(update_database) {
         logger.error << e.what() << std::endl;
         RECOMP_RETURN(int, 1);
     }
+
+    int rc = 0;
     
-    RECOMP_RETURN(int, 0);
+    try
+    {
+        rc = db->update_from_music_dir();
+    }
+    catch (std::exception e)
+    {
+        RECOMP_RETURN(int, 1);
+    }
+
+    RECOMP_RETURN(int, rc);
 }
 
 RECOMP_DLL_FUNC(_log)

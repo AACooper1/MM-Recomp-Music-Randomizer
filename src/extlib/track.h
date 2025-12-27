@@ -4,34 +4,41 @@
 #include <string>
 #include "audiofile.h"
 
+#include "miniz.h"
+
+enum class TrackType
+{
+    MMRS,
+    OOTRS,
+    STREAMED,
+    UNKNOWN
+};
+
 class Track
 {
     public:
+        Track(fs::path path);
+
+        bool read_from_file();
         int id;
         std::string name;
-        bool categories[0x200];
-        int bankNo;
+        bool categories[0x200] = {false};
+        unsigned short bankNo = 0;
+        TrackType type;
 
-    private:
         Sequence* sequence;
         Bank* bank;
         std::vector<Sound>* sounds;
-};
 
-class MMRS : public Track
-{
-    public:
-        FormMask formmask;
-};
+    private:
+        bool read_from_mmrs();
+        bool read_from_ootrs() {};
+        bool read_from_streamed() {};
 
-class OOTRS : public Track
-{
-
-};
-
-class Streamed : public Track
-{
-
+        fs::path path;
+        
+        mz_zip_archive archive;
+        std::vector<char> filebuffer;
 };
 
 #endif

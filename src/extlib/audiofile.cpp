@@ -1,15 +1,9 @@
 #include "audiofile.h"
 
-void Sequence::read_into_database(std::vector<char> file)
+void AudioFile::read_from_file(std::vector<char> file)
 {
-
-    std::size_t filesize = file.size();
-    if (filesize > MAX_ZSEQ_SIZE) throw std::runtime_error("Zseq file is too large - max 1 MiB!\n");
-
-    for (int j = 0; j < filesize; j++) 
-    {
-        this->data[j] = (unsigned char)file[j];
-    }
+    size = file.size();
+    data = file.data();
 }
 
 void Sequence::read_from_database(int index)
@@ -17,7 +11,17 @@ void Sequence::read_from_database(int index)
     TrackTable* table;
 }
 
-void Sequence::read_into_mod_memory(void* modAddr) {};
-void Sound::read_into_mod_memory(void* modAddr) {};
-void Bank::read_into_mod_memory(void* modAddr) {};
-void Stream::read_into_mod_memory(void* modAddr) {};
+void Sequence::read_into_mod_memory(void* modAddr) {}
+void Sound::read_into_mod_memory(void* modAddr) {}
+void Bank::read_into_mod_memory(void* modAddr) {}
+void Stream::read_into_mod_memory(void* modAddr) {}
+
+void Sequence::read_from_database(int id) {}
+void Bank::read_from_database(int id) {}
+void Sound::read_from_database(int id) {}
+void Stream::read_from_database(int id) {}
+
+void Sequence::read_into_mod_memory(void* modAddr) {}
+void Bank::read_into_mod_memory(void* modAddr) {}
+void Sound::read_into_mod_memory(void* modAddr) {}
+void Stream::read_into_mod_memory(void* modAddr) {}

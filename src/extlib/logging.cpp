@@ -5,7 +5,7 @@
 void Logger::stream()
 {
     dest.clear();
-    if (parent->get_log_level() > level)
+    if (parent->get_log_level() >= level)
     {
         printHeader();
     }

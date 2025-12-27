@@ -13,6 +13,7 @@
 
 #include "util.h"
 #include "logging.h"
+#include "track.h"
 
 namespace fs = std::filesystem;
 extern Log logger;
@@ -28,7 +29,9 @@ class Database
         static Database* get_db(fs::path path);
         sqlite3* sqlite() { return db; };
 
-        void update();
+        bool add_track(Track* track);
+
+        int update_from_music_dir();
 
         int exec(std::string query);
 
@@ -41,6 +44,10 @@ class Database
     protected:
         Database(fs::path path);
         ~Database();
+
+        bool add_mmrs(Track* track);
+        bool add_ootrs(Track* file);
+        bool add_streamed(Track* track);
 
         sqlite3* db;
 
@@ -86,6 +93,9 @@ class TrackTable : public Table
 {
     public:
         TrackTable(Database* db);
+
+        bool add(Track* track);
+
         bool remove(std::string query) override;
         bool remove(int id) override;
 

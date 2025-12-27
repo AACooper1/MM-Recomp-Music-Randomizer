@@ -37,8 +37,6 @@ Database* Database::database_ = nullptr;
 
 Database* Database::get_db(fs::path path)
 {
-    logger.dev << "Hello?" << std::endl;
-    std::cout << "Testing" << std::endl;
     if (database_ == nullptr)
     {
         logger.dev << "Did not find database. Creating new one." << std::endl;
@@ -95,25 +93,62 @@ int Database::exec(std::string query)
 
 void Database::init_tables()
 {
-    TrackTable* tracks = new TrackTable(this);
-    SequenceTable* seqs = new SequenceTable(this);
-    BankTable* banks = new BankTable(this);
-    SoundTable* sounds = new SoundTable(this);
+    tables.insert({"tracks",  new TrackTable(this)});
+    tables.insert({"sequences", new SequenceTable(this)});
+    tables.insert({"banks", new BankTable(this)});
+    tables.insert({"sounds", new SoundTable(this)});
 
-    TrackToSequenceTable* track_to_seq = new TrackToSequenceTable(this, "track_to_seq", "trackId", "seqId");
-    TrackToBankTable* track_to_bank = new TrackToBankTable(this, "track_to_seq", "trackId", "bankId");
-    TrackToSoundTable* track_to_sound = new TrackToSoundTable(this, "track_to_sound", "trackId", "soundId");
+    tables.insert({"track_to_seq", new TrackToSequenceTable(this, "track_to_seq", "trackId", "seqId")});
+    tables.insert({"track_to_bank", new TrackToBankTable(this, "track_to_bank", "trackId", "bankId")});
+    tables.insert({"track_to_sound", new TrackToSoundTable(this, "track_to_sound", "trackId", "soundId")});
 }
 
-void Database::update()
+int Database::update_from_music_dir()
 {
-    if (!fs::exists(this->dbPath))
+    if (!fs::exists(musicPath))
     {
-        fs::create_directories(this->dbPath);
-        logger.info << "Created new directory " << dbPath << "." << std::endl;
+        return 2;
     }
 
-    bool initDb = false;
+    for(const fs::directory_entry entry: fs::recursive_directory_iterator(musicPath)) 
+    {
+        Track* track = new Track(entry.path());
+
+        add_track(track);
+    }
+}
+
+bool Database::add_track(Track* track)
+{
+    switch (track->type)
+    {
+        case TrackType::MMRS:
+            add_mmrs(track);
+            break;
+        case TrackType::OOTRS:
+            add_mmrs(track);
+            break;
+        case TrackType::STREAMED:
+            add_streamed(track);
+            break;
+        default:
+            throw (std::runtime_error("Could not determine track type."));
+    }
+}
+
+bool Database::add_mmrs(Track* track)
+{
+    
+}
+
+bool Database::add_ootrs(Track* track)
+{
+    logger.error << "OOTRS tracks are not yet supported." << std::endl;
+}
+
+bool Database::add_streamed(Track* track)
+{
+    logger.error << "Streamed tracks are not yet supported." << std::endl;
 }
 
 
@@ -157,7 +192,9 @@ TrackTable::TrackTable(Database* db)
     init(query);
 
     this->db->tables.insert({"track", this});
-}
+} 
+
+
 
 SequenceTable::SequenceTable(Database* db)
 {

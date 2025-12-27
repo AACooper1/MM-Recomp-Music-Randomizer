@@ -15,7 +15,6 @@ RECOMP_HOOK("ConsoleLogo_Init") bool test_pass_function()
 {
     logger_init(&logger);
     unsigned char* savePath = recomp_get_mod_folder_path();
-    recomp_printf("Save path: %s\n", savePath);
 
     int rc = update_database(savePath);
 

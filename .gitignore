@@ -16,6 +16,7 @@
 *.thunderstore.zip
 *.nrm
 ./funcs.h
+mm-decomp/tools
 patches.map
 assets_extracted/
 build/
