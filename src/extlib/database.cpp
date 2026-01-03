@@ -93,14 +93,14 @@ int Database::exec(std::string query)
 
 void Database::init_tables()
 {
-    tables.insert({"tracks",  new TrackTable(this)});
-    tables.insert({"sequences", new SequenceTable(this)});
-    tables.insert({"banks", new BankTable(this)});
-    tables.insert({"sounds", new SoundTable(this)});
+    tables.track = std::make_unique<TrackTable>(this);
+    tables.seq = std::make_unique<SequenceTable>(this);
+    tables.bank = std::make_unique<BankTable>(this);
+    tables.sound = std::make_unique<SoundTable>(this);
 
-    tables.insert({"track_to_seq", new TrackToSequenceTable(this, "track_to_seq", "trackId", "seqId")});
-    tables.insert({"track_to_bank", new TrackToBankTable(this, "track_to_bank", "trackId", "bankId")});
-    tables.insert({"track_to_sound", new TrackToSoundTable(this, "track_to_sound", "trackId", "soundId")});
+    tables.relation.track_to_seq = std::make_unique<TrackToSequenceTable>(this, "track_to_seq", "trackId", "seqId");
+    tables.relation.track_to_bank = std::make_unique<TrackToBankTable>(this, "track_to_bank", "trackId", "bankId");
+    tables.relation.track_to_sound = std::make_unique<TrackToSoundTable>(this, "track_to_sound", "trackId", "soundId");
 }
 
 int Database::update_from_music_dir()
@@ -112,133 +112,33 @@ int Database::update_from_music_dir()
 
     for(const fs::directory_entry entry: fs::recursive_directory_iterator(musicPath)) 
     {
-        Track* track = new Track(entry.path());
+        std::unique_ptr<Track> track = std::make_unique<Track>(entry.path());
+        if (track->type == TrackType::UNKNOWN)
+        {
+            continue;
+        }
 
         add_track(track);
     }
+
+    return 0;
 }
 
-bool Database::add_track(Track* track)
+bool Database::add_track(std::unique_ptr<Track>& track)
 {
-    switch (track->type)
+    if (track->read_from_file()) 
     {
-        case TrackType::MMRS:
-            add_mmrs(track);
-            break;
-        case TrackType::OOTRS:
-            add_mmrs(track);
-            break;
-        case TrackType::STREAMED:
-            add_streamed(track);
-            break;
-        default:
-            throw (std::runtime_error("Could not determine track type."));
+        tables.track->upsert(std::move(track));
+        return true;
     }
-}
-
-bool Database::add_mmrs(Track* track)
-{
-    
-}
-
-bool Database::add_ootrs(Track* track)
-{
-    logger.error << "OOTRS tracks are not yet supported." << std::endl;
-}
-
-bool Database::add_streamed(Track* track)
-{
-    logger.error << "Streamed tracks are not yet supported." << std::endl;
+    else return false;
 }
 
 
-
-
-int Table::exec(std::string query)
+template <typename T>
+int Table<T>::exec(std::string query)
 {
     return this->db->exec(query);
-}
-
-void Table::init(std::string query)
-{
-    const char* query_cstr = query.c_str();
-
-    int rc = sqlite3_exec(
-        get_sqlite(),
-        query_cstr,
-        nullptr,
-        nullptr,
-        &db->lastErrMsg
-    );
-
-    db->set_last_rc(rc);
-}
-
-TrackTable::TrackTable(Database* db)
-{
-     this->db = db;
-
-     std::string query =         
-        "CREATE TABLE IF NOT EXISTS track (         \
-           id INTEGER PRIMARY KEY AUTOINCREMENT,    \
-           filename TEXT UNIQUE,                    \
-           modified INTEGER,                        \
-           songName TEXT,                           \
-           categories BLOB,                         \
-           bankNo INTEGER,                          \
-           formMask BLOB                            \
-        );";
-
-    init(query);
-
-    this->db->tables.insert({"track", this});
-} 
-
-
-
-SequenceTable::SequenceTable(Database* db)
-{
-    this->db = db;
-
-    std::string query =
-    "CREATE TABLE IF NOT EXISTS seq (             "
-        "id INTEGER PRIMARY KEY AUTOINCREMENT,    "
-        "size INTEGER,                            "
-        "data BLOB                                "
-    ");";
-
-    init(query);
-}
-
-BankTable::BankTable(Database* db)
-{
-    this->db = db;
-
-    std::string query =
-    "CREATE TABLE IF NOT EXISTS bank (                   "
-        "id INTEGER PRIMARY KEY AUTOINCREMENT,           "
-        "headerSize INTEGER,                             "
-        "header BLOB,                                    "
-        "dataSize INTEGER,                               "
-        "data BLOB                                       "
-    ");";
-
-    init(query);
-}
-
-SoundTable::SoundTable(Database* db)
-{
-    this->db = db;
-
-    std::string query = 
-    "CREATE TABLE IF NOT EXISTS sound (                  "
-        "id INTEGER PRIMARY KEY AUTOINCREMENT,           "
-        "size INTEGER,                                   "
-        "foreignKey INTEGER,                             "
-        "data BLOB                                       "
-    ");";
-
-    init(query);
 }
 
 RelationTable::RelationTable(Database* db, std::string name, std::string primaryKey, std::string cols...)
@@ -263,7 +163,7 @@ RelationTable::RelationTable(Database* db, std::string name, std::string primary
 
     cols += "\b);";
 
-    init(query);
+    db->exec(query);
 }
 
 Database::~Database()

@@ -1,17 +1,19 @@
-#include "lib_recomp.hpp"
-#include "util.h"
+#include <vector>
+#include <string>
 
-#include <chrono>
-#include <ctime>
-
-RECOMP_DLL_FUNC(get_current_time)
+std::vector<std::string> split_string(const std::string& s, const std::string& delims)
 {
-    RECOMP_RETURN(u32, (u32)(time(nullptr) & 0xFFFFFF));
-}
+    std::vector<std::string> tokens;
 
-RECOMP_DLL_FUNC(fucking_use_stoi)
-{
-    std::string whatever = RECOMP_ARG_STR(0);
+    std::string::size_type lastPos = s.find_first_not_of(delims, 0);
+    std::string::size_type pos     = s.find_first_of(delims, lastPos);
 
-    RECOMP_RETURN(int, (int)std::stoll(whatever) % INT32_MAX);
+    while (std::string::npos != pos || std::string::npos != lastPos)
+    {
+        tokens.push_back(s.substr(lastPos, pos - lastPos));
+        lastPos = s.find_first_not_of(delims, pos);
+        pos = s.find_first_of(delims, lastPos);
+    }
+
+    return tokens;
 }

@@ -39,7 +39,8 @@ RECOMP_DLL_FUNC(update_database) {
     }
     catch (std::exception e)
     {
-        RECOMP_RETURN(int, 1);
+        logger.error << e.what() << std::endl;
+        RECOMP_RETURN(int, -1);
     }
 
     RECOMP_RETURN(int, rc);

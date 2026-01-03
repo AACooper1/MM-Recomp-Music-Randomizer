@@ -1,3 +1,6 @@
+#ifndef LOGGING_H
+#define LOGGING_H
+
 #include <iostream>
 #include <sstream>
 #include <format>
@@ -96,3 +99,5 @@ void Logger::call(std::format_string<P...> format, P &&... params)
         dest << msg;
     }
 }
+
+#endif

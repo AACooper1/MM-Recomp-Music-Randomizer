@@ -1,5 +1,5 @@
-#ifndef READ_MUSIC_H
-#define READ_MUSIC_H
+#ifndef AUDIOFILE_H
+#define AUDIOFILE_H
 
 #include <fstream>
 #include <string>
@@ -7,8 +7,7 @@
 #include <vector>
 
 #include "miniz.h"
-#include "database.h"
-#include "audio/load.h"
+#include "logging.h"
 
 #define MAX_ZSEQ_SIZE 32768     // 32 KiB
 #define MAX_ZBANK_SIZE 32768    // 32 KiB
@@ -20,6 +19,7 @@
 #endif
 
 namespace fs = std::filesystem;
+extern Log logger;
 
 enum class AudioFileType
 {
@@ -32,29 +32,32 @@ enum class AudioFileType
 class AudioFile
 {
     public:
-        void read_from_file(std::vector<char> file);
+        void read_from_file(std::shared_ptr<std::vector<char>> file);
         virtual void read_from_database(int id) = 0;
 
         virtual void read_into_mod_memory(void* modAddr) = 0;
 
         int get_database_id() { return databaseIndex; }
+        AudioFileType getType() { return type; }
     protected:
-        Database* db = nullptr;
+        AudioFile(std::shared_ptr<std::vector<char>> filebuffer) : _fb(filebuffer) { read_from_file(_fb); }
         AudioFileType type;
+
+        std::shared_ptr<std::vector<char>> _fb;
 
         char* data;
         int size;
 
         int databaseIndex = 0;
+        int audioTableIndex = 0;
 };
 
 class Sequence : public AudioFile
 {
     public:
-        Sequence(std::vector<char> file) 
+        Sequence(std::shared_ptr<std::vector<char>> filebuffer) : AudioFile(filebuffer)
         {
             type = AudioFileType::ZSEQ; 
-            read_from_file(file);
         };
         void read_from_database(int id) override;
 
@@ -64,6 +67,10 @@ class Sequence : public AudioFile
 class Bank : public AudioFile
 {
     public:
+        Bank(std::shared_ptr<std::vector<char>> filebuffer) : AudioFile(filebuffer)
+        {
+            type = AudioFileType::ZBANK;
+        }
         void read_from_database(int id) override;
 
         void read_into_mod_memory(void* modAddr) override;
@@ -74,6 +81,10 @@ class Bank : public AudioFile
 class Sound : public AudioFile
 {
     public:
+        Sound(std::shared_ptr<std::vector<char>> filebuffer) : AudioFile(filebuffer)
+        {
+            type = AudioFileType::ZSOUND;
+        }
         void read_from_database(int id) override;
 
         void read_into_mod_memory(void* modAddr) override;
@@ -84,46 +95,13 @@ class Sound : public AudioFile
 class Stream : public AudioFile
 {
     public:
+        Stream(std::shared_ptr<std::vector<char>> filebuffer) : AudioFile(filebuffer)
+        {
+            type = AudioFileType::STREAMED;
+        }
         void read_from_database(int id) override;
 
         void read_into_mod_memory(void* modAddr) override;
 };
-
-
-
-class AudioFileFactory
-{
-    public:
-        AudioFile* read_file(std::string filename, std::vector<char> file)
-        {
-            if (filename.ends_with(".zseq") || filename.ends_with(".seq"))
-                return new Sequence(file);
-            if (filename.ends_with(".zbank"))
-                return new Bank(file);
-            if (filename.ends_with(".zsound"))
-                return new Sound(file);
-            if (filename.ends_with(".mp3") || filename.ends_with(".ogg") || filename.ends_with("wav"))
-                return new Stream(file);
-
-            else
-            {
-                return nullptr;
-            }
-        }
-};
-
-class FormMask
-{
-    public:
-        unsigned short state;
-};
-
-extern "C"
-{
-    struct CustomSong
-    {
-        
-    };
-}
 
 #endif

@@ -29,7 +29,7 @@ class Database
         static Database* get_db(fs::path path);
         sqlite3* sqlite() { return db; };
 
-        bool add_track(Track* track);
+        bool add_track(std::unique_ptr<Track>& track);
 
         int update_from_music_dir();
 
@@ -39,15 +39,12 @@ class Database
         int get_last_rc();
         
         char* lastErrMsg;
-        std::unordered_map<std::string, Table*> tables;
+        
+        dbTables tables;
 
     protected:
         Database(fs::path path);
         ~Database();
-
-        bool add_mmrs(Track* track);
-        bool add_ootrs(Track* file);
-        bool add_streamed(Track* track);
 
         sqlite3* db;
 
@@ -63,20 +60,42 @@ class Database
         void report_error();
 };
 
+struct dbTables
+{
+    std::unique_ptr<TrackTable> track;
+    std::unique_ptr<SequenceTable> seq;
+    std::unique_ptr<BankTable> bank;
+    std::unique_ptr<SoundTable> sound;
 
+    RelationTables relation;
+};
+
+struct RelationTables
+{
+    std::unique_ptr<TrackToSequenceTable> track_to_seq;
+    std::unique_ptr<TrackToBankTable> track_to_bank;
+    std::unique_ptr<TrackToSoundTable> track_to_sound;
+};
+
+
+template <typename T>
 class Table
 {
     public:
-        void init(std::string query);
+        Table(Database* db);
 
-        virtual bool remove(std::string query) = 0;
-        virtual bool remove(int id) = 0;
+        bool insert(std::unique_ptr<T> entry) override;
+        bool update(std::unique_ptr<T> entry) override;
+        bool upsert(std::unique_ptr<T> entry) override { entry.upsert(this); };
+
+        bool remove(std::string query) override;
+        bool remove(int id) override;
 
     protected:
         virtual int exec(std::string query);
         sqlite3* get_sqlite() { return db->sqlite(); };
 
-        Database* db;
+        std::shared_ptr<Database> db;
         int rc = 0;
 
         std::string name;
@@ -87,78 +106,116 @@ class Table
 };
 
 
-
-
-class TrackTable : public Table
+template <typename T> class Table_Impl : public Table
 {
     public:
-        TrackTable(Database* db);
+        TableImpl(Database* db);
 
-        bool add(Track* track);
+        bool insert(std::unique_ptr<T> entry) override;
+        bool update(std::unique_ptr<T> entry) override;
+        bool upsert(std::unique_ptr<T> entry) override { entry.upsert(this); };
 
         bool remove(std::string query) override;
         bool remove(int id) override;
+    protected:
+        std::unordered_map<std::string, Track> entries;
+};
 
-        static TrackTable* table;
+class TrackTable : public Table<Track>
+{
+    public:
+        TrackTable(std::shared_ptr<Database> db) : Table<Track>(db)
+        {
+            std::string query =         
+                "CREATE TABLE IF NOT EXISTS track (          \
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,    \
+                    filename TEXT UNIQUE,                    \
+                    modified INTEGER,                        \
+                    songName TEXT,                           \
+                    categories BLOB,                         \
+                    bankNo INTEGER,                          \
+                    formMask BLOB                            \
+                );";
+
+            db->exec(query);
+        }
 };
 
 
-
-
-
-class AudioFileTable : public Table
+template<typename T> class AudioFileTable : public Table<AudioFile>
 {
     public:
-        // virtual bool insert(AudioFile file);
+        AudioFileTable(std::shared_ptr<Database> db);
+        
+        T* select(std::string query) override;
+        T* select(std::string query, std::string* cols) override;
+        T* select(int id) override
 
-        virtual AudioFile* select(std::string query) = 0;
-        virtual AudioFile* select(std::string query, std::string* cols) = 0;
-        virtual AudioFile* select(int id) = 0;
-};
-
-class SequenceTable : public AudioFileTable
-{
-    public:
-        SequenceTable(Database* db);
-
-        AudioFile* select(std::string query) override;
-        AudioFile* select(std::string query, std::string* cols) override;
-        AudioFile* select(int id) override;
+        bool insert(std::unique_ptr<T> entry);
+        bool update(std::unique_ptr<T> entry);
+        bool upsert(std::unique_ptr<T> entry);
 
         bool remove(std::string query) override;
         bool remove(int id) override;
+    
+    private:
+        std::vector<T> entries;
 };
 
-class BankTable : public AudioFileTable
+class SequenceTable : public AudioFileTable<Sequence>
 {
     public:
-        BankTable(Database* db);
+        SequenceTable(std::shared_ptr<Database> db) : AudioFileTable(db)
+        {
+            std::string query =
+                "CREATE TABLE IF NOT EXISTS seq (             "
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT,    "
+                    "size INTEGER,                            "
+                    "data BLOB                                "
+                ");";
 
-        AudioFile* select(std::string query) override;
-        AudioFile* select(std::string query, std::string* cols) override;
-        AudioFile* select(int id) override;
-
-        bool remove(std::string query) override;
-        bool remove(int id) override;
+            db->exec(query);
+        }
 };
 
-class SoundTable : public AudioFileTable
+class BankTable : public AudioFileTable<Bank>
 {
     public:
-        SoundTable(Database* db);
+        BankTable(std::shared_ptr<Database> db): AudioFileTable(db)
+        {
+            std::string query =
+                "CREATE TABLE IF NOT EXISTS bank (                   "
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT,           "
+                    "headerSize INTEGER,                             "
+                    "header BLOB,                                    "
+                    "dataSize INTEGER,                               "
+                    "data BLOB                                       "
+                ");";
 
-        AudioFile* select(std::string query) override;
-        AudioFile* select(std::string query, std::string* cols) override;
-        AudioFile* select(int id) override;
-
-        bool remove(std::string query) override;
-        bool remove(int id) override;
+            db->exec(query);
+        }
 };
 
+class SoundTable : public AudioFileTable<Sound>
+{
+    public:
+        SoundTable(std::shared_ptr<Database> db): AudioFileTable(db)
+        {
+            std::string query =
+                 "CREATE TABLE IF NOT EXISTS sound (                 "
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT,           "
+                    "size INTEGER,                                   "
+                    "foreignKey INTEGER,                             "
+                    "data BLOB                                       "
+                ");";
 
+            db->exec(query);
+        }
+};
 
+class Relation;
 
-class RelationTable : public Table
+class RelationTable : public Table<Relation>
 {
     public:
         virtual bool insert(int id_1, int id_2) = 0;

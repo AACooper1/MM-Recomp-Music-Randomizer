@@ -2,9 +2,14 @@
 #define TRACK_H
 
 #include <string>
+#include <filesystem>
 #include "audiofile.h"
+#include "formmask.h"
+#include "util.h"
 
 #include "miniz.h"
+
+namespace fs = std::filesystem;
 
 enum class TrackType
 {
@@ -25,20 +30,23 @@ class Track
         bool categories[0x200] = {false};
         unsigned short bankNo = 0;
         TrackType type;
+        FormMask formmask;
 
         Sequence* sequence;
         Bank* bank;
-        std::vector<Sound>* sounds;
+        std::vector<Sound*> sounds;
 
     private:
         bool read_from_mmrs();
         bool read_from_ootrs() {};
         bool read_from_streamed() {};
 
+        void parse_categories(std::shared_ptr<std::vector<char>> filebuffer);
+        void parse_formmask(std::shared_ptr<std::vector<char>> filebuffer);
+
         fs::path path;
         
         mz_zip_archive archive;
-        std::vector<char> filebuffer;
 };
 
 #endif
