@@ -38,8 +38,8 @@ class Track
 
     private:
         bool read_from_mmrs();
-        bool read_from_ootrs() {};
-        bool read_from_streamed() {};
+        bool read_from_ootrs() {return false;};
+        bool read_from_streamed() {return false;};
 
         void parse_categories(std::shared_ptr<std::vector<char>> filebuffer);
         void parse_formmask(std::shared_ptr<std::vector<char>> filebuffer);

@@ -20,14 +20,17 @@ extern Log logger;
 
 class AudioFile;
 class Track;
+template <typename T>
 class Table;
+struct RelationTables;
+struct dbTables;
 
-class Database
+class Database : std::enable_shared_from_this<Database>
 {
     public:
-        static Database* get_db();
-        static Database* get_db(fs::path path);
-        sqlite3* sqlite() { return db; };
+        Database* get_db();
+        Database* get_db(fs::path path);
+        std::shared_ptr<sqlite3> sqlite() { return db; };
 
         bool add_track(std::unique_ptr<Track>& track);
 
@@ -40,15 +43,14 @@ class Database
         
         char* lastErrMsg;
         
-        dbTables tables;
+        std::unique_ptr<dbTables> tables;
 
     protected:
         Database(fs::path path);
         ~Database();
 
-        sqlite3* db;
+        std::shared_ptr<sqlite3> db;
 
-        sqlite3_stmt* statement;
         static Database* database_;
         int lastRC = 0;
         std::stringstream errMsg;
@@ -58,6 +60,115 @@ class Database
 
         void init_tables();
         void report_error();
+};
+
+template <typename T>
+class Table
+{
+    public:
+        Table<T>(std::shared_ptr<Database> db) {this->db = db;}
+
+        virtual std::shared_ptr<T> select(std::string query);
+        virtual std::shared_ptr<T> select(std::string query, std::string* cols);
+        virtual std::shared_ptr<T> select(int id);
+
+        virtual bool insert(std::unique_ptr<T> entry);
+        virtual bool update(std::unique_ptr<T> entry);
+
+        virtual bool remove(std::string query);
+        virtual bool remove(int id);
+
+    protected:
+        virtual int exec(std::string query);
+        std::shared_ptr<sqlite3> get_sqlite() { return db->sqlite(); };
+
+        std::shared_ptr<Database> db;
+        int rc = 0;
+
+        std::string name;
+        int n_col;
+        int n_rows;
+
+        std::vector<std::string> cols;
+        std::vector<T> entries;
+};
+
+template<typename T> concept isAudioFile = std::is_base_of<AudioFile, T>().value;
+
+using TrackTable = Table<Track>;
+template<> TrackTable::Table(std::shared_ptr<Database> db);
+template<> bool TrackTable::insert(std::unique_ptr<Track> entry);
+
+using SequenceTable = Table<Sequence>;
+template<> SequenceTable::Table(std::shared_ptr<Database> db);
+using BankTable = Table<Bank>;
+template<> BankTable::Table(std::shared_ptr<Database> db);
+using SoundTable = Table<Sound>;
+template<> SoundTable::Table(std::shared_ptr<Database> db);
+
+
+struct Relation
+{
+    int id_1;
+    int id_2;
+};
+
+class RelationTable
+{
+    public:
+        RelationTable(std::shared_ptr<Database> db, std::string name);
+        virtual bool insert(int id_1, int id_2) = 0;
+        virtual int select(int id) = 0;
+
+        virtual bool remove(int id);
+
+    protected:
+        std::string col1;
+        std::string col2;
+
+        std::shared_ptr<Database> db;
+};
+
+class TrackToSequenceTable : public RelationTable
+{
+    public:
+        
+        TrackToSequenceTable(std::shared_ptr<Database> db, std::string name):
+        RelationTable(db, name) {col1 = "trackId"; col2 = "sequenceId";}
+    
+        bool insert(int id_1, int id_2) override;
+        int select(int id) override;
+        bool remove(int id) override;
+};
+
+class TrackToBankTable : public RelationTable
+{
+    public:
+        
+        TrackToBankTable(std::shared_ptr<Database> db, std::string name):
+        RelationTable(db, name) {col1 = "trackId"; col2 = "bankId";}
+    
+        bool insert(int id_1, int id_2) override;
+        int select(int id) override;
+        bool remove(int id) override;
+};
+
+class TrackToSoundTable : public RelationTable
+{
+    public:
+        TrackToSoundTable(std::shared_ptr<Database> db, std::string name):
+        RelationTable(db, name) {col1 = "trackId"; col2 = "soundId";}
+
+        bool insert(int id_1, int id_2) override;
+        int select(int id) override;
+        bool remove(int id) override;
+};
+
+struct RelationTables
+{
+    std::unique_ptr<TrackToSequenceTable> track_to_seq;
+    std::unique_ptr<TrackToBankTable> track_to_bank;
+    std::unique_ptr<TrackToSoundTable> track_to_sound;
 };
 
 struct dbTables
@@ -70,199 +181,5 @@ struct dbTables
     RelationTables relation;
 };
 
-struct RelationTables
-{
-    std::unique_ptr<TrackToSequenceTable> track_to_seq;
-    std::unique_ptr<TrackToBankTable> track_to_bank;
-    std::unique_ptr<TrackToSoundTable> track_to_sound;
-};
-
-
-template <typename T>
-class Table
-{
-    public:
-        Table(Database* db);
-
-        bool insert(std::unique_ptr<T> entry) override;
-        bool update(std::unique_ptr<T> entry) override;
-        bool upsert(std::unique_ptr<T> entry) override { entry.upsert(this); };
-
-        bool remove(std::string query) override;
-        bool remove(int id) override;
-
-    protected:
-        virtual int exec(std::string query);
-        sqlite3* get_sqlite() { return db->sqlite(); };
-
-        std::shared_ptr<Database> db;
-        int rc = 0;
-
-        std::string name;
-        int n_col;
-        int n_rows;
-
-        std::vector<std::string> cols;
-};
-
-
-template <typename T> class Table_Impl : public Table
-{
-    public:
-        TableImpl(Database* db);
-
-        bool insert(std::unique_ptr<T> entry) override;
-        bool update(std::unique_ptr<T> entry) override;
-        bool upsert(std::unique_ptr<T> entry) override { entry.upsert(this); };
-
-        bool remove(std::string query) override;
-        bool remove(int id) override;
-    protected:
-        std::unordered_map<std::string, Track> entries;
-};
-
-class TrackTable : public Table<Track>
-{
-    public:
-        TrackTable(std::shared_ptr<Database> db) : Table<Track>(db)
-        {
-            std::string query =         
-                "CREATE TABLE IF NOT EXISTS track (          \
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,    \
-                    filename TEXT UNIQUE,                    \
-                    modified INTEGER,                        \
-                    songName TEXT,                           \
-                    categories BLOB,                         \
-                    bankNo INTEGER,                          \
-                    formMask BLOB                            \
-                );";
-
-            db->exec(query);
-        }
-};
-
-
-template<typename T> class AudioFileTable : public Table<AudioFile>
-{
-    public:
-        AudioFileTable(std::shared_ptr<Database> db);
-        
-        T* select(std::string query) override;
-        T* select(std::string query, std::string* cols) override;
-        T* select(int id) override
-
-        bool insert(std::unique_ptr<T> entry);
-        bool update(std::unique_ptr<T> entry);
-        bool upsert(std::unique_ptr<T> entry);
-
-        bool remove(std::string query) override;
-        bool remove(int id) override;
-    
-    private:
-        std::vector<T> entries;
-};
-
-class SequenceTable : public AudioFileTable<Sequence>
-{
-    public:
-        SequenceTable(std::shared_ptr<Database> db) : AudioFileTable(db)
-        {
-            std::string query =
-                "CREATE TABLE IF NOT EXISTS seq (             "
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,    "
-                    "size INTEGER,                            "
-                    "data BLOB                                "
-                ");";
-
-            db->exec(query);
-        }
-};
-
-class BankTable : public AudioFileTable<Bank>
-{
-    public:
-        BankTable(std::shared_ptr<Database> db): AudioFileTable(db)
-        {
-            std::string query =
-                "CREATE TABLE IF NOT EXISTS bank (                   "
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,           "
-                    "headerSize INTEGER,                             "
-                    "header BLOB,                                    "
-                    "dataSize INTEGER,                               "
-                    "data BLOB                                       "
-                ");";
-
-            db->exec(query);
-        }
-};
-
-class SoundTable : public AudioFileTable<Sound>
-{
-    public:
-        SoundTable(std::shared_ptr<Database> db): AudioFileTable(db)
-        {
-            std::string query =
-                 "CREATE TABLE IF NOT EXISTS sound (                 "
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT,           "
-                    "size INTEGER,                                   "
-                    "foreignKey INTEGER,                             "
-                    "data BLOB                                       "
-                ");";
-
-            db->exec(query);
-        }
-};
-
-class Relation;
-
-class RelationTable : public Table<Relation>
-{
-    public:
-        virtual bool insert(int id_1, int id_2) = 0;
-        virtual int select(int id) = 0;
-
-        RelationTable(Database* db, std::string name, std::string primaryKey, std::string cols...);
-
-    private:
-        std::string col1;
-        std::string col2;
-};
-
-class TrackToSequenceTable : public RelationTable
-{
-    public:
-        TrackToSequenceTable(Database* db, std::string name, std::string primaryKey, std::string cols...) :
-        RelationTable(db, name, primaryKey, std::forward<std::string>(cols)) {}
-
-        bool insert(int id_1, int id_2) override;
-        int select(int id) override;
-        bool remove(int id) override;
-        bool remove(std::string id) override;
-};
-
-class TrackToBankTable : public RelationTable
-{
-    public:
-        
-        TrackToBankTable(Database* db, std::string name, std::string primaryKey, std::string cols...) :
-        RelationTable(db, name, primaryKey, std::forward<std::string>(cols)) {}
-    
-        bool insert(int id_1, int id_2) override;
-        int select(int id) override;
-        bool remove(int id) override;
-        bool remove(std::string id) override;
-};
-
-class TrackToSoundTable : public RelationTable
-{
-    public:
-        TrackToSoundTable(Database* db, std::string name, std::string primaryKey, std::string cols...):
-        RelationTable(db, name, primaryKey, std::forward<std::string>(cols)) {}
-
-        bool insert(int id_1, int id_2) override;
-        int select(int id) override;
-        bool remove(int id) override;
-        bool remove(std::string id) override;
-};
 
 #endif

@@ -8,7 +8,7 @@ extern "C" {
     DLLEXPORT uint32_t recomp_api_version = 1;
 }
 
-Database *db = nullptr;
+Database* db;
 Log logger;
 
 RECOMP_DLL_FUNC(update_database) {
@@ -23,7 +23,7 @@ RECOMP_DLL_FUNC(update_database) {
 
     try 
     {
-        db = Database::get_db(dbPath);
+        db = db->get_db(dbPath);
     }
     catch (std::exception e)
     {
