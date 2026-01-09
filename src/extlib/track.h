@@ -3,6 +3,7 @@
 
 #include <string>
 #include <filesystem>
+#include <chrono>
 #include "audiofile.h"
 #include "formmask.h"
 #include "util.h"
@@ -25,12 +26,14 @@ class Track
         Track(fs::path path);
 
         bool read_from_file();
-        int id;
+        int databaseIndex;
+        long long int timestamp;
         std::string name;
         bool categories[0x200] = {false};
         unsigned short bankNo = 0;
         TrackType type;
         FormMask formmask;
+        fs::path path;
 
         Sequence* sequence;
         Bank* bank;
@@ -44,7 +47,7 @@ class Track
         void parse_categories(std::shared_ptr<std::vector<char>> filebuffer);
         void parse_formmask(std::shared_ptr<std::vector<char>> filebuffer);
 
-        fs::path path;
+        
         
         mz_zip_archive archive;
 };

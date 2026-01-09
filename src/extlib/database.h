@@ -25,18 +25,22 @@ class Table;
 struct RelationTables;
 struct dbTables;
 
-class Database : std::enable_shared_from_this<Database>
+class Database : public std::enable_shared_from_this<Database>
 {
     public:
-        Database* get_db();
-        Database* get_db(fs::path path);
+        Database(fs::path path);
+        ~Database();
+
         std::shared_ptr<sqlite3> sqlite() { return db; };
 
         bool add_track(std::unique_ptr<Track>& track);
 
         int update_from_music_dir();
+        void init();
 
         int exec(std::string query);
+        template <typename ...T>
+        void bind(sqlite3_stmt* statement, std::string query, T&&... args);
 
         void set_last_rc(int rc);
         int get_last_rc();
@@ -46,12 +50,8 @@ class Database : std::enable_shared_from_this<Database>
         std::unique_ptr<dbTables> tables;
 
     protected:
-        Database(fs::path path);
-        ~Database();
-
         std::shared_ptr<sqlite3> db;
 
-        static Database* database_;
         int lastRC = 0;
         std::stringstream errMsg;
 
@@ -72,7 +72,7 @@ class Table
         virtual std::shared_ptr<T> select(std::string query, std::string* cols);
         virtual std::shared_ptr<T> select(int id);
 
-        virtual bool insert(std::unique_ptr<T> entry);
+        virtual int insert(std::unique_ptr<T> entry);
         virtual bool update(std::unique_ptr<T> entry);
 
         virtual bool remove(std::string query);
@@ -97,7 +97,7 @@ template<typename T> concept isAudioFile = std::is_base_of<AudioFile, T>().value
 
 using TrackTable = Table<Track>;
 template<> TrackTable::Table(std::shared_ptr<Database> db);
-template<> bool TrackTable::insert(std::unique_ptr<Track> entry);
+template<> int TrackTable::insert(std::unique_ptr<Track> entry);
 
 using SequenceTable = Table<Sequence>;
 template<> SequenceTable::Table(std::shared_ptr<Database> db);

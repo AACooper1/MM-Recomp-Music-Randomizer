@@ -2,7 +2,7 @@
 
 Track::Track(fs::path path)
 {
-    id = 0;
+    databaseIndex = 0;
     this->path = path;
     name = path.stem().string();
 
@@ -34,6 +34,9 @@ bool Track::read_from_file()
         logger.error << "Error reading zip file." << std::endl;
         return false;
     }
+
+    const auto time = fs::last_write_time(path).time_since_epoch();
+    this->timestamp = std::chrono::duration_cast<std::chrono::seconds>(time).count();
 
     switch (type)
     {
@@ -146,6 +149,13 @@ void Track::parse_formmask(std::shared_ptr<std::vector<char>> filebuffer)
     std::string formmask_txt(filebuffer->begin(), filebuffer->end());
 
     std::vector<std::string> channels = split_string(formmask_txt, "[\"]");
+    for (int i = channels.size(); i >= 0; i--)
+    {
+        if (i % 2 == 1)
+        {
+            channels.erase(channels.begin()+i-1);
+        }
+    }
     if (channels.size() > 17)
     {
         logger.error << "Formmask for " << name << " has more than 17 rows " << "(" << channels.size() << "), skipping!";

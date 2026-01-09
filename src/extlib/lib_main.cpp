@@ -8,7 +8,7 @@ extern "C" {
     DLLEXPORT uint32_t recomp_api_version = 1;
 }
 
-Database* db;
+std::shared_ptr<Database> db;
 Log logger;
 
 RECOMP_DLL_FUNC(update_database) {
@@ -23,7 +23,8 @@ RECOMP_DLL_FUNC(update_database) {
 
     try 
     {
-        db = db->get_db(dbPath);
+        db = std::make_shared<Database>(dbPath);
+        db->init();
     }
     catch (std::exception e)
     {
@@ -36,6 +37,7 @@ RECOMP_DLL_FUNC(update_database) {
     try
     {
         rc = db->update_from_music_dir();
+
     }
     catch (std::exception e)
     {
