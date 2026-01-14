@@ -4,8 +4,8 @@
             "name": "Mod",
             "includePath": [
                 "${workspaceFolder}",
-                "${workspaceFolder}/src/mod",
                 "${workspaceFolder}/src/extlib",
+                "${workspaceFolder}/src/extlib/database",
                 "${workspaceFolder}/include/mod",
                 "${workspaceFolder}/include/extlib",
                 "${workspaceFolder}/include/mod/dummy_headers",

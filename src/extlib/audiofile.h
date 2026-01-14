@@ -37,19 +37,17 @@ class AudioFile
 
         virtual void read_into_mod_memory(void* modAddr) = 0;
 
-        int get_database_id() { return databaseIndex; }
+        int databaseIndex = 0;
+        int audioTableIndex = 0;
+        std::shared_ptr<std::vector<char>> data;
+        int size;
+
         AudioFileType getType() { return type; }
     protected:
         AudioFile(std::shared_ptr<std::vector<char>> filebuffer) : _fb(filebuffer) { read_from_file(_fb); }
         AudioFileType type;
 
         std::shared_ptr<std::vector<char>> _fb;
-
-        char* data;
-        int size;
-
-        int databaseIndex = 0;
-        int audioTableIndex = 0;
 };
 
 class Sequence : public AudioFile
@@ -67,15 +65,17 @@ class Sequence : public AudioFile
 class Bank : public AudioFile
 {
     public:
-        Bank(std::shared_ptr<std::vector<char>> filebuffer) : AudioFile(filebuffer)
+        Bank(std::shared_ptr<std::vector<char>> filebuffer, bool is_bankmeta) : AudioFile(filebuffer)
         {
+            if (is_bankmeta) { header = filebuffer; }
             type = AudioFileType::ZBANK;
         }
+        void read_header(std::shared_ptr<std::vector<char>> filebuffer) { header = filebuffer; };
         void read_from_database(int id) override;
 
         void read_into_mod_memory(void* modAddr) override;
-    private:
-        unsigned char header[8];
+
+        std::shared_ptr<std::vector<char>> header;
 };
 
 class Sound : public AudioFile
@@ -88,7 +88,7 @@ class Sound : public AudioFile
         void read_from_database(int id) override;
 
         void read_into_mod_memory(void* modAddr) override;
-    private:
+
         u32 sampleAddr;
 };
 

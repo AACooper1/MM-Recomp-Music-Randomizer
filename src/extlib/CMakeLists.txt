@@ -3,9 +3,16 @@ target_sources(${TARGET_NAME} PUBLIC
     "miniz.c"
 
     "lib_main.cpp"
-    "database.cpp"
+
+    "database/database.cpp"
+    "database/tracktable.cpp"
+    "database/sequencetable.cpp"
+    "database/banktable.cpp"
+    "database/soundtable.cpp"
+    
     "audiofile.cpp"
     "track.cpp"
     "logging.cpp"
     "util.cpp"
+    "formmask.cpp"
 )

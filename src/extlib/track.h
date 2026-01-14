@@ -29,15 +29,15 @@ class Track
         int databaseIndex;
         long long int timestamp;
         std::string name;
-        bool categories[0x200] = {false};
+        std::unique_ptr<std::vector<char>> categories;
         unsigned short bankNo = 0;
         TrackType type;
         FormMask formmask;
         fs::path path;
 
-        Sequence* sequence;
-        Bank* bank;
-        std::vector<Sound*> sounds;
+        std::shared_ptr<Sequence> sequence;
+        std::shared_ptr<Bank> bank;
+        std::vector<std::shared_ptr<Sound>> sounds;
 
     private:
         bool read_from_mmrs();
@@ -45,7 +45,6 @@ class Track
         bool read_from_streamed() {return false;};
 
         void parse_categories(std::shared_ptr<std::vector<char>> filebuffer);
-        void parse_formmask(std::shared_ptr<std::vector<char>> filebuffer);
 
         
         

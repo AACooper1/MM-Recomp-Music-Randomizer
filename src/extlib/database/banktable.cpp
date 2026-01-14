@@ -1,0 +1,53 @@
+#include "table.h"
+#include "database.h"
+
+template<> BankTable::Table(std::shared_ptr<Database> db): db(db)
+{
+    std::string query =
+        "CREATE TABLE IF NOT EXISTS bank (                   "
+            "id INTEGER PRIMARY KEY AUTOINCREMENT,           "
+            "headerSize INTEGER,                             "
+            "header BLOB,                                    "
+            "dataSize INTEGER,                               "
+            "data BLOB                                       "
+        ");";
+
+    db->exec(query);
+}
+
+template <> int BankTable::insert(std::shared_ptr<Bank> entry)
+{
+    Statement statement(get_sqlite());
+
+    std::string query = 
+        "INSERT INTO bank (             \
+            headerSize,                 \
+            header,                     \
+            dataSize,                   \
+            data                        \
+        )                               \
+        VALUES (?, ?, ?, ?)             \
+        RETURNING id                    \
+        ";
+
+    if (statement.prepare(query))
+    {
+        return -2;
+    }
+
+    statement.bind_int(entry->header->size());
+    statement.bind_blob_vec(*entry->header);
+    statement.bind_int(entry->size);
+    statement.bind_blob_vec(*entry->data);
+
+    
+    int dbIdx = statement.exec_and_return_id();
+    if (dbIdx < 0)
+    {
+        return dbIdx;
+    }
+    entry->databaseIndex = dbIdx;
+    entries.emplace(entry->databaseIndex, entry);
+
+    return 0;
+}

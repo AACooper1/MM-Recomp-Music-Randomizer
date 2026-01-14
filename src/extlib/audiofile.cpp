@@ -3,10 +3,8 @@
 void AudioFile::read_from_file(std::shared_ptr<std::vector<char>> file)
 {
     size = file->size();
-    data = file->data();
+    data = file;
 }
-
-
 
 void Sequence::read_into_mod_memory(void* modAddr) {}
 void Sound::read_into_mod_memory(void* modAddr) {}

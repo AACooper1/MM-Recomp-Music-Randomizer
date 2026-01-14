@@ -80,23 +80,6 @@ int Database::exec(std::string query)
     return rc;
 }
 
-template <typename ...T>
-void Database::bind(sqlite3_stmt* statement, std::string query, T&&... args)
-{
-    int i = 1;
-
-    ([&]
-    {
-             if constexpr (typeid(args) == typeid(int32_t))     { sqlite3_bind_int(statement, i, args); }
-        else if constexpr (typeid(args) == typeid(int64_t))     { sqlite3_bind_int64(statement, i, args); }
-        else if constexpr (typeid(args) == typeid(std::string)) { sqlite3_bind_text(statement, i, args.c_str(), args.length(), SQLITE_STATIC);}
-        else if constexpr (typeid(args) == typeid(bool*))       { sqlite3_bind_blob(statement, i, args, sizeof(args) * 0x200, SQLITE_STATIC); }
-        else                                                    { sqlite3_bind_blob(statement, i, &args, sizeof(args), SQLITE_STATIC); }
-        i++;
-    } (), ...
-    );
-}
-
 void Database::init_tables()
 {
     tables->track = std::make_unique<TrackTable>(shared_from_this());
@@ -118,7 +101,7 @@ int Database::update_from_music_dir()
 
     for(const fs::directory_entry entry: fs::recursive_directory_iterator(musicPath)) 
     {
-        std::unique_ptr<Track> track = std::make_unique<Track>(entry.path());
+        std::shared_ptr<Track> track = std::make_shared<Track>(entry.path());
         if (track->type == TrackType::UNKNOWN)
         {
             continue;
@@ -130,11 +113,25 @@ int Database::update_from_music_dir()
     return 0;
 }
 
-bool Database::add_track(std::unique_ptr<Track>& track)
+bool Database::add_track(std::shared_ptr<Track>& track)
 {
     if (track->read_from_file()) 
     {
-        tables->track->insert(std::move(track));
+        int trackNo = tables->track->insert(track);
+
+        if (track->type != TrackType::STREAMED)
+        {
+            int seqNo = tables->seq->insert(track->sequence);
+            tables->relation.track_to_seq->insert(trackNo, seqNo);
+        }
+        if (track->bank)
+        {
+            int bankNo = tables->bank->insert(track->bank);
+            tables->relation.track_to_bank->insert(trackNo, bankNo);
+        }
+        for (int i = 0; i < track->sounds.size(); i++) 
+            tables->sound->insert(track->sounds[i]);
+        
         return true;
     }
     else return false;
@@ -163,125 +160,15 @@ RelationTable::RelationTable(std::shared_ptr<Database> db, std::string name)
 
 bool RelationTable::remove(int id) {}
 
-
-template<> TrackTable::Table(std::shared_ptr<Database> db) : db(db)
-{
-    std::string query =         
-        "CREATE TABLE IF NOT EXISTS track (          \
-            id INTEGER PRIMARY KEY AUTOINCREMENT,    \
-            filename TEXT UNIQUE,                    \
-            modified INTEGER,                        \
-            songName TEXT,                           \
-            categories BLOB,                         \
-            bankNo INTEGER,                          \
-            formMask BLOB                            \
-        );";
-
-    db->exec(query);
-}
-
-template<> SequenceTable::Table(std::shared_ptr<Database> db) : db(db)
-{
-    std::string query =
-        "CREATE TABLE IF NOT EXISTS seq (             "
-            "id INTEGER PRIMARY KEY AUTOINCREMENT,    "
-            "size INTEGER,                            "
-            "data BLOB                                "
-        ");";
-
-    db->exec(query);
-}
-
-template<> BankTable::Table(std::shared_ptr<Database> db): db(db)
-{
-    std::string query =
-        "CREATE TABLE IF NOT EXISTS bank (                   "
-            "id INTEGER PRIMARY KEY AUTOINCREMENT,           "
-            "headerSize INTEGER,                             "
-            "header BLOB,                                    "
-            "dataSize INTEGER,                               "
-            "data BLOB                                       "
-        ");";
-
-    db->exec(query);
-}
-
-template<> SoundTable::Table(std::shared_ptr<Database> db): db(db)
-{
-    std::string query =
-            "CREATE TABLE IF NOT EXISTS sound (                 "
-            "id INTEGER PRIMARY KEY AUTOINCREMENT,           "
-            "size INTEGER,                                   "
-            "foreignKey INTEGER,                             "
-            "data BLOB                                       "
-        ");";
-
-    db->exec(query);
-}
-
-// I think it's easier if insert() just does upsert by default
-template<> int TrackTable::insert(std::unique_ptr<Track> entry) 
-{
-    sqlite3_stmt* statement;
-
-    std::string query = 
-        "INSERT INTO track (             \
-            filename,                   \
-            modified,                   \
-            songName,                   \
-            categories,                 \
-            bankNo,                     \
-            formMask                    \
-        )                               \
-        VALUES (?, ?, ?, ?, ?, ?)       \
-        ON CONFLICT (filename) DO       \
-        UPDATE SET                      \
-            modified=?,                 \
-            songName=?,                 \
-            categories=?,               \
-            bankNo=?,                   \
-            formMask=?                  \
-        RETURNING id;";
-
-    if (sqlite3_prepare_v2(get_sqlite().get(), query.c_str(), -1, &statement, nullptr))
-    {
-        return -2;
-    }
-
-    db->bind(statement, query, 
-        entry->path.string(),
-        entry->timestamp, 
-        entry->name,
-        entry->categories,
-        entry->bankNo,
-        entry->formmask,
-
-        entry->timestamp,
-        entry->name,
-        entry->categories,
-        entry->bankNo,
-        entry->formmask
-    );
-
-    if ((rc = sqlite3_step(statement)) == SQLITE_ROW)
-    {
-        entry->databaseIndex = sqlite3_column_int(statement, 0);
-    }
-
-    sqlite3_finalize(statement);
-
-    return 0;
-}
-
-template<typename T> int Table<T>::insert(std::unique_ptr<T> entry) { return false; }
+template<typename T> int Table<T>::insert(std::shared_ptr<T> entry) { return false; }
 
 template<> bool TrackTable::remove(int id) {return false;}
 template<> bool TrackTable::remove(std::string query) {return false;}
 template <typename T> bool Table<T>::remove(int id) {return false;}
 template <typename T> bool Table<T>::remove(std::string query) {return false;}
 
-template<> bool Table<Track>::update(std::unique_ptr<Track> entry) { return false; }
-template<typename T> bool Table<T>::update(std::unique_ptr<T> entry) { return false; }
+template<> bool Table<Track>::update(std::shared_ptr<Track> entry) { return false; }
+template<typename T> bool Table<T>::update(std::shared_ptr<T> entry) { return false; }
 
 template<> std::shared_ptr<Track> TrackTable::select(std::string query) {}
 template<> std::shared_ptr<Track> TrackTable::select(std::string query, std::string* cols) {}

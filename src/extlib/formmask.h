@@ -1,9 +1,24 @@
+#ifndef FORMMASK_H
+#define FORMMASK_H
+
 #include <string>
+#include <vector>
+#include <util.h>
+#include <logging.h>
+
+extern Log logger;
 
 class FormMask
 {
     public:
-        unsigned short states[16] = {0xFFFF};
+        FormMask() 
+        {
+            std::fill_n(states, 16, 0xFFFF); 
+            cumulativeStates = 0;
+        }
+        void parse(std::shared_ptr<std::vector<char>> filebuffer);
+
+        unsigned short states[16];
         unsigned short cumulativeStates;
 };
 
@@ -39,3 +54,5 @@ static std::string playStates[13] =
     "Combat",
     "CriticalHealth"
 };
+
+#endif

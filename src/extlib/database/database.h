@@ -1,0 +1,123 @@
+#ifndef DATABASE_H
+#define DATABASE_H
+
+#include "sqlite3.h"
+
+#include <cstdarg>
+#include <filesystem>
+
+#include <vector>
+#include <format>
+#include <string>
+#include <stdexcept>
+
+#include "util.h"
+#include "logging.h"
+#include "table.h"
+
+
+namespace fs = std::filesystem;
+extern Log logger;
+
+template <typename T>
+class Table;
+struct RelationTables;
+struct dbTables;
+
+class Track;
+
+struct Statement
+{
+    Statement(std::shared_ptr<sqlite3> db) { this->db = db; };
+    ~Statement() { sqlite3_finalize(statement);}
+
+    int prepare(std::string query) 
+        { return sqlite3_prepare_v2(db.get(), query.c_str(), -1, &statement, nullptr); }
+
+    int bind_blob_vec(std::vector<char> data)
+        { i++; return sqlite3_bind_blob(statement, i, data.data(), data.size(), SQLITE_TRANSIENT); }
+    int bind_blob(void* data, int size)
+        { i++; return sqlite3_bind_blob(statement, i, data, size, SQLITE_STATIC);}
+    int bind_int(int value)
+        { i++; return sqlite3_bind_int(statement, i, value); }
+    int bind_int64(long long value)
+        { i++; return sqlite3_bind_int64(statement, i, value); }
+    int bind_text(std::string text)
+        { i++; return sqlite3_bind_text(statement, i, text.c_str(), text.length(), SQLITE_TRANSIENT); }
+    
+    int exec_and_return_id()
+    {
+        if ((sqlite3_step(statement)) == SQLITE_ROW)
+        {
+            return sqlite3_column_int(statement, 0);
+        }
+        else
+        {
+            return -1;
+        }
+    }
+
+    sqlite3_stmt* statement;
+    std::shared_ptr<sqlite3> db;
+    int i = 0;
+};
+
+class Database : public std::enable_shared_from_this<Database>
+{
+    public:
+        Database(fs::path path);
+        ~Database();
+
+        std::shared_ptr<sqlite3> sqlite() { return db; };
+
+        bool add_track(std::shared_ptr<Track>& track);
+
+        int update_from_music_dir();
+        void init();
+
+        int exec(std::string query);
+
+        void set_last_rc(int rc);
+        int get_last_rc();
+        
+        char* lastErrMsg;
+        
+        std::unique_ptr<dbTables> tables;
+
+    protected:
+        std::shared_ptr<sqlite3> db;
+
+        int lastRC = 0;
+        std::stringstream errMsg;
+
+        fs::path dbPath;
+        fs::path musicPath;
+
+        void init_tables();
+        void report_error();
+};
+
+
+
+template<typename T>
+std::shared_ptr<sqlite3> Table<T>::get_sqlite() { return db->sqlite(); }
+
+
+struct RelationTables
+{
+    std::unique_ptr<TrackToSequenceTable> track_to_seq;
+    std::unique_ptr<TrackToBankTable> track_to_bank;
+    std::unique_ptr<TrackToSoundTable> track_to_sound;
+};
+
+struct dbTables
+{
+    std::unique_ptr<TrackTable> track;
+    std::unique_ptr<SequenceTable> seq;
+    std::unique_ptr<BankTable> bank;
+    std::unique_ptr<SoundTable> sound;
+
+    RelationTables relation;
+};
+
+#endif
