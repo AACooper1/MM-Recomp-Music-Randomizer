@@ -34,6 +34,9 @@ struct Statement
     int prepare(std::string query) 
         { return sqlite3_prepare_v2(db.get(), query.c_str(), -1, &statement, nullptr); }
 
+    int step()
+        { return sqlite3_step(statement); }
+
     int bind_blob_vec(std::vector<char> data)
         { i++; return sqlite3_bind_blob(statement, i, data.data(), data.size(), SQLITE_TRANSIENT); }
     int bind_blob(void* data, int size)
@@ -44,6 +47,28 @@ struct Statement
         { i++; return sqlite3_bind_int64(statement, i, value); }
     int bind_text(std::string text)
         { i++; return sqlite3_bind_text(statement, i, text.c_str(), text.length(), SQLITE_TRANSIENT); }
+
+    std::string column_text(int col)
+        { return reinterpret_cast<const char*>(sqlite3_column_text(statement, col)); }
+    int column_int(int col)
+        { return sqlite3_column_int(statement, col); }
+    long long column_int64(int col)
+        { return sqlite3_column_int64(statement, col); }
+    std::vector<char> column_blob(int col)
+        { 
+            std::vector<char> retvec;
+
+            const char* buffer = reinterpret_cast<const char*>(sqlite3_column_blob(statement, col));
+            size_t size = sqlite3_column_bytes(statement, col);
+
+            for (int i = 0; i < size; i++)
+            {
+                retvec.push_back(buffer[i]);
+            }
+
+            return retvec;
+        }
+    
     
     int exec_and_return_id()
     {
@@ -70,12 +95,14 @@ class Database : public std::enable_shared_from_this<Database>
 
         std::shared_ptr<sqlite3> sqlite() { return db; };
 
-        bool add_track(std::shared_ptr<Track>& track);
+        bool add_song(std::shared_ptr<Track>& track);
+        bool remove_song(int id);
 
         int update_from_music_dir();
         void init();
 
         int exec(std::string query);
+
 
         void set_last_rc(int rc);
         int get_last_rc();
@@ -92,6 +119,12 @@ class Database : public std::enable_shared_from_this<Database>
 
         fs::path dbPath;
         fs::path musicPath;
+
+        void add_if_not_in_db();
+        void remove_if_not_in_music_dir();
+
+        bool check_if_in_db(fs::directory_entry entry);
+        bool check_if_in_music_dir(std::string filename, long long modified);
 
         void init_tables();
         void report_error();

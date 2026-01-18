@@ -1,10 +1,10 @@
 #include "table.h"
 #include "database.h"
 
-template<> SoundTable::Table(std::shared_ptr<Database> db): db(db)
+template<> SoundTable::Table(std::shared_ptr<Database> db): db(db), name("sound")
 {
     std::string query =
-            "CREATE TABLE IF NOT EXISTS sound (                 "
+            "CREATE TABLE IF NOT EXISTS sound (              "
             "id INTEGER PRIMARY KEY AUTOINCREMENT,           "
             "size INTEGER,                                   "
             "foreignKey INTEGER,                             "
@@ -19,7 +19,7 @@ template <> int SoundTable::insert(std::shared_ptr<Sound> entry)
     Statement statement(get_sqlite());
 
     std::string query = 
-        "INSERT INTO zsound (           \
+        "INSERT INTO sound (            \
             size,                       \
             foreignKey,                 \
             data                        \
@@ -45,5 +45,5 @@ template <> int SoundTable::insert(std::shared_ptr<Sound> entry)
     entry->databaseIndex = dbIdx;
     entries.emplace(entry->databaseIndex, entry);
 
-    return 0;
+    return dbIdx;
 }

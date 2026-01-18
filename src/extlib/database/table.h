@@ -7,6 +7,7 @@
 #include "track.h"
 
 class Database;
+struct Statement;
 
 template <typename T>
 class Table
@@ -15,8 +16,14 @@ class Table
         Table<T>(std::shared_ptr<Database> db) {this->db = db;}
 
         virtual std::shared_ptr<T> select(std::string query);
-        virtual std::shared_ptr<T> select(std::string query, std::string* cols);
+        virtual std::shared_ptr<T> select(std::string query, std::string cols[], int ncol);
         virtual std::shared_ptr<T> select(int id);
+
+        Statement select_iter();
+        Statement select_iter(std::string cols[], int ncol);
+        Statement select_iter(std::string query);
+        Statement select_iter(std::string query, std::string cols[], int ncol);
+        Statement select_iter(int id);
 
         virtual int insert(std::shared_ptr<T> entry);
         virtual bool update(std::shared_ptr<T> entry);
@@ -65,12 +72,14 @@ class RelationTable
 {
     public:
         RelationTable(std::shared_ptr<Database> db, std::string name);
-        virtual bool insert(int id_1, int id_2) = 0;
-        virtual int select(int id) = 0;
+        int init();
 
-        virtual bool remove(int id);
+        int insert(int id_1, int id_2);
+        int select(int id);
+        int remove(int id);
 
     protected:
+        std::string name;
         std::string col1;
         std::string col2;
 
@@ -82,11 +91,7 @@ class TrackToSequenceTable : public RelationTable
     public:
         
         TrackToSequenceTable(std::shared_ptr<Database> db, std::string name):
-        RelationTable(db, name) {col1 = "trackId"; col2 = "sequenceId";}
-    
-        bool insert(int id_1, int id_2) override;
-        int select(int id) override;
-        bool remove(int id) override;
+        RelationTable(db, name) {col1 = "trackId"; col2 = "sequenceId"; init();}
 };
 
 class TrackToBankTable : public RelationTable
@@ -94,22 +99,14 @@ class TrackToBankTable : public RelationTable
     public:
         
         TrackToBankTable(std::shared_ptr<Database> db, std::string name):
-        RelationTable(db, name) {col1 = "trackId"; col2 = "bankId";}
-    
-        bool insert(int id_1, int id_2) override;
-        int select(int id) override;
-        bool remove(int id) override;
+        RelationTable(db, name) {col1 = "trackId"; col2 = "bankId"; init(); }
 };
 
 class TrackToSoundTable : public RelationTable
 {
     public:
         TrackToSoundTable(std::shared_ptr<Database> db, std::string name):
-        RelationTable(db, name) {col1 = "trackId"; col2 = "soundId";}
-
-        bool insert(int id_1, int id_2) override;
-        int select(int id) override;
-        bool remove(int id) override;
+        RelationTable(db, name) {col1 = "soundId"; col2 = "trackId"; init(); }
 };
 
 #endif

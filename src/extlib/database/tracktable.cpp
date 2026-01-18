@@ -1,13 +1,13 @@
 #include "table.h"
 #include "database.h"
 
-template<> TrackTable::Table(std::shared_ptr<Database> db) : db(db)
+template<> TrackTable::Table(std::shared_ptr<Database> db) : db(db), name("track")
 {
     std::string query =         
         "CREATE TABLE IF NOT EXISTS track (          \
             id INTEGER PRIMARY KEY AUTOINCREMENT,    \
             filename TEXT UNIQUE,                    \
-            modified INTEGER,                        \
+            modified BIGINT,                         \
             songName TEXT,                           \
             categories BLOB,                         \
             bankNo INTEGER,                          \
@@ -22,7 +22,7 @@ template<> int TrackTable::insert(std::shared_ptr<Track> entry)
     Statement statement(get_sqlite());
 
     std::string query = 
-        "INSERT INTO track (             \
+        "INSERT INTO track (            \
             filename,                   \
             modified,                   \
             songName,                   \
@@ -66,5 +66,5 @@ template<> int TrackTable::insert(std::shared_ptr<Track> entry)
     entry->databaseIndex = dbIdx;
     entries.emplace(entry->databaseIndex, entry);
 
-    return 0;
+    return dbIdx;
 }

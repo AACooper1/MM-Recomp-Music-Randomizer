@@ -1,7 +1,7 @@
 #include "table.h"
 #include "database.h"
 
-template<> SequenceTable::Table(std::shared_ptr<Database> db) : db(db)
+template<> SequenceTable::Table(std::shared_ptr<Database> db) : db(db), name("seq")
 {
     std::string query =
         "CREATE TABLE IF NOT EXISTS seq (             "
@@ -42,5 +42,5 @@ template <> int SequenceTable::insert(std::shared_ptr<Sequence> entry)
     entry->databaseIndex = dbIdx;
     entries.emplace(entry->databaseIndex, entry);
 
-    return 0;
+    return dbIdx;
 }

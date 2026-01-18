@@ -44,16 +44,20 @@ class AudioFile
 
         AudioFileType getType() { return type; }
     protected:
-        AudioFile(std::shared_ptr<std::vector<char>> filebuffer) : _fb(filebuffer) { read_from_file(_fb); }
+        AudioFile(std::shared_ptr<std::vector<char>> filebuffer, std::string filename) : 
+            _fb(filebuffer), 
+            filename(filename) 
+            { read_from_file(_fb); }
         AudioFileType type;
 
         std::shared_ptr<std::vector<char>> _fb;
+        std::string filename;
 };
 
 class Sequence : public AudioFile
 {
     public:
-        Sequence(std::shared_ptr<std::vector<char>> filebuffer) : AudioFile(filebuffer)
+        Sequence(std::shared_ptr<std::vector<char>> filebuffer, std::string filename) : AudioFile(filebuffer, filename)
         {
             type = AudioFileType::ZSEQ; 
         };
@@ -65,7 +69,7 @@ class Sequence : public AudioFile
 class Bank : public AudioFile
 {
     public:
-        Bank(std::shared_ptr<std::vector<char>> filebuffer, bool is_bankmeta) : AudioFile(filebuffer)
+        Bank(std::shared_ptr<std::vector<char>> filebuffer, std::string filename, bool is_bankmeta) : AudioFile(filebuffer, filename)
         {
             if (is_bankmeta) { header = filebuffer; }
             type = AudioFileType::ZBANK;
@@ -81,21 +85,22 @@ class Bank : public AudioFile
 class Sound : public AudioFile
 {
     public:
-        Sound(std::shared_ptr<std::vector<char>> filebuffer) : AudioFile(filebuffer)
+        Sound(std::shared_ptr<std::vector<char>> filebuffer, std::string filename) : AudioFile(filebuffer, filename)
         {
             type = AudioFileType::ZSOUND;
         }
+        bool parse_foreignKey();
         void read_from_database(int id) override;
 
         void read_into_mod_memory(void* modAddr) override;
-
+        
         u32 sampleAddr;
 };
 
 class Stream : public AudioFile
 {
     public:
-        Stream(std::shared_ptr<std::vector<char>> filebuffer) : AudioFile(filebuffer)
+        Stream(std::shared_ptr<std::vector<char>> filebuffer, std::string filename) : AudioFile(filebuffer, filename)
         {
             type = AudioFileType::STREAMED;
         }

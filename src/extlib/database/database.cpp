@@ -80,6 +80,21 @@ int Database::exec(std::string query)
     return rc;
 }
 
+bool Database::check_if_in_db(fs::directory_entry entry)
+{
+    Statement statement(db);
+
+    std::string query = std::format(
+        "SELECT * FROM track WHERE filename = \"{0}\" AND modified = {1};",
+        entry.path().string(), std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(entry.path()).time_since_epoch()).count()
+    );
+
+    statement.prepare(query);
+
+    if (statement.step() == SQLITE_ROW) return true;
+    else return false;
+}
+
 void Database::init_tables()
 {
     tables->track = std::make_unique<TrackTable>(shared_from_this());
@@ -99,21 +114,61 @@ int Database::update_from_music_dir()
         return 2;
     }
 
-    for(const fs::directory_entry entry: fs::recursive_directory_iterator(musicPath)) 
+    add_if_not_in_db();
+    remove_if_not_in_music_dir();
+
+    return 0;
+}
+
+void Database::add_if_not_in_db()
+{
+    for (const fs::directory_entry entry: fs::recursive_directory_iterator(musicPath))
     {
+        if (check_if_in_db(entry))
+        {
+            logger.debug("Found matching entry for file {0} with modification time {1}, skipping!\n",
+                entry.path().string(), 
+                fs::last_write_time(entry.path()).time_since_epoch().count()
+            );
+            continue;
+        }
         std::shared_ptr<Track> track = std::make_shared<Track>(entry.path());
         if (track->type == TrackType::UNKNOWN)
         {
             continue;
         }
 
-        add_track(track);
+        add_song(track);
     }
 
-    return 0;
+    return;
 }
 
-bool Database::add_track(std::shared_ptr<Track>& track)
+void Database::remove_if_not_in_music_dir()
+{
+    // std::string cols[] = {"id", "filename", "modified"};
+    Statement statement = tables->track->select_iter();
+    
+    while(statement.step() == SQLITE_ROW)
+    {
+        int id = statement.column_int(0);
+        std::string filename = statement.column_text(1);
+        long long modified = statement.column_int64(2);
+        fs::path fullPath = musicPath / filename;
+
+        if (fs::exists(fullPath))
+        {
+            if (std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(fullPath).time_since_epoch()).count() == modified)
+            {
+                continue;
+            }
+        }
+
+        remove_song(id);
+    }
+}
+
+bool Database::add_song(std::shared_ptr<Track>& track)
 {
     if (track->read_from_file()) 
     {
@@ -130,35 +185,27 @@ bool Database::add_track(std::shared_ptr<Track>& track)
             tables->relation.track_to_bank->insert(trackNo, bankNo);
         }
         for (int i = 0; i < track->sounds.size(); i++) 
-            tables->sound->insert(track->sounds[i]);
+        {
+            int soundNo = tables->sound->insert(track->sounds[i]);
+            tables->relation.track_to_sound->insert(soundNo, trackNo);
+        }
         
         return true;
     }
     else return false;
 }
 
+bool Database::remove_song(int id)
+{
+    // Not implemented
+    return false;
+}
 
 template <typename T>
 int Table<T>::exec(std::string query)
 {
     return this->db->exec(query);
 }
-
-RelationTable::RelationTable(std::shared_ptr<Database> db, std::string name)
-{
-    this->db = db;
-
-    std::string query = std::format(
-        "CREATE TABLE IF NOT EXISTS %s ( "
-            "%s INTEGER PRIMARY KEY,     ",
-            "%s INTEGER                  ",
-        name, col1, col2
-    );
-
-    db->exec(query);
-}
-
-bool RelationTable::remove(int id) {}
 
 template<typename T> int Table<T>::insert(std::shared_ptr<T> entry) { return false; }
 
@@ -171,22 +218,9 @@ template<> bool Table<Track>::update(std::shared_ptr<Track> entry) { return fals
 template<typename T> bool Table<T>::update(std::shared_ptr<T> entry) { return false; }
 
 template<> std::shared_ptr<Track> TrackTable::select(std::string query) {}
-template<> std::shared_ptr<Track> TrackTable::select(std::string query, std::string* cols) {}
+template<> std::shared_ptr<Track> TrackTable::select(std::string query, std::string cols[], int ncol) {}
 template<> std::shared_ptr<Track> TrackTable::select(int id) {}
 
 template<typename T> std::shared_ptr<T> Table<T>::select(std::string query) {}
-template<typename T> std::shared_ptr<T> Table<T>::select(std::string query, std::string* cols) {}
+template<typename T> std::shared_ptr<T> Table<T>::select(std::string query, std::string cols[], int ncol) {}
 template<typename T> std::shared_ptr<T> Table<T>::select(int id) {}
-
-
-bool TrackToSequenceTable::remove(int id) {return false;}
-bool TrackToBankTable::remove(int id) {return false;}
-bool TrackToSoundTable::remove(int id) {return false;}
-
-bool TrackToSequenceTable::insert(int id_1, int id_2) {return false;}
-bool TrackToBankTable::insert(int id_1, int id_2) {return false;}
-bool TrackToSoundTable::insert(int id_1, int id_2) {return false;}
-
-int TrackToSequenceTable::select(int id) {return false;}
-int TrackToBankTable::select(int id) {return false;}
-int TrackToSoundTable::select(int id) {return false;}

@@ -85,7 +85,7 @@ bool Track::read_from_mmrs()
 
         if (filename.ends_with(".zseq") || filename.ends_with(".seq"))
         {
-            sequence = std::make_shared<Sequence>(filebuffer);
+            sequence = std::make_shared<Sequence>(filebuffer, filename);
             try 
             {
                 bankNo = std::stoi(filename, 0, 16);
@@ -99,19 +99,26 @@ bool Track::read_from_mmrs()
         else if (filename.ends_with(".zbank"))
         {
             if (!bank)
-                bank = std::make_shared<Bank>(filebuffer, false);
+                bank = std::make_shared<Bank>(filebuffer, filename, false);
             else
                 bank->read_from_file(filebuffer);
         }
         else if (filename.ends_with(".bankmeta"))
         {
             if (!bank)
-                bank = std::make_shared<Bank>(filebuffer, true);
+                bank = std::make_shared<Bank>(filebuffer, filename, true);
             else
                 bank->read_header(filebuffer);
         }
         else if (filename.ends_with(".zsound"))
-            sounds.push_back(std::make_shared<Sound>(filebuffer));
+        {
+            std::shared_ptr<Sound> sound = std::make_shared<Sound>(filebuffer, filename);
+            sounds.push_back(sound);
+            if (!sound->parse_foreignKey())
+            {
+                logger.error << "Could not parse zsound " << filename << " in track " << this->name << ", skipping!" << std::endl;
+            }
+        }
         else if (filename.ends_with(".mp3") || filename.ends_with(".ogg") || filename.ends_with("wav"))
         {
             logger.error << "Streamed music is not yet implemented." << std::endl;

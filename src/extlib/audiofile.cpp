@@ -6,6 +6,21 @@ void AudioFile::read_from_file(std::shared_ptr<std::vector<char>> file)
     data = file;
 }
 
+bool Sound::parse_foreignKey()
+{
+    try
+    {
+        std::string foreignKey = filename.substr(filename.length() - 15);
+        sampleAddr = std::stoi(foreignKey, 0, 16);
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        logger.error << "Could not parse zsound " << filename << ", skipping!\n";
+        return false;
+    }
+}
+
 void Sequence::read_into_mod_memory(void* modAddr) {}
 void Sound::read_into_mod_memory(void* modAddr) {}
 void Bank::read_into_mod_memory(void* modAddr) {}

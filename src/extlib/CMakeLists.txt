@@ -5,10 +5,12 @@ target_sources(${TARGET_NAME} PUBLIC
     "lib_main.cpp"
 
     "database/database.cpp"
+    "database/table.cpp"
     "database/tracktable.cpp"
     "database/sequencetable.cpp"
     "database/banktable.cpp"
     "database/soundtable.cpp"
+    "database/relationtable.cpp"
     
     "audiofile.cpp"
     "track.cpp"

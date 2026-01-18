@@ -1,7 +1,7 @@
 #include "table.h"
 #include "database.h"
 
-template<> BankTable::Table(std::shared_ptr<Database> db): db(db)
+template<> BankTable::Table(std::shared_ptr<Database> db): db(db), name("bank")
 {
     std::string query =
         "CREATE TABLE IF NOT EXISTS bank (                   "
@@ -49,5 +49,5 @@ template <> int BankTable::insert(std::shared_ptr<Bank> entry)
     entry->databaseIndex = dbIdx;
     entries.emplace(entry->databaseIndex, entry);
 
-    return 0;
+    return dbIdx;
 }
