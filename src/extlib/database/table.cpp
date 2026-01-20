@@ -2,6 +2,9 @@
 #include "database.h"
 
 template<typename T>
+std::shared_ptr<sqlite3> Table<T>::get_sqlite() { return db->sqlite(); }
+
+template<typename T>
 Statement Table<T>::select_iter()
 {
     Statement statement(get_sqlite());
@@ -71,9 +74,72 @@ Statement Table<T>::select_iter(std::string query, std::string cols[], int ncol)
 }
 
 template<typename T>
+Statement Table<T>::select_iter(int id, std::string cols, int ncol)
+{
+    Statement statement(get_sqlite());
+
+    std::string query = "SELECT (";
+    for (int i = 0; i < ncol; i++)
+    {
+        query += cols[i];
+        if (i != ncol - 1)
+        {
+            query += ",";
+        }
+    }
+    query += std::format(") FROM {0} WHERE id=", name);
+
+    query = query + std::to_string(id) + ";";
+
+    statement.prepare(query);
+    return statement;
+}
+
+template<typename T>
 Statement Table<T>::select_iter(int id)
 {
-    
+    Statement statement(get_sqlite());
+
+    std::string query = std::format("SELECT * FROM {0} WHERE id={1};", name, id);
+
+    statement.prepare(query);
+    return statement;
+
+}
+
+template <typename T>
+int Table<T>::remove(std::string query)
+{
+    Statement statement(get_sqlite());
+
+    std::string prefix = std::format("DELETE FROM {0} WHERE ", name);
+
+    query = prefix + query + " RETURNING id;";
+
+    if (statement.prepare(query))
+    {
+        return -2;
+    }
+
+    return (statement.exec_and_return_id());
+}
+
+template <typename T>
+int Table<T>::remove(int id)
+{
+    Statement statement(get_sqlite());
+
+    std::string query = std::format("DELETE FROM {0} WHERE id = {1} RETURNING id;", name, id);
+
+    if (statement.prepare(query))
+    {
+        return -2;
+    }
+
+    return (statement.exec_and_return_id());
 }
 
 template class Table<Track>;
+template class Table<Sequence>;
+template class Table<Bank>;
+template class Table<Sound>;

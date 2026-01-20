@@ -131,11 +131,6 @@ class Database : public std::enable_shared_from_this<Database>
 };
 
 
-
-template<typename T>
-std::shared_ptr<sqlite3> Table<T>::get_sqlite() { return db->sqlite(); }
-
-
 struct RelationTables
 {
     std::unique_ptr<TrackToSequenceTable> track_to_seq;

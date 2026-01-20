@@ -7,20 +7,40 @@ RelationTable::RelationTable(std::shared_ptr<Database> db, std::string name)
     this->name = name;
 }
 
-int RelationTable::init()
+std::shared_ptr<sqlite3> RelationTable::get_sqlite() { return db->sqlite(); }
+
+int RelationTable::init(bool swap_primary_key)
 {
-    std::string query = std::format(
+    std::string query;
+    if (!swap_primary_key)
+    {
+        query = std::format(
         "CREATE TABLE IF NOT EXISTS {0}( "
             "{1} INTEGER PRIMARY KEY,    "
             "{2} INTEGER                 "
             ")",
         name, col1, col2
-    );
+        );
+    }
+    else
+    {
+        query = std::format(
+        "CREATE TABLE IF NOT EXISTS {0}( "
+            "{1} INTEGER,                "
+            "{2} INTEGER PRIMARY KEY     "
+            ")",
+        name, col1, col2
+        );
+    }
 
     return db->exec(query);
 }
 
-// Remember: id_1 should be soundId for track_to_sound table
+int RelationTable::init()
+{
+    return init(false);
+}
+
 int RelationTable::insert(int id_1, int id_2)
 {
     std::string query = std::format(
@@ -32,4 +52,26 @@ int RelationTable::insert(int id_1, int id_2)
     return db->exec(query);
 }
 
-int RelationTable::remove(int id) { }
+int RelationTable::remove(int id) 
+{
+    Statement statement(get_sqlite());
+
+    std::string query = std::format("DELETE FROM {0} WHERE {1} = {2} RETURNING {3};", name, col1, id, col2);
+
+    if (statement.prepare(query))
+    {
+        return -2;
+    }
+
+    return (statement.exec_and_return_id());
+}
+
+Statement RelationTable::remove_iter(int id)
+{
+    Statement statement(get_sqlite());
+
+    std::string query = std::format(("DELETE FROM {0} WHERE {1}={2} RETURNING {3};"), name, col1, id, col2);
+
+    statement.prepare(query);
+    return statement;
+}

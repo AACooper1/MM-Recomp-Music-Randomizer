@@ -24,12 +24,13 @@ class Table
         Statement select_iter(std::string query);
         Statement select_iter(std::string query, std::string cols[], int ncol);
         Statement select_iter(int id);
+        Statement select_iter(int id, std::string cols, int ncol);
 
         virtual int insert(std::shared_ptr<T> entry);
-        virtual bool update(std::shared_ptr<T> entry);
+        virtual int update(std::shared_ptr<T> entry);
 
-        virtual bool remove(std::string query);
-        virtual bool remove(int id);
+        virtual int remove(std::string query);
+        virtual int remove(int id);
 
     protected:
         virtual int exec(std::string query);
@@ -73,12 +74,16 @@ class RelationTable
     public:
         RelationTable(std::shared_ptr<Database> db, std::string name);
         int init();
+        int init(bool swap_primary_key);
 
         int insert(int id_1, int id_2);
         int select(int id);
         int remove(int id);
+        Statement remove_iter(int id);
 
     protected:
+        std::shared_ptr<sqlite3> get_sqlite();
+
         std::string name;
         std::string col1;
         std::string col2;
@@ -106,7 +111,7 @@ class TrackToSoundTable : public RelationTable
 {
     public:
         TrackToSoundTable(std::shared_ptr<Database> db, std::string name):
-        RelationTable(db, name) {col1 = "soundId"; col2 = "trackId"; init(); }
+        RelationTable(db, name) {col1 = "trackId"; col2 = "soundId"; init(true); }
 };
 
 #endif

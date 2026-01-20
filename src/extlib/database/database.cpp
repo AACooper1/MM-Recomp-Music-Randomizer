@@ -187,7 +187,7 @@ bool Database::add_song(std::shared_ptr<Track>& track)
         for (int i = 0; i < track->sounds.size(); i++) 
         {
             int soundNo = tables->sound->insert(track->sounds[i]);
-            tables->relation.track_to_sound->insert(soundNo, trackNo);
+            tables->relation.track_to_sound->insert(trackNo, soundNo);
         }
         
         return true;
@@ -197,8 +197,40 @@ bool Database::add_song(std::shared_ptr<Track>& track)
 
 bool Database::remove_song(int id)
 {
-    // Not implemented
-    return false;
+    int returnedId = 0;
+
+    if ((returnedId = tables->track->remove(id)) < 0)
+    {
+        return false;
+    }
+    if ((returnedId = tables->relation.track_to_seq->remove(returnedId)) > 0)
+    {
+        if ((returnedId = tables->seq->remove(returnedId) < 0))
+        {
+            logger.warning << "Found TrackToSeq entry but not seq entry for track id " << id << "!" << std::endl;
+            return false;
+        }
+    }
+    if ((returnedId = tables->relation.track_to_bank->remove(id)) > 0)
+    {
+        if ((returnedId = tables->bank->remove(returnedId) < 0))
+        {
+            logger.warning << "Found TrackToBank entry but not bank entry for track id " << id << "!" << std::endl;
+            return false;
+        }
+    }
+    
+    Statement statement = tables->relation.track_to_sound->remove_iter(id);
+    while ((returnedId = statement.exec_and_return_id()) > 0)
+    {
+        if ((returnedId = tables->sound->remove(returnedId) < 0))
+        {
+            logger.warning << "Found TrackToSound entry but not sound entry for track id " << id << "!" << std::endl;
+            return false;
+        }
+    }
+
+    return true;
 }
 
 template <typename T>
@@ -209,13 +241,9 @@ int Table<T>::exec(std::string query)
 
 template<typename T> int Table<T>::insert(std::shared_ptr<T> entry) { return false; }
 
-template<> bool TrackTable::remove(int id) {return false;}
-template<> bool TrackTable::remove(std::string query) {return false;}
-template <typename T> bool Table<T>::remove(int id) {return false;}
-template <typename T> bool Table<T>::remove(std::string query) {return false;}
 
-template<> bool Table<Track>::update(std::shared_ptr<Track> entry) { return false; }
-template<typename T> bool Table<T>::update(std::shared_ptr<T> entry) { return false; }
+template<> int Table<Track>::update(std::shared_ptr<Track> entry) { return false; }
+template<typename T>int Table<T>::update(std::shared_ptr<T> entry) { return false; }
 
 template<> std::shared_ptr<Track> TrackTable::select(std::string query) {}
 template<> std::shared_ptr<Track> TrackTable::select(std::string query, std::string cols[], int ncol) {}
