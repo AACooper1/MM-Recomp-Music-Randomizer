@@ -35,12 +35,6 @@ template <> int SequenceTable::insert(std::shared_ptr<Sequence> entry)
     statement.bind_blob_vec(*entry->data);
 
     int dbIdx = statement.exec_and_return_id();
-    if (dbIdx < 0)
-    {
-        return dbIdx;
-    }
-    entry->databaseIndex = dbIdx;
-    entries.emplace(entry->databaseIndex, entry);
 
     return dbIdx;
 }

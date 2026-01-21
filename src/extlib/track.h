@@ -14,29 +14,35 @@ namespace fs = std::filesystem;
 
 enum class TrackType
 {
+    UNKNOWN,
     MMRS,
     OOTRS,
-    STREAMED,
-    UNKNOWN
+    STREAMED
 };
 
 class Track
 {
     public:
         Track(fs::path path);
+        Track();
 
         bool read_from_file();
         int databaseIndex;
+        fs::path path;
         long long int timestamp;
         std::string name;
         std::unique_ptr<std::vector<char>> categories;
         unsigned short bankNo = 0;
         TrackType type;
         FormMask formmask;
-        fs::path path;
 
+        int seqId = 0;
         std::shared_ptr<Sequence> sequence;
+
+        int bankId = 0;
         std::shared_ptr<Bank> bank;
+
+        std::vector<int> soundIds;
         std::vector<std::shared_ptr<Sound>> sounds;
 
     private:

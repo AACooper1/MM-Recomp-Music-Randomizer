@@ -26,6 +26,18 @@ Track::Track(fs::path path)
     bankNo = 0;
 }
 
+Track::Track()
+{
+    databaseIndex = 0;
+    path = "";
+    categories = std::make_unique<std::vector<char>>();
+    name = "";
+    bankNo = 0;
+
+    sequence = nullptr;
+    bank = nullptr;
+}
+
 bool Track::read_from_file()
 {
     logger.debug << "Reading file " << path.filename() << "..." << std::endl;
@@ -130,7 +142,7 @@ bool Track::read_from_mmrs()
         }
         else if (filename.ends_with(".formmask"))
         {
-            formmask.parse(filebuffer);
+            formmask.parse(*filebuffer);
         }
     }
 

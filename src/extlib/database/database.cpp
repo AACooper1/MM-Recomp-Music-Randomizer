@@ -146,14 +146,13 @@ void Database::add_if_not_in_db()
 
 void Database::remove_if_not_in_music_dir()
 {
-    // std::string cols[] = {"id", "filename", "modified"};
     Statement statement = tables->track->select_iter();
     
     while(statement.step() == SQLITE_ROW)
     {
         int id = statement.column_int(0);
-        std::string filename = statement.column_text(1);
-        long long modified = statement.column_int64(2);
+        std::string filename = statement.column_text(2);
+        long long modified = statement.column_int64(3);
         fs::path fullPath = musicPath / filename;
 
         if (fs::exists(fullPath))
@@ -233,11 +232,25 @@ bool Database::remove_song(int id)
     return true;
 }
 
-template <typename T>
-int Table<T>::exec(std::string query)
+
+int Database::load_all_songs()
 {
-    return this->db->exec(query);
+    tables->track->load_entries();
+    /* Not ready yet
+
+    tables->seq->load_entries();
+    tables->bank->load_entries();
+    tables->sound->load_entries();
+
+    tables->relation.track_to_seq->link_entries();
+    tables->relation.track_to_bank->link_entries();
+    tables->relation.track_to_sound->link_entries();
+
+    */
+   return 0;
 }
+
+
 
 template<typename T> int Table<T>::insert(std::shared_ptr<T> entry) { return false; }
 

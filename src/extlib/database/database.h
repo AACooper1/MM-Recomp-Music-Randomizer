@@ -98,8 +98,9 @@ class Database : public std::enable_shared_from_this<Database>
         bool add_song(std::shared_ptr<Track>& track);
         bool remove_song(int id);
 
-        int update_from_music_dir();
         void init();
+        int update_from_music_dir();
+        int load_all_songs();
 
         int exec(std::string query);
 
@@ -124,7 +125,6 @@ class Database : public std::enable_shared_from_this<Database>
         void remove_if_not_in_music_dir();
 
         bool check_if_in_db(fs::directory_entry entry);
-        bool check_if_in_music_dir(std::string filename, long long modified);
 
         void init_tables();
         void report_error();

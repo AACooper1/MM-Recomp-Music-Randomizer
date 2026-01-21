@@ -1,8 +1,8 @@
 #include <formmask.h>
 
-void FormMask::parse(std::shared_ptr<std::vector<char>> filebuffer)
+void FormMask::parse(std::vector<char>& filebuffer)
 {
-    std::string formmask_txt(filebuffer->begin(), filebuffer->end());
+    std::string formmask_txt(filebuffer.begin(), filebuffer.end());
 
     std::fill_n(states, 16, 0x0000);
 

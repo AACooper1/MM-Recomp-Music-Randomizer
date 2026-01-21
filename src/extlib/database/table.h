@@ -26,6 +26,8 @@ class Table
         Statement select_iter(int id);
         Statement select_iter(int id, std::string cols, int ncol);
 
+        void load_entries();
+
         virtual int insert(std::shared_ptr<T> entry);
         virtual int update(std::shared_ptr<T> entry);
 
@@ -79,7 +81,10 @@ class RelationTable
         int insert(int id_1, int id_2);
         int select(int id);
         int remove(int id);
+        
         Statement remove_iter(int id);
+
+        void link_entries();
 
     protected:
         std::shared_ptr<sqlite3> get_sqlite();

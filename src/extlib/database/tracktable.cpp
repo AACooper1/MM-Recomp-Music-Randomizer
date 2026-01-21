@@ -6,6 +6,7 @@ template<> TrackTable::Table(std::shared_ptr<Database> db) : db(db), name("track
     std::string query =         
         "CREATE TABLE IF NOT EXISTS track (          \
             id INTEGER PRIMARY KEY AUTOINCREMENT,    \
+            type INT,                                \
             filename TEXT UNIQUE,                    \
             modified BIGINT,                         \
             songName TEXT,                           \
@@ -24,13 +25,14 @@ template<> int TrackTable::insert(std::shared_ptr<Track> entry)
     std::string query = 
         "INSERT INTO track (            \
             filename,                   \
+            type,                       \
             modified,                   \
             songName,                   \
             categories,                 \
             bankNo,                     \
             formMask                    \
         )                               \
-        VALUES (?, ?, ?, ?, ?, ?)       \
+        VALUES (?, ?, ?, ?, ?, ?, ?)       \
         ON CONFLICT (filename) DO       \
         UPDATE SET                      \
             modified=?,                 \
@@ -45,7 +47,8 @@ template<> int TrackTable::insert(std::shared_ptr<Track> entry)
         return -2;
     }
 
-    statement.bind_text(entry->path.string());
+    statement.bind_text(entry->path.filename().string());
+    statement.bind_int((int)entry->type);
     statement.bind_int64(entry->timestamp);
     statement.bind_text(entry->name);
     statement.bind_blob_vec(*entry->categories);
@@ -59,12 +62,32 @@ template<> int TrackTable::insert(std::shared_ptr<Track> entry)
     statement.bind_blob(&entry->formmask.states, sizeof(FormMask));
 
     int dbIdx = statement.exec_and_return_id();
-    if (dbIdx < 0)
-    {
-        return dbIdx;
-    }
-    entry->databaseIndex = dbIdx;
-    entries.emplace(entry->databaseIndex, entry);
 
     return dbIdx;
+}
+
+template<> void TrackTable::load_entries()
+{
+    int returnedId = 0;
+    Statement statement = select_iter();
+
+    while((returnedId = statement.exec_and_return_id()) > 0)
+    {
+        std::shared_ptr<Track> entry = std::make_shared<Track>();
+
+        entry->databaseIndex = statement.column_int(0);
+        entry->type = TrackType(statement.column_int(1));
+        entry->path = statement.column_text(2);
+        entry->timestamp = statement.column_int64(3);
+        entry->name = statement.column_text(4);
+        *entry->categories = statement.column_blob(5);
+        entry->bankNo = statement.column_int(6);
+
+        std::vector<char> formmask_temp = statement.column_blob(7);
+        entry->formmask.parse(formmask_temp);
+
+        entries.emplace(returnedId, entry);
+    }
+
+    return;
 }

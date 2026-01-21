@@ -37,9 +37,9 @@ RECOMP_DLL_FUNC(update_database) {
     try
     {
         rc = db->update_from_music_dir();
-
+        rc = db->load_all_songs();
     }
-    catch (std::exception e)
+    catch (std::exception& e)
     {
         logger.error << e.what() << std::endl;
         RECOMP_RETURN(int, -1);

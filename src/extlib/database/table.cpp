@@ -4,6 +4,12 @@
 template<typename T>
 std::shared_ptr<sqlite3> Table<T>::get_sqlite() { return db->sqlite(); }
 
+template <typename T>
+int Table<T>::exec(std::string query)
+{
+    return this->db->exec(query);
+}
+
 template<typename T>
 Statement Table<T>::select_iter()
 {

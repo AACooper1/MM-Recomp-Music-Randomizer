@@ -16,7 +16,7 @@ class FormMask
             std::fill_n(states, 16, 0xFFFF); 
             cumulativeStates = 0;
         }
-        void parse(std::shared_ptr<std::vector<char>> filebuffer);
+        void parse(std::vector<char>& filebuffer);
 
         unsigned short states[16];
         unsigned short cumulativeStates;

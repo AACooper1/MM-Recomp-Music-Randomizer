@@ -34,3 +34,6 @@ src/mod/sound_randomizer.h
 src/mod/song_name_display.c
 .gitignore
 src/mod/song_name_display.h
+binaries/
+py/
+downloads/
