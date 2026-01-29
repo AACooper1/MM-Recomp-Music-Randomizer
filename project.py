@@ -103,7 +103,14 @@ if platform.system() == "Windows":
         binaries_dir.joinpath("zig_win")
     )
     zig_dir_path = binaries_dir.joinpath("zig_win/zig-x86_64-windows-0.14.1")
-    zig_bin_path = zig_dir_path.joinpath("zig.exe")
+    
+    add_archive_download_and_extract(
+        "llvm",
+        "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/clang+llvm-19.1.7-x86_64-pc-windows-msvc.tar.xz",
+        binaries_dir.joinpath("llvm_win")
+    )
+    
+    llvm_path = binaries_dir.joinpath("llvm_win/clang+llvm-19.1.7-x86_64-pc-windows-msvc")
     
 elif platform.system() == "Darwin":
     add_archive_download_and_extract(
@@ -121,7 +128,13 @@ elif platform.system() == "Darwin":
         binaries_dir.joinpath("zig_macos")
     )
     zig_dir_path = binaries_dir.joinpath("zig_linux/zig-aarch64-macos-0.14.1")
-    zig_bin_path = zig_dir_path.joinpath("zig")
+    
+    add_archive_download_and_extract(
+        "llvm",
+        "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/LLVM-19.1.7-macOS-ARM64.tar.xz",
+        binaries_dir.joinpath("llvm_macos")
+    )
+    llvm_path = binaries_dir.joinpath("llvm_macos/LLVM-19.1.7-macOS-ARM64")
     
 else:
     add_archive_download_and_extract(
@@ -140,7 +153,13 @@ else:
          binaries_dir.joinpath("zig_linux")
     )
     zig_dir_path = binaries_dir.joinpath("zig_linux/zig-x86_64-linux-0.14.1")
-    zig_bin_path = binaries_dir.joinpath("zig")
+    
+    add_archive_download_and_extract(
+        "llvm",
+        "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/LLVM-19.1.7-Linux-X64.tar.xz",
+        binaries_dir.joinpath("llvm_linux")
+    )
+    llvm_path = binaries_dir.joinpath("llvm_linux/LLVM-19.1.7-Linux-X64")
 
 # Registering asset_archive extraction, and associated variables.
 assets_archive_path = root_dir.joinpath("assets_archive.zip")
@@ -155,6 +174,8 @@ archive_extractions['assets'] = assets_archive_job
 # ModTomlJob instances automatically register the resultant .nrm file as a mod_output_file. Therefore the .nrm will 
 # automatically be added to any build output folders or thunderstore packages that depend on this job.
 main_toml = ModTomlJob(mod_tool_path, root_dir.joinpath("mod.toml"))
+test_toml = ModTomlJob(mod_tool_path, root_dir.joinpath("tests.toml"))
+
 # The mod toml file is read when the job is first created. We now have access to all the information in the toml.
 
 # Declaring the makefile that will build our mod's elf binary. In this template, we've declared it second so that we can pass information
@@ -174,18 +195,35 @@ main_makefile = MakefileJob(
     }
 )
 
+test_makefile = MakefileJob(
+    root_dir.joinpath("mod_elf.mk"),
+    {
+        "_ELF_PATH": str(test_toml.get_elf_path()),
+        "_BUILD_DIR": str(test_toml.build_dir),
+        "_MIPS_CC": str(make_mips_compiler_path),
+        "_MIPS_LD": str(make_mips_linker_path),
+        "_SRC_DIR": "tests/src/mod"
+    }
+)
+
 # We've set the makefile to use the MIPS-only clang and ld.lld that we downloaded and extracted (The 'llvmmips' DownloadJob and ArchiveExtractJob).
 # So, we'll mark this MakefileJob as depending on that ArchiveExtractJob. We don't need to mark it as depending on the DownloadJob,
 # since the ArchiveExtractJob already depends on the DownloadJob.
+# Also declaring dependency on the asset archive extraction job.
 main_makefile.depends_on([archive_extractions["llvmmips"], assets_archive_job])
+test_makefile.depends_on([archive_extractions["llvmmips"], assets_archive_job])
 
 # Our toml file depends on the makefile to produce the mod elf, so we'll declare that dependency here.
 # It also depends on the RecompModTool we extracted from 'llvmmips', so we declare that dependency too.
 main_toml.depends_on([main_makefile, archive_extractions["llvmmips"]])
+test_toml.depends_on([test_makefile, archive_extractions["llvmmips"]])
 
 # Adding both jobs to their respective dicts for direct invoking.
 mod_tomls['mod'] = main_toml
 makefiles['mod'] = main_makefile
+
+mod_tomls['tests'] = test_toml
+makefiles['tests'] = test_makefile
 
 # ============== CMake/Extlib Compilation ==============
 
@@ -210,7 +248,7 @@ extlib = CMakeProjectConfig(
     {
         # Unlike with the makefile, we're gonna prepend the ZIG directory to the PATH that CMake recieves.
         # I could probably things this way for the makefile as well...
-        "PATH": prepend_to_env_path([zig_dir_path]),
+        "PATH": prepend_to_env_path([llvm_path.joinpath("bin"), zig_dir_path]),
         "LIB_NAME": extlib_name # The actual environmental variable that CMake looks at for the extlib name
     }
 )
@@ -289,10 +327,9 @@ for group_key, group in cmake_build_groups.items():
 
 # So far, all the CMakeBuildJob groups have been for cross-compiling the extlib for Windows, Mac, and Linux (regardless of the host system).
 # In some cases, compiling without using Zig can be helpful for debugging, and the CMakePresets.json includes presets for compiling natively
-# via LLVM. We'll make single-entry build groups for these native presets.
+# via Clang. We'll make single-entry build groups for these native presets.
 
-# Note that you must have Clang/LLVM installed on your system to use these presets. An alternate version of this project file exists that
-# can automatically download a complete LLVM archive for you (not recommended by default do to size), eliminating this need.
+# This version of project.py downloads LLVM for you.
 
 # These are helper functions that will help determine the correct native presets and mod_output_files for your system.
 def native_preset_name(build_type: str):
@@ -335,6 +372,11 @@ cmake_build_groups["native-MinSizeRel"] = {
     "Native": CMakeBuildJob.from_preset_pair(extlib, native_output_files("MinSizeRel"), native_preset_name("MinSizeRel")),
 }
 
+for group_key, group in cmake_build_groups.items():
+    if group_key.startswith("native-"):
+        for build_key, build in group.items():
+            build.depends_on([archive_extractions["llvm"]])
+
 # ============== Build Output and Packaging ==============
 
 # BuildOutputJobs are used to copy the mod_output_files from other jobs into a single, convenient directory. 
@@ -350,7 +392,9 @@ debug_test_dir = BuildOutputJob(root_dir.joinpath("test_env/mods"))
 # To include mod_output_files from other jobs in the build output, add those jobs as dependencies.
 debug_test_dir.depends_on([
     mod_tomls['mod'],
+    mod_tomls['tests'],
 ] + [i for i in cmake_build_groups["Debug"].values()])
+
 # You can also declare additional files to include using `debug_test_dir.add_mod_output_files(...)` method.
 
 # Updating build outputs is the default behavior of invoking `./modbuild.py` without arguments.

@@ -41,3 +41,28 @@ template <> int SoundTable::insert(std::shared_ptr<Sound> entry)
 
     return dbIdx;
 }
+
+template <> int SoundTable::update(int id, std::shared_ptr<Sound> entry)
+{
+    Statement statement(get_sqlite());
+
+    std::string query = 
+        "UPDATE sound                                   \
+         SET (size = ?, foreignKey = ?, data = ?)       \
+         WHERE (id = ?);                                \
+        ";
+
+    if (statement.prepare(query))
+    {
+        return -2;
+    }
+
+    statement.bind_int(entry->size);
+    statement.bind_blob_vec(*entry->data);
+    statement.bind_int64(entry->sampleAddr);
+    statement.bind_int(entry->databaseIndex);
+
+    int dbIdx = statement.exec_and_return_id();
+
+    return dbIdx;
+}

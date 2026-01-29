@@ -38,14 +38,14 @@ Database::~Database()
 void Database::init()
 {
     try
-        {
-            init_tables();
-        }
-        catch (std::exception& e)
-        {
-            logger.error << "Could not initialize database: " << e.what() << std::endl;
-            throw e;
-        }
+    {
+        init_tables();
+    }
+    catch (std::exception& e)
+    {
+        logger.error << "Could not initialize database: " << e.what() << std::endl;
+        throw e;
+    }
 }
 
 void Database::set_last_rc(int rc)
@@ -175,18 +175,48 @@ bool Database::add_song(std::shared_ptr<Track>& track)
 
         if (track->type != TrackType::STREAMED)
         {
-            int seqNo = tables->seq->insert(track->sequence);
-            tables->relation.track_to_seq->insert(trackNo, seqNo);
+            int seqNo = tables->relation.track_to_seq->select(trackNo);
+            if (seqNo > 0)
+            {
+                tables->seq->update(seqNo, track->sequence);
+            }
+            else
+            {
+                seqNo = tables->seq->insert(track->sequence);
+                tables->relation.track_to_seq->insert(trackNo, seqNo);
+            }
         }
         if (track->bank)
         {
-            int bankNo = tables->bank->insert(track->bank);
-            tables->relation.track_to_bank->insert(trackNo, bankNo);
+            int bankNo = tables->relation.track_to_bank->select(trackNo);
+            if (bankNo > 0)
+            {
+                tables->bank->update(bankNo, track->bank);
+            }
+            else
+            {
+                bankNo = tables->bank->insert(track->bank);
+                tables->relation.track_to_bank->insert(trackNo, bankNo);
+            }
+        }
+        
+        int soundNo = 0;
+        Statement statement = tables->relation.track_to_sound->select_iter(trackNo);
+        for (int i = 0; (soundNo = statement.exec_and_return_id()) > 0; i++)
+        {
+            track->sounds[i]->databaseIndex = soundNo;
         }
         for (int i = 0; i < track->sounds.size(); i++) 
         {
-            int soundNo = tables->sound->insert(track->sounds[i]);
-            tables->relation.track_to_sound->insert(trackNo, soundNo);
+            if (tables->sound->check_exists(track->sounds[i]->databaseIndex))
+            {
+                tables->sound->update(track->sounds[i]->databaseIndex, track->sounds[i]);
+            }
+            else
+            {
+                int soundNo = tables->sound->insert(track->sounds[i]);
+                tables->relation.track_to_sound->insert(trackNo, soundNo);
+            }
         }
         
         return true;
@@ -236,9 +266,8 @@ bool Database::remove_song(int id)
 int Database::load_all_songs()
 {
     tables->track->load_entries();
-    /* Not ready yet
-
     tables->seq->load_entries();
+    /* Not ready yet
     tables->bank->load_entries();
     tables->sound->load_entries();
 
@@ -247,21 +276,7 @@ int Database::load_all_songs()
     tables->relation.track_to_sound->link_entries();
 
     */
+
+
    return 0;
 }
-
-
-
-template<typename T> int Table<T>::insert(std::shared_ptr<T> entry) { return false; }
-
-
-template<> int Table<Track>::update(std::shared_ptr<Track> entry) { return false; }
-template<typename T>int Table<T>::update(std::shared_ptr<T> entry) { return false; }
-
-template<> std::shared_ptr<Track> TrackTable::select(std::string query) {}
-template<> std::shared_ptr<Track> TrackTable::select(std::string query, std::string cols[], int ncol) {}
-template<> std::shared_ptr<Track> TrackTable::select(int id) {}
-
-template<typename T> std::shared_ptr<T> Table<T>::select(std::string query) {}
-template<typename T> std::shared_ptr<T> Table<T>::select(std::string query, std::string cols[], int ncol) {}
-template<typename T> std::shared_ptr<T> Table<T>::select(int id) {}

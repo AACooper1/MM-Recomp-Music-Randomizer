@@ -32,7 +32,7 @@ template<> int TrackTable::insert(std::shared_ptr<Track> entry)
             bankNo,                     \
             formMask                    \
         )                               \
-        VALUES (?, ?, ?, ?, ?, ?, ?)       \
+        VALUES (?, ?, ?, ?, ?, ?, ?)    \
         ON CONFLICT (filename) DO       \
         UPDATE SET                      \
             modified=?,                 \

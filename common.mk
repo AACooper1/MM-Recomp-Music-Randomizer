@@ -5,7 +5,7 @@ WARNFLAGS := -Wall -Wextra -Wno-incompatible-library-redeclaration -Wno-unused-p
 			 -Wno-missing-braces -Wno-unsupported-floating-point-opt -Werror=section
 CFLAGS   := $(ARCHFLAGS) $(WARNFLAGS) -D_LANGUAGE_C -nostdinc -ffunction-sections
 CPPFLAGS := -DMIPS -DF3DEX_GBI_2 -DF3DEX_GBI_PL -DGBI_DOWHILE \
-			-I include -I include/mod -I include/mod/dummy_headers \
+			-I include -I include/mod -I include/mod/dummy_headers  -I src/mod \
 			-I include/shared -I mm-decomp/include -I mm-decomp/src -I mm-decomp/extracted/n64-us \
 			-I include_in_dependents -I assets_extracted -I assets_extracted/assets -I assets_extracted/assets/assets \
 			-idirafter include/libc -idirafter mm-decomp/include/libc

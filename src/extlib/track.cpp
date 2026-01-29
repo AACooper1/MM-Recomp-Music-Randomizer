@@ -42,6 +42,11 @@ bool Track::read_from_file()
 {
     logger.debug << "Reading file " << path.filename() << "..." << std::endl;
 
+    if (!fs::exists(path))
+    {
+        logger.error << "Error: " << path.string() << "does not exist!" << std::endl;
+    }
+
     memset(&archive, 0, sizeof(mz_zip_archive)); // Gotta do this because it's still 1991    
     if (!mz_zip_reader_init_file(&archive, path.string().c_str(), 0))
     {

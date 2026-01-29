@@ -106,7 +106,7 @@ class Database : public std::enable_shared_from_this<Database>
 
 
         void set_last_rc(int rc);
-        int get_last_rc();
+        int get_last_rc() { return lastRC; };
         
         char* lastErrMsg;
         

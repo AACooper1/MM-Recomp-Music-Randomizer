@@ -49,6 +49,7 @@ class AudioFile
             filename(filename) 
             { read_from_file(_fb); }
         AudioFileType type;
+        AudioFile() {data = std::make_shared<std::vector<char>>();}
 
         std::shared_ptr<std::vector<char>> _fb;
         std::string filename;
@@ -61,6 +62,7 @@ class Sequence : public AudioFile
         {
             type = AudioFileType::ZSEQ; 
         };
+        Sequence() {type = AudioFileType::ZSEQ;}
         void read_from_database(int id) override;
 
         void read_into_mod_memory(void* modAddr) override;
@@ -74,6 +76,7 @@ class Bank : public AudioFile
             if (is_bankmeta) { header = filebuffer; }
             type = AudioFileType::ZBANK;
         }
+        Bank() {type = AudioFileType::ZBANK; header = std::make_shared<std::vector<char>>();}
         void read_header(std::shared_ptr<std::vector<char>> filebuffer) { header = filebuffer; };
         void read_from_database(int id) override;
 
@@ -89,6 +92,7 @@ class Sound : public AudioFile
         {
             type = AudioFileType::ZSOUND;
         }
+        Sound() { type= AudioFileType::ZSOUND; sampleAddr = 0x00000000;}
         bool parse_foreignKey();
         void read_from_database(int id) override;
 

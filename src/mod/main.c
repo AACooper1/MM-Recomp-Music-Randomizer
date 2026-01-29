@@ -11,7 +11,7 @@ RECOMP_IMPORT(".", int update_database(char* savePath));
 
 struct Logger logger;
 
-RECOMP_HOOK("ConsoleLogo_Init") void test_create_db()
+RECOMP_HOOK("ConsoleLogo_Init") void create_db()
 {
     logger_init(&logger);
     logger.debug("And the %c side of it works too!\n\n", 67);

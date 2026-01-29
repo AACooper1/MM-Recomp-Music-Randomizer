@@ -18,6 +18,9 @@ class Table
         virtual std::shared_ptr<T> select(std::string query);
         virtual std::shared_ptr<T> select(std::string query, std::string cols[], int ncol);
         virtual std::shared_ptr<T> select(int id);
+        virtual bool check_exists(int id);
+
+        std::unordered_map<int, std::shared_ptr<T>> entries;
 
         Statement select_iter();
         Statement select_iter(std::string cols[], int ncol);
@@ -29,7 +32,7 @@ class Table
         void load_entries();
 
         virtual int insert(std::shared_ptr<T> entry);
-        virtual int update(std::shared_ptr<T> entry);
+        virtual int update(int id, std::shared_ptr<T> entry);
 
         virtual int remove(std::string query);
         virtual int remove(int id);
@@ -46,7 +49,6 @@ class Table
         int n_rows;
 
         std::vector<std::string> cols;
-        std::unordered_map<int, std::shared_ptr<T>> entries;
 };
 
 using TrackTable = Table<Track>;
@@ -82,6 +84,7 @@ class RelationTable
         int select(int id);
         int remove(int id);
         
+        Statement select_iter(int id);
         Statement remove_iter(int id);
 
         void link_entries();
