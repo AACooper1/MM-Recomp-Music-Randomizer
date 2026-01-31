@@ -1,6 +1,6 @@
 #include <formmask.h>
 
-void FormMask::parse(std::vector<char>& filebuffer)
+void FormMask::parse_file(std::vector<char>& filebuffer)
 {
     std::string formmask_txt(filebuffer.begin(), filebuffer.end());
 

@@ -27,6 +27,7 @@ class Track
         Track();
 
         bool read_from_file();
+        
         int databaseIndex;
         fs::path path;
         long long int timestamp;

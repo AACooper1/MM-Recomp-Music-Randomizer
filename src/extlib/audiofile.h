@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "miniz.h"
-#include "logging.h"
+#include "logging.hpp"
 
 #define MAX_ZSEQ_SIZE 32768     // 32 KiB
 #define MAX_ZBANK_SIZE 32768    // 32 KiB
@@ -50,7 +50,7 @@ class AudioFile
             { read_from_file(_fb); }
         AudioFileType type;
         AudioFile() {data = std::make_shared<std::vector<char>>();}
-
+        
         std::shared_ptr<std::vector<char>> _fb;
         std::string filename;
 };

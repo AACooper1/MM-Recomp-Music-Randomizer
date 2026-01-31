@@ -30,7 +30,7 @@ Track::Track()
 {
     databaseIndex = 0;
     path = "";
-    categories = std::make_unique<std::vector<char>>();
+    categories = std::make_unique<std::vector<char>>(0x200, 0);
     name = "";
     bankNo = 0;
 
@@ -147,7 +147,7 @@ bool Track::read_from_mmrs()
         }
         else if (filename.ends_with(".formmask"))
         {
-            formmask.parse(*filebuffer);
+            formmask.parse_file(*filebuffer);
         }
     }
 

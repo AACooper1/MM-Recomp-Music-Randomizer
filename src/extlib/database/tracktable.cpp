@@ -66,6 +66,19 @@ template<> int TrackTable::insert(std::shared_ptr<Track> entry)
     return dbIdx;
 }
 
+template<> void TrackTable::create_from_statement(Statement& statement, std::shared_ptr<Track> obj)
+{
+        obj->databaseIndex = statement.column_int(0);
+        obj->type = TrackType(statement.column_int(1));
+        obj->path = statement.column_text(2);
+        obj->timestamp = statement.column_int64(3);
+        obj->name = statement.column_text(4);
+        *obj->categories = statement.column_blob(5);
+        obj->bankNo = statement.column_int(6);
+
+        std::vector<char> formmask_temp = statement.column_blob(7);
+}
+
 template<> void TrackTable::load_entries()
 {
     int returnedId = 0;
@@ -75,19 +88,32 @@ template<> void TrackTable::load_entries()
     {
         std::shared_ptr<Track> entry = std::make_shared<Track>();
 
-        entry->databaseIndex = statement.column_int(0);
-        entry->type = TrackType(statement.column_int(1));
-        entry->path = statement.column_text(2);
-        entry->timestamp = statement.column_int64(3);
-        entry->name = statement.column_text(4);
-        *entry->categories = statement.column_blob(5);
-        entry->bankNo = statement.column_int(6);
-
-        std::vector<char> formmask_temp = statement.column_blob(7);
-        entry->formmask.parse(formmask_temp);
+        create_from_statement(statement, entry);
 
         entries.emplace(returnedId, entry);
     }
 
     return;
+}
+
+template<> std::shared_ptr<Track> TrackTable::select(int id)
+{
+    Statement statement(get_sqlite());
+
+    std::string query = std::format("SELECT * FROM track WHERE id={0};", id);
+
+    statement.prepare(query);
+
+    std::shared_ptr<Track> track = std::make_shared<Track>();
+
+    if(statement.step() == SQLITE_ROW)
+    {
+        create_from_statement(statement, track);
+    }
+    else
+    {
+        logger.error << "Could not read track." << std::endl;
+    }
+
+    return track;
 }

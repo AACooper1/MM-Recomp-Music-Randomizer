@@ -138,7 +138,10 @@ void Database::add_if_not_in_db()
             continue;
         }
 
-        add_song(track);
+        if (track->read_from_file())
+        {
+            add_song(track);
+        }
     }
 
     return;
@@ -169,59 +172,67 @@ void Database::remove_if_not_in_music_dir()
 
 bool Database::add_song(std::shared_ptr<Track>& track)
 {
-    if (track->read_from_file()) 
-    {
-        int trackNo = tables->track->insert(track);
+    int trackNo = tables->track->insert(track);
 
-        if (track->type != TrackType::STREAMED)
+    if (track->sequence)
+    {
+        int seqNo = tables->relation.track_to_seq->select(trackNo);
+        if (seqNo > 0)
         {
-            int seqNo = tables->relation.track_to_seq->select(trackNo);
+            if (tables->seq->update(seqNo, track->sequence) < 0) { return false; };
+        }
+        else
+        {
+            seqNo = tables->seq->insert(track->sequence);
             if (seqNo > 0)
             {
-                tables->seq->update(seqNo, track->sequence);
-            }
-            else
-            {
-                seqNo = tables->seq->insert(track->sequence);
                 tables->relation.track_to_seq->insert(trackNo, seqNo);
             }
+            else return false;
         }
-        if (track->bank)
+    }
+    if (track->bank)
+    {
+        int bankNo = tables->relation.track_to_bank->select(trackNo);
+        if (bankNo > 0)
         {
-            int bankNo = tables->relation.track_to_bank->select(trackNo);
+            if (tables->bank->update(bankNo, track->bank)) { return false; };
+        }
+        else
+        {
+            bankNo = tables->bank->insert(track->bank);
             if (bankNo > 0)
             {
-                tables->bank->update(bankNo, track->bank);
-            }
-            else
-            {
-                bankNo = tables->bank->insert(track->bank);
                 tables->relation.track_to_bank->insert(trackNo, bankNo);
             }
+            else return false;
         }
-        
-        int soundNo = 0;
-        Statement statement = tables->relation.track_to_sound->select_iter(trackNo);
-        for (int i = 0; (soundNo = statement.exec_and_return_id()) > 0; i++)
+    }
+    
+    int soundNo = 0;
+    Statement statement = tables->relation.track_to_sound->select_iter(trackNo);
+    for (int i = 0; (soundNo = statement.exec_and_return_id()) > 0; i++)
+    {
+        track->sounds[i]->databaseIndex = soundNo;
+    }
+    for (int i = 0; i < track->sounds.size(); i++) 
+    {
+        if (tables->sound->check_exists(track->sounds[i]->databaseIndex))
         {
-            track->sounds[i]->databaseIndex = soundNo;
+            if (tables->sound->update(track->sounds[i]->databaseIndex, track->sounds[i]) < 0) { return false; };
         }
-        for (int i = 0; i < track->sounds.size(); i++) 
+        else
         {
-            if (tables->sound->check_exists(track->sounds[i]->databaseIndex))
+            int soundNo = tables->sound->insert(track->sounds[i]);
+            if (soundNo > 0)
             {
-                tables->sound->update(track->sounds[i]->databaseIndex, track->sounds[i]);
-            }
-            else
-            {
-                int soundNo = tables->sound->insert(track->sounds[i]);
                 tables->relation.track_to_sound->insert(trackNo, soundNo);
             }
+            else return false;
         }
-        
-        return true;
     }
-    else return false;
+    
+    return true;
 }
 
 bool Database::remove_song(int id)

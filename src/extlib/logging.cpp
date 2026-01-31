@@ -1,4 +1,4 @@
-#include "logging.h"
+#include "logging.hpp"
 
 #include "lib_recomp.hpp"
 

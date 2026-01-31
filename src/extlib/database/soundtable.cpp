@@ -42,6 +42,8 @@ template <> int SoundTable::insert(std::shared_ptr<Sound> entry)
     return dbIdx;
 }
 
+template<> void SoundTable::create_from_statement(Statement& statement, std::shared_ptr<Sound> obj) {};
+
 template <> int SoundTable::update(int id, std::shared_ptr<Sound> entry)
 {
     Statement statement(get_sqlite());

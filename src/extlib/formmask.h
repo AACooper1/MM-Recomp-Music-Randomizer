@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <util.h>
-#include <logging.h>
+#include "logging.hpp"
 
 extern Log logger;
 
@@ -16,7 +16,7 @@ class FormMask
             std::fill_n(states, 16, 0xFFFF); 
             cumulativeStates = 0;
         }
-        void parse(std::vector<char>& filebuffer);
+        void parse_file(std::vector<char>& filebuffer);
 
         unsigned short states[16];
         unsigned short cumulativeStates;

@@ -12,7 +12,7 @@
 #include <stdexcept>
 
 #include "util.h"
-#include "logging.h"
+#include "logging.hpp"
 #include "table.h"
 
 

@@ -63,6 +63,8 @@ template <> int SequenceTable::update(int id, std::shared_ptr<Sequence> entry)
     return dbIdx;
 }
 
+template<> void SequenceTable::create_from_statement(Statement& statement, std::shared_ptr<Sequence> obj) {}
+
 template<> void SequenceTable::load_entries()
 {
     int returnedId = 0;

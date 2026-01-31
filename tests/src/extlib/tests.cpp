@@ -39,6 +39,27 @@ fs::path create_path(fs::path p)
     return p;
 }
 
+std::shared_ptr<Track> create_dummy_track(bool hasSeq, bool hasBank, int noSounds)
+{
+    std::chrono::system_clock::time_point time = std::chrono::system_clock::now();
+
+    std::shared_ptr<Track> track = std::make_shared<Track>();
+    std::ostringstream oss;
+    oss << "Dummy Track " << time;
+
+    track->name = oss.str();
+    track->timestamp = 0;
+    track->path = "DummyTrack";
+    track->type = TrackType::UNKNOWN;
+    (*track->categories)[1] = true;
+    (*track->categories)[3] = true;
+    (*track->categories)[5] = true;
+    (*track->categories)[7] = true;
+    (*track->categories)[9] = true;
+
+    return track;
+} 
+
 
 TEST_CASE("Catch2 Tests", "[meta]")
 {
@@ -84,13 +105,34 @@ TEST_CASE("Database Operations", "[Database]")
     fs::path testCasePath = create_path(testDataPath / "tests" / "3 - Database Operations");
     SECTION("Can add to track table")
     {
-        fs::path sectionPath = create_path(testCasePath / "3. Can add");
+        fs::path sectionPath = create_path(testCasePath / "3. Can add to track table");
 
         std::shared_ptr<Database> db = std::make_shared<Database>(sectionPath);
         db->init();
-        std::shared_ptr<Track> track = std::make_shared<Track>("test_data/persistent/Mario Kart Wii - Moonview Highway.mmrs");
-        db->add_song(track);
+        std::shared_ptr<Track> dummyTrack = create_dummy_track(false, false, 0);
+        db->add_song(dummyTrack);
 
         REQUIRE(db->tables->track->check_exists(1));
+    }
+    SECTION("Selecting from track table yields accurate track", "[database]")
+    {
+        fs::path sectionPath = create_path(testCasePath / "4. Select from track table accurate");
+
+        std::shared_ptr<Database> db = std::make_shared<Database>(sectionPath);
+        db->init();
+        std::shared_ptr<Track> dummyTrack = create_dummy_track(false, false, 0);
+        db->add_song(dummyTrack);
+
+        REQUIRE(db->tables->track->check_exists(1));
+        
+        std::shared_ptr<Track> fromDb = db->tables->track->select(1);
+
+        REQUIRE(fromDb->name == dummyTrack->name);
+        REQUIRE(fromDb->timestamp == dummyTrack->timestamp);
+        REQUIRE(fromDb->path == dummyTrack->path);
+        REQUIRE(*fromDb->categories == *dummyTrack->categories);
+        REQUIRE(fromDb->bankNo == dummyTrack->bankNo);
+        REQUIRE(*fromDb->formmask.states == *dummyTrack->formmask.states);
+        REQUIRE(fromDb->formmask.cumulativeStates == dummyTrack->formmask.cumulativeStates);
     }
 }

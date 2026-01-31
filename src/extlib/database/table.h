@@ -41,6 +41,8 @@ class Table
         virtual int exec(std::string query);
         std::shared_ptr<sqlite3> get_sqlite();
 
+        void create_from_statement(Statement& statement, std::shared_ptr<T> obj);
+
         std::shared_ptr<Database> db;
         int rc = 0;
 
@@ -54,6 +56,7 @@ class Table
 using TrackTable = Table<Track>;
 template<> TrackTable::Table(std::shared_ptr<Database> db);
 template<> int TrackTable::insert(std::shared_ptr<Track> entry);
+template<> std::shared_ptr<Track> TrackTable::select(int id);
 
 using SequenceTable = Table<Sequence>;
 template<> SequenceTable::Table(std::shared_ptr<Database> db);

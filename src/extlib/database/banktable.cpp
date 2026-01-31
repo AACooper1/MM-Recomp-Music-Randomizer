@@ -46,6 +46,8 @@ template <> int BankTable::insert(std::shared_ptr<Bank> entry)
     return dbIdx;
 }
 
+template<> void BankTable::create_from_statement(Statement& statement, std::shared_ptr<Bank> obj) {}
+
 template <> int BankTable::update(int id, std::shared_ptr<Bank> entry)
 {
     Statement statement(get_sqlite());
