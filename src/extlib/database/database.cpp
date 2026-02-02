@@ -86,7 +86,8 @@ bool Database::check_if_in_db(fs::directory_entry entry)
 
     std::string query = std::format(
         "SELECT * FROM track WHERE filename = \"{0}\" AND modified = {1};",
-        entry.path().string(), std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(entry.path()).time_since_epoch()).count()
+        entry.path().filename().string(), 
+        std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(entry.path()).time_since_epoch()).count()
     );
 
     statement.prepare(query);
@@ -127,7 +128,7 @@ void Database::add_if_not_in_db()
         if (check_if_in_db(entry))
         {
             logger.debug("Found matching entry for file {0} with modification time {1}, skipping!\n",
-                entry.path().string(), 
+                entry.path().filename().string(), 
                 fs::last_write_time(entry.path()).time_since_epoch().count()
             );
             continue;
