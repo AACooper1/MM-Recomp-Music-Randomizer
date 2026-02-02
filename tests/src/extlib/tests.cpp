@@ -145,7 +145,7 @@ TEST_CASE("Database Operations", "[Database]")
     fs::path testCasePath = create_path(testDataPath / "tests" / "3 - Database Operations");
     SECTION("Adding", "[Database]")
     {
-        fs::path sectionPath = create_path(testCasePath / "3. Can add to track table");
+        fs::path sectionPath = create_path(testCasePath / "1. Adding");
 
         std::shared_ptr<Database> db = std::make_shared<Database>(sectionPath);
         db->init();
@@ -254,6 +254,49 @@ TEST_CASE("Database Operations", "[Database]")
             {
                 REQUIRE(statement.column_int(1) == soundDummyTrack->sounds[i]->databaseIndex);
             }
+        }
+    }
+    SECTION("Removing", "[Database]")
+    {
+        fs::path sectionPath = create_path(testCasePath / "2. Removing");
+        std::shared_ptr<Database> db = std::make_shared<Database>(sectionPath);
+        db->init();
+            
+        SECTION("Can remove from track table")
+        {
+            std::shared_ptr<Track> dummyTrack = create_dummy_track(false, false, 0);
+            db->add_song(dummyTrack);
+
+            REQUIRE(db->tables->track->check_exists(dummyTrack->databaseIndex));
+
+            db->remove_song(dummyTrack->databaseIndex);
+            REQUIRE_FALSE(db->tables->track->check_exists(dummyTrack->databaseIndex));
+        }
+        SECTION("Removing from track table removes from related tables")
+        {
+            std::shared_ptr<Track> dummyTrack = create_dummy_track(true, true, 2);
+            db->add_song(dummyTrack);
+
+            REQUIRE(db->tables->track->check_exists(dummyTrack->databaseIndex));
+            REQUIRE(db->tables->seq->check_exists(dummyTrack->sequence->databaseIndex));
+            REQUIRE(db->tables->bank->check_exists(dummyTrack->bank->databaseIndex));
+            for (int i = 0; i < dummyTrack->sounds.size(); i++)
+            {
+                REQUIRE(db->tables->sound->check_exists(dummyTrack->sounds[i]->databaseIndex));
+            }
+
+            db->remove_song(dummyTrack->databaseIndex);
+            REQUIRE_FALSE(db->tables->track->check_exists(dummyTrack->databaseIndex));
+            REQUIRE_FALSE(db->tables->seq->check_exists(dummyTrack->sequence->databaseIndex));
+            REQUIRE_FALSE(db->tables->bank->check_exists(dummyTrack->bank->databaseIndex));
+            for (int i = 0; i < dummyTrack->sounds.size(); i++)
+            {
+                REQUIRE_FALSE(db->tables->sound->check_exists(dummyTrack->sounds[i]->databaseIndex));
+            }
+
+            REQUIRE(db->tables->relation.track_to_seq->select(dummyTrack->databaseIndex) < 0);
+            REQUIRE(db->tables->relation.track_to_bank->select(dummyTrack->databaseIndex) < 0);
+            REQUIRE(db->tables->relation.track_to_sound->select(dummyTrack->databaseIndex) < 0);
         }
     }
 }
