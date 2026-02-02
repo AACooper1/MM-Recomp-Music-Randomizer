@@ -174,6 +174,11 @@ bool Database::add_song(std::shared_ptr<Track>& track)
 {
     int trackNo = tables->track->insert(track);
 
+    if (trackNo < 0)
+    {
+        return false;
+    }
+
     if (track->sequence)
     {
         int seqNo = tables->relation.track_to_seq->select(trackNo);

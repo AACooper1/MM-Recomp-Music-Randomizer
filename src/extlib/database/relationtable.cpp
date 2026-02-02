@@ -50,7 +50,14 @@ int RelationTable::select(int id)
         return -2;
     }
 
-    return statement.exec_and_return_id();
+    if (statement.step() == SQLITE_ROW)
+    {
+        return statement.column_int(1);
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 Statement RelationTable::select_iter(int id)

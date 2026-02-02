@@ -35,6 +35,7 @@ template <> int SequenceTable::insert(std::shared_ptr<Sequence> entry)
     statement.bind_blob_vec(*entry->data);
 
     int dbIdx = statement.exec_and_return_id();
+    entry->databaseIndex = dbIdx;
 
     return dbIdx;
 }
@@ -63,7 +64,12 @@ template <> int SequenceTable::update(int id, std::shared_ptr<Sequence> entry)
     return dbIdx;
 }
 
-template<> void SequenceTable::create_from_statement(Statement& statement, std::shared_ptr<Sequence> obj) {}
+template<> void SequenceTable::create_from_statement(Statement& statement, std::shared_ptr<Sequence> obj) 
+{
+    obj->databaseIndex = statement.column_int(0);
+    obj->size = statement.column_int(1);
+    *obj->data = statement.column_blob(2);
+}
 
 template<> void SequenceTable::load_entries()
 {
@@ -74,10 +80,7 @@ template<> void SequenceTable::load_entries()
     {
         std::shared_ptr<Sequence> entry = std::make_shared<Sequence>();
 
-        entry->databaseIndex = statement.column_int(0);
-        entry->size = statement.column_int(1);
-
-        *entry->data = statement.column_blob(2);
+        create_from_statement(statement, entry);
 
         entries.emplace(returnedId, entry);
     }

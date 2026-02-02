@@ -42,11 +42,18 @@ template <> int BankTable::insert(std::shared_ptr<Bank> entry)
 
     
     int dbIdx = statement.exec_and_return_id();
+    entry->databaseIndex = dbIdx;
 
     return dbIdx;
 }
 
-template<> void BankTable::create_from_statement(Statement& statement, std::shared_ptr<Bank> obj) {}
+template<> void BankTable::create_from_statement(Statement& statement, std::shared_ptr<Bank> obj) 
+{
+    obj->databaseIndex = statement.column_int(0);
+    *obj->header = statement.column_blob(2);
+    obj->size = statement.column_int(3);
+    *obj->data = statement.column_blob(4);
+}
 
 template <> int BankTable::update(int id, std::shared_ptr<Bank> entry)
 {

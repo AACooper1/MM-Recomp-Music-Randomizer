@@ -56,7 +56,6 @@ class Table
 using TrackTable = Table<Track>;
 template<> TrackTable::Table(std::shared_ptr<Database> db);
 template<> int TrackTable::insert(std::shared_ptr<Track> entry);
-template<> std::shared_ptr<Track> TrackTable::select(int id);
 
 using SequenceTable = Table<Sequence>;
 template<> SequenceTable::Table(std::shared_ptr<Database> db);

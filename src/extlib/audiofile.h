@@ -48,8 +48,11 @@ class AudioFile
             _fb(filebuffer), 
             filename(filename) 
             { read_from_file(_fb); }
-        AudioFileType type;
+        AudioFile(std::vector<char> data) 
+            {this->data = std::make_shared<std::vector<char>>(data); size = data.size();}
         AudioFile() {data = std::make_shared<std::vector<char>>();}
+
+        AudioFileType type;
         
         std::shared_ptr<std::vector<char>> _fb;
         std::string filename;
@@ -59,10 +62,11 @@ class Sequence : public AudioFile
 {
     public:
         Sequence(std::shared_ptr<std::vector<char>> filebuffer, std::string filename) : AudioFile(filebuffer, filename)
-        {
-            type = AudioFileType::ZSEQ; 
-        };
-        Sequence() {type = AudioFileType::ZSEQ;}
+            { type = AudioFileType::ZSEQ; };
+        Sequence(std::vector<char> filebuffer) : AudioFile(filebuffer)
+            { type = AudioFileType::ZSEQ; };
+        Sequence() 
+            {type = AudioFileType::ZSEQ;}
         void read_from_database(int id) override;
 
         void read_into_mod_memory(void* modAddr) override;
@@ -72,11 +76,11 @@ class Bank : public AudioFile
 {
     public:
         Bank(std::shared_ptr<std::vector<char>> filebuffer, std::string filename, bool is_bankmeta) : AudioFile(filebuffer, filename)
-        {
-            if (is_bankmeta) { header = filebuffer; }
-            type = AudioFileType::ZBANK;
-        }
-        Bank() {type = AudioFileType::ZBANK; header = std::make_shared<std::vector<char>>();}
+            { if (is_bankmeta) { header = filebuffer; } type = AudioFileType::ZBANK; }
+        Bank(std::vector<char> data, bool is_bankmeta) : AudioFile(data)
+            { if (is_bankmeta) { header = std::make_shared<std::vector<char>>(data); } type = AudioFileType::ZBANK; size = data.size();}
+        Bank()
+            { type = AudioFileType::ZBANK; header = std::make_shared<std::vector<char>>(); }
         void read_header(std::shared_ptr<std::vector<char>> filebuffer) { header = filebuffer; };
         void read_from_database(int id) override;
 
@@ -89,10 +93,11 @@ class Sound : public AudioFile
 {
     public:
         Sound(std::shared_ptr<std::vector<char>> filebuffer, std::string filename) : AudioFile(filebuffer, filename)
-        {
-            type = AudioFileType::ZSOUND;
-        }
-        Sound() { type= AudioFileType::ZSOUND; sampleAddr = 0x00000000;}
+            { type = AudioFileType::ZSOUND; }
+        Sound(std::vector<char> filebuffer, u32 sampleAddr) : AudioFile(filebuffer)
+            { type = AudioFileType::ZSOUND; this->sampleAddr = sampleAddr; }
+        Sound() 
+            { type= AudioFileType::ZSOUND; sampleAddr = 0x00000000;}
         bool parse_foreignKey();
         void read_from_database(int id) override;
 

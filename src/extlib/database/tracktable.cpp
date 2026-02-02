@@ -62,6 +62,7 @@ template<> int TrackTable::insert(std::shared_ptr<Track> entry)
     statement.bind_blob(&entry->formmask.states, sizeof(FormMask));
 
     int dbIdx = statement.exec_and_return_id();
+    entry->databaseIndex = dbIdx;
 
     return dbIdx;
 }
@@ -94,26 +95,4 @@ template<> void TrackTable::load_entries()
     }
 
     return;
-}
-
-template<> std::shared_ptr<Track> TrackTable::select(int id)
-{
-    Statement statement(get_sqlite());
-
-    std::string query = std::format("SELECT * FROM track WHERE id={0};", id);
-
-    statement.prepare(query);
-
-    std::shared_ptr<Track> track = std::make_shared<Track>();
-
-    if(statement.step() == SQLITE_ROW)
-    {
-        create_from_statement(statement, track);
-    }
-    else
-    {
-        logger.error << "Could not read track." << std::endl;
-    }
-
-    return track;
 }
