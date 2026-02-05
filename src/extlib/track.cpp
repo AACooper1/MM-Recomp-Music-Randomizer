@@ -30,7 +30,7 @@ Track::Track()
 {
     databaseIndex = 0;
     path = "";
-    categories = std::make_unique<std::vector<char>>(0x200, 0);
+    categories = std::make_unique<std::vector<char>>(0x200, false);
     name = "";
     bankNo = 0;
 
@@ -143,7 +143,7 @@ bool Track::read_from_mmrs()
         }
         else if (filename == "categories.txt")
         {
-            parse_categories(filebuffer);
+            parse_categories(*filebuffer);
         }
         else if (filename.ends_with(".formmask"))
         {
@@ -154,9 +154,9 @@ bool Track::read_from_mmrs()
     return true;
 }
 
-void Track::parse_categories(std::shared_ptr<std::vector<char>> filebuffer)
+void Track::parse_categories(std::vector<char>& filebuffer)
 {
-    std::string cats_txt(filebuffer->begin(), filebuffer->end());
+    std::string cats_txt(filebuffer.begin(), filebuffer.end());
 
     std::vector<std::string> categories = split_string(cats_txt, ",-");
 
@@ -169,15 +169,37 @@ void Track::parse_categories(std::shared_ptr<std::vector<char>> filebuffer)
         }
         catch (const std::exception& e) 
         {
-            logger.error << "Could not parse int for category \"" << categories[i] << "\" in MMRS " << name << std:: endl;
+            logger.error << "Could not parse int for category \"" << categories[i] << "\" in track " << name << std:: endl;
             continue;
         }
 
         if (cat < 0x200)
         {
-            (*this->categories.get())[cat] = true;
+            (*this->categories)[cat] = true;
+        }
+        else
+        {
+            logger.warning << "Track " << name << "had category " << cat << ", which is not allowed." << std::endl;
         }
     }
 
     return;
+}
+
+
+/* Used for vanilla tracks */
+void Track::parse_categories(const std::vector<int>& categories)
+{
+    for (int i = 0; i < categories.size(); i++)
+    {
+        if (categories[i] < 0x200)
+        {
+            (*this->categories)[categories[i]] = true;
+        }
+        else
+        {
+            logger.warning << "Vanila track " << name << "had category " << categories[i] << ", which is not allowed." << std::endl;
+        }
+    }
+    (*this->categories)[id + 0x100] = true;
 }

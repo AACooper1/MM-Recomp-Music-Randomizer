@@ -70,20 +70,3 @@ template<> void SequenceTable::create_from_statement(Statement& statement, std::
     obj->size = statement.column_int(1);
     *obj->data = statement.column_blob(2);
 }
-
-template<> void SequenceTable::load_entries()
-{
-    int returnedId = 0;
-    Statement statement = select_iter();
-
-    while((returnedId = statement.exec_and_return_id()) > 0)
-    {
-        std::shared_ptr<Sequence> entry = std::make_shared<Sequence>();
-
-        create_from_statement(statement, entry);
-
-        entries.emplace(returnedId, entry);
-    }
-
-    return;
-}

@@ -2,7 +2,7 @@
 #define TABLES_H
 
 #include "sqlite3.h"
-#include <unordered_map>
+#include <map>
 
 #include "track.h"
 
@@ -20,7 +20,7 @@ class Table
         virtual std::shared_ptr<T> select(int id);
         virtual bool check_exists(int id);
 
-        std::unordered_map<int, std::shared_ptr<T>> entries;
+        std::map<int, std::shared_ptr<T>> entries;
 
         Statement select_iter();
         Statement select_iter(std::string cols[], int ncol);

@@ -63,6 +63,7 @@ template<> int TrackTable::insert(std::shared_ptr<Track> entry)
 
     int dbIdx = statement.exec_and_return_id();
     entry->databaseIndex = dbIdx;
+    entry->id = dbIdx + 0x100;
 
     return dbIdx;
 }
@@ -78,21 +79,5 @@ template<> void TrackTable::create_from_statement(Statement& statement, std::sha
         obj->bankNo = statement.column_int(6);
 
         std::vector<char> formmask_temp = statement.column_blob(7);
-}
-
-template<> void TrackTable::load_entries()
-{
-    int returnedId = 0;
-    Statement statement = select_iter();
-
-    while((returnedId = statement.exec_and_return_id()) > 0)
-    {
-        std::shared_ptr<Track> entry = std::make_shared<Track>();
-
-        create_from_statement(statement, entry);
-
-        entries.emplace(returnedId, entry);
-    }
-
-    return;
+        obj->id = obj->databaseIndex + 0x100;
 }

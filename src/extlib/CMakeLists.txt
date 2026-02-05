@@ -17,4 +17,5 @@ target_sources(${TARGET_NAME} PUBLIC
     "logging.cpp"
     "util.cpp"
     "formmask.cpp"
+    "seed.cpp"
 )

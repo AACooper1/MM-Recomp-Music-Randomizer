@@ -3,6 +3,7 @@
 #include "lib_recomp.hpp"
 
 #include "tests.h"
+#include "songslot.h"
 
 extern Log logger;
 
@@ -151,7 +152,7 @@ TEST_CASE("Database Operations", "[Database]")
         db->init();
         
 
-        SECTION("Can add to track table")
+        SECTION("Can add to track table", "[Database]")
         {
             std::shared_ptr<Track> dummyTrack = create_dummy_track(false, false, 0);
             db->add_song(dummyTrack);
@@ -298,5 +299,85 @@ TEST_CASE("Database Operations", "[Database]")
             REQUIRE(db->tables->relation.track_to_bank->select(dummyTrack->databaseIndex) < 0);
             REQUIRE(db->tables->relation.track_to_sound->select(dummyTrack->databaseIndex) < 0);
         }
+    }
+    SECTION("Loading", "[Database]")
+    {
+        fs::path sectionPath = create_path(testCasePath / "3. Loading");
+
+        std::shared_ptr<Database> db = std::make_shared<Database>(sectionPath);
+        db->init();
+
+        SECTION("Loading tracks works", "[Database]")
+        {
+            std::shared_ptr<Track> dummyTrack = create_dummy_track(true, true, 2);
+            db->add_song(dummyTrack);
+
+            std::shared_ptr<Track> dummyTrackNoSounds = create_dummy_track(true, true, 0);
+            db->add_song(dummyTrackNoSounds);
+            
+            int seqId = db->tables->relation.track_to_seq->select(dummyTrack->databaseIndex);
+            REQUIRE(*db->tables->seq->select(seqId)->data == *dummyTrack->sequence->data);
+
+            seqId = db->tables->relation.track_to_seq->select(dummyTrackNoSounds->databaseIndex);
+            REQUIRE(*db->tables->seq->select(seqId)->data == *dummyTrackNoSounds->sequence->data);
+
+            REQUIRE(db->tables->relation.track_to_sound->select(dummyTrack->databaseIndex) > 0);
+            REQUIRE(db->tables->relation.track_to_sound->select(dummyTrackNoSounds->databaseIndex) < 0);
+        }
+    }
+}
+
+TEST_CASE("Song Slots", "[Seed]")
+{
+    fs::path testCasePath = create_path(testDataPath / "tests" / "4 - Song Slots");
+    SECTION("Termina Field Slot Receives Correct Vanilla Tracks")
+    {
+        fs::path sectionPath = create_path(testCasePath / "1. Termina Field Slot Receives Correct Vanilla Tracks");
+
+        std::shared_ptr<Database> db = std::make_shared<Database>(sectionPath);
+        db->init();
+        Seed seed(0x00, db, false, true);
+
+        std::vector<int> terminaFieldTracks = seed.get_available_tracks(SongSlotID::TERMINA_FIELD);
+
+        REQUIRE(terminaFieldTracks.size() == 8);
+
+        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::TERMINA_FIELD) != terminaFieldTracks.end());
+        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::SOUTHERN_SWAMP) != terminaFieldTracks.end());
+        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::MOUNTAIN_VILLAGE) != terminaFieldTracks.end());
+        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::GREAT_BAY_COAST) != terminaFieldTracks.end());
+        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::IKANA_VALLEY) != terminaFieldTracks.end());
+        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::ROMANI_RANCH) != terminaFieldTracks.end());
+        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::DEKU_PALACE) != terminaFieldTracks.end());
+        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::WOODS_OF_MYSTERY) != terminaFieldTracks.end());
+
+        logger.dev(" ");
+    }
+
+    SECTION("Custom Track Can Be Added to Slot")
+    {
+        fs::path sectionPath = create_path(testCasePath / "2. Custom Track Can Be Added to Slot");
+
+        std::shared_ptr<Database> db = std::make_shared<Database>(sectionPath);
+        db->init();
+
+        std::shared_ptr<Track> dummyTrack = create_dummy_track(false, false, 0);
+        for (int i = 0; i < 0x200; i++)
+        {
+            (*dummyTrack->categories)[i] = false;
+        }
+        (*dummyTrack->categories)[0] = true;
+
+        db->add_song(dummyTrack);
+        db->load_all_tracks();
+
+        Seed seed(0x00, db, true, false);
+
+        std::vector<int> terminaFieldTracks = seed.get_available_tracks(SongSlotID::TERMINA_FIELD);
+
+        REQUIRE(terminaFieldTracks.size() == 1);
+        REQUIRE(terminaFieldTracks[0] == dummyTrack->id);
+
+        logger.dev(" ");
     }
 }

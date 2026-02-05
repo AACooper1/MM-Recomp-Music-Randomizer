@@ -178,6 +178,24 @@ template<typename T> std::shared_ptr<T> Table<T>::select(int id)
     return obj;
 }
 
+template<typename T> void Table<T>::load_entries()
+{
+    int returnedId = 0;
+    Statement statement = select_iter();
+
+    while((returnedId = statement.exec_and_return_id()) > 0)
+    {
+        std::shared_ptr<T> entry = std::make_shared<T>();
+
+        create_from_statement(statement, entry);
+
+        entries.emplace(returnedId, entry);
+    }
+
+    return;
+}
+
+
 // Dummy declarations
 template<typename T> int Table<T>::insert(std::shared_ptr<T> entry) { return false; }
 template<> int Table<Track>::update(int id, std::shared_ptr<Track> entry) { return false; }

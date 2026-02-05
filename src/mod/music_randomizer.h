@@ -30,8 +30,9 @@ typedef enum Categories_t
 
 const char* vanillaSongNames[256] = 
 {
-    /* 0x00 */ "", // General SFX
-    /* 0x01 */ "", // Ambience
+    /* 0x00 */ "General SFX",
+    /* 0x01 */ "Ambience", 
+
     /* 0x02 */ "Termina Field",
     /* 0x03 */ "Chase",
     /* 0x04 */ "Majora's Theme",
@@ -61,7 +62,7 @@ const char* vanillaSongNames[256] =
     /* 0x1C */ "Woodfall Temple",
     /* 0x1D */ "Sun's Song (Morning Sequence)",
     /* 0x1E */ "Opening",
-    /* 0x2F */ "House",
+    /* 0x1F */ "House",
     /* 0x20 */ "Game Over",
     /* 0x21 */ "Boss Clear",
     /* 0x22 */ "Item Catch",
@@ -80,10 +81,12 @@ const char* vanillaSongNames[256] =
     /* 0x2F */ "Romani Ranch",
     /* 0x30 */ "Goron Village",
     /* 0x31 */ "Mayor's Meeting",
-    /* 0x32 */ "", // Ocarina - Epona's Song
-    /* 0x33 */ "", // Ocarina - Sun's Song
-    /* 0x34 */ "", // Ocarina - Song of Time
-    /* 0x35 */ "", // Ocarina - Song of Storms
+
+    /* 0x32 */ "Ocarina - Epona's Song",
+    /* 0x33 */ "Ocarina - Sun's Song",
+    /* 0x34 */ "Ocarina - Song of Time",
+    /* 0x35 */ "Ocarina - Song of Storms",  
+
     /* 0x36 */ "Zora Hall",
     /* 0x37 */ "Get a Mask!",
     /* 0x38 */ "Middle Boss Battle",
@@ -101,49 +104,57 @@ const char* vanillaSongNames[256] =
     /* 0x44 */ "Shop",
     /* 0x45 */ "Owl",
     /* 0x46 */ "Shooting Gallery",
-    /* 0x47 */ "", // Ocarina - Song of Soaring
-    /* 0x48 */ "", // Ocarina - Song of Healing
-    /* 0x49 */ "", // Ocarina - Inverted Song of Time
-    /* 0x4A */ "", // Ocarina - Song of Double Time
+
+    /* 0x47 */ "Ocarina - Song of Soaring",
+    /* 0x48 */ "Ocarina - Song of Healing", 
+    /* 0x49 */ "Ocarina - Inverted Song of Time",
+    /* 0x4A */ "Ocarina - Song of Double Time",
     /* 0x4B */ "Sonata of Awakening",
     /* 0x4C */ "Goron Lullaby",
     /* 0x4D */ "New Wave Bossa Nova",
     /* 0x4E */ "Elegy of Emptiness",
     /* 0x4F */ "Oath to Order",
+    
     /* 0x50 */ "Swordsman's School",
-    /* 0x51 */ "", // Ocarina - Goron Lullaby Intro,
+
+    /* 0x51 */ "Ocarina - Goron Lullaby Intro",
+
     /* 0x52 */ "Get the Ocarina!", 
     /* 0x53 */ "Bremen March",
-    /* 0x54 */ "", //"Ballad of the Wind Fish",
+    /* 0x54 */ "Ballad of the Wind Fish",
     /* 0x55 */ "Song of Soaring",
     /* 0x56 */ "A Pointer to Milk Bar For Some Reason",
     /* 0x57 */ "Last Day",
-    /* 0x58 */ "", // Mikau
+    /* 0x58 */ "Mikau",
     /* 0x59 */ "Concert For You",
     /* 0x5A */ "Frog Song",
-    /* 0x5B */ "", // Ocarina - Sonata of Awakening
-    /* 0x5C */ "", // Ocarina - Goron Lullaby
-    /* 0x5D */ "", // Ocarina - New Wave Bossa Nova
-    /* 0x5E */ "", // Ocarina - Elegy of Emptiness
-    /* 0x5F */ "", // Ocarina - Oath to Order
+
+    /* 0x5B */ "Ocarina - Sonata of Awakening",
+    /* 0x5C */ "Ocarina - Goron Lullaby", 
+    /* 0x5D */ "Ocarina - New Wave Bossa Nova", 
+    /* 0x5E */ "Ocarina - Elegy of Emptiness",
+    /* 0x5F */ "Ocarina - Oath to Order", 
     /* 0x60 */ "Final Hours",
+    
     /* 0x61 */ "A Pointer to Ocarina - Goron Lullaby Intro For Some Reason",
-    /* 0x62 */ "", // Bass & Guitar Session
-    /* 0x63 */ "", //"Piano Solo",
-    /* 0x64 */ "", //"The Indigo-Go's",
+    /* 0x62 */ "Bass & Guitar Session",
+    /* 0x63 */ "Piano Solo",
+    /* 0x64 */ "The Indigo-Go's",
     /* 0x65 */ "Snowhead Temple",
     /* 0x66 */ "Great Bay Temple",
-    /* 0x67 */ "", //"New Wave Bossa Nova (Saxophone)",
-    /* 0x68 */ "", //"New Wave Bossa Nova (Vocals)",
+
+    /* 0x67 */ "New Wave Bossa Nova (Saxophone)",
+    /* 0x68 */ "New Wave Bossa Nova (Vocals)",
     /* 0x69 */ "Majora's Wrath Battle",
     /* 0x6A */ "Majora's Incarnation Battle",
     /* 0x6B */ "Majora's Mask Battle",
-    /* 0x6C */ "", // Bass Practice
-    /* 0x6D */ "", // Drums Practice
-    /* 0x6E */ "", // Piano Practice
+
+    /* 0x6C */ "Bass Practice", 
+    /* 0x6D */ "Drums Practice",
+    /* 0x6E */ "Piano Practice",
     /* 0x6F */ "Ikana Castle",
     /* 0x70 */ "Calling the Four Giants",
-    /* 0x71 */ "", //Kamaro's Dance,
+    /* 0x71 */ "Kamaro's Dance",
     /* 0x72 */ "Cremia's Carriage",
     /* 0x73 */ "Keaton's Quiz",
     /* 0x74 */ "The End (Credits 1)",
@@ -152,7 +163,9 @@ const char* vanillaSongNames[256] =
     /* 0x77 */ "Woodfall Rises",
     /* 0x78 */ "Southern Swamp Clears",
     /* 0x79 */ "Snowhead Clear",
-    /* 0x7A */ "", // Empty?
+    
+    /* 0x7A */ "Unk_00",
+    
     /* 0x7B */ "To the Moon",
     /* 0x7C */ "The Giants' Exit",
     /* 0x7D */ "Tatl & Tael",

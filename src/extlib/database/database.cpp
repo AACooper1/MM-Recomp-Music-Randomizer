@@ -279,21 +279,21 @@ bool Database::remove_song(int id)
     return true;
 }
 
+/* Only loads tracks, leaves their seq/bank/sounds empty. */
+int Database::load_all_tracks()
+{
+    tables->track->load_entries();
 
+    return tables->track->entries.size();
+}
+
+/* This generally shouldn't be used - only load necessary songs*/
 int Database::load_all_songs()
 {
     tables->track->load_entries();
     tables->seq->load_entries();
-    /* Not ready yet
     tables->bank->load_entries();
     tables->sound->load_entries();
 
-    tables->relation.track_to_seq->link_entries();
-    tables->relation.track_to_bank->link_entries();
-    tables->relation.track_to_sound->link_entries();
-
-    */
-
-
-   return 0;
+   return tables->track->entries.size();
 }
