@@ -430,12 +430,14 @@ TEST_CASE("Song Slots", "[Seed]")
 
         seed.randomize();
 
+        logger.dev.disable_header();
         for (const auto & [ id, track ] : seed.randomized)
         {
             std::vector<int> tracks = seed.get_available_tracks(SongSlotID(id));
             REQUIRE(std::find(tracks.begin(), tracks.end(), track->seedIdx) != tracks.end());
-        }
 
-        logger.dev(" ");
+            logger.dev << "Shuffled " << seed.get_slot_name(SongSlotID(id)) << " to " << track->name << "!" << std::endl;
+        }
+        logger.dev.enable_header();
     }
 }

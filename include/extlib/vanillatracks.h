@@ -47,7 +47,7 @@ std::array<std::shared_ptr<Track>, 0x80> Seed::vanillaTracks
         
         /* Minigames */
         std::make_shared<Track>("Goron Race", CAT(MINIGAME, ACTION), 0x26, 0x126),
-        std::make_shared<Track>("Mini Game", CAT(MINIGAME, ACTION, CALM), 0x03, 0x125),
+        std::make_shared<Track>("Mini Game", CAT(MINIGAME, ACTION), 0x03, 0x125),
         std::make_shared<Track>("Cremia's Carriage", CAT(TOWN, BUILDING, MINIGAME, CALM), 0x07, 0x172),
         std::make_shared<Track>("Swamp Cruise", CAT(BUILDING, MINIGAME, CALM), 0x05, 0x10E),
         std::make_shared<Track>("Horse Race", CAT(MINIGAME, ACTION), 0x08, 0x140),
@@ -168,6 +168,6 @@ std::array<std::shared_ptr<Track>, 0x80> Seed::vanillaTracks
         std::make_shared<Track>("Pointer to Ocarina - Goron Lullaby", CAT(), 0x00, 0x161),
 
         /* Unknown */
-        std::make_shared<Track>("Unk_00 (Listed as Pamela's Music Box House?", CAT(), 0x00, 0x17A)
+        std::make_shared<Track>("Unk_00 (Listed as Pamela's Music Box House?)", CAT(), 0x00, 0x17A)
     }
 );

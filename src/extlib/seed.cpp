@@ -8,6 +8,11 @@ std::vector<int> Seed::get_available_tracks(SongSlotID slotId)
     return songSlots[(int)slotId].availableTracksNoRemove;
 }
 
+std::string Seed::get_slot_name(SongSlotID slotId)
+{
+    return songSlots[(int)slotId].name;
+}
+
 void Seed::randomize()
 {
     for (int i = 2; i < songSlots.size(); i++)

@@ -36,6 +36,9 @@ class Logger
         {
             this->call(format, std::forward<P>(params)...);
         }
+
+        void disable_header() { shouldPrintHeader = false; }
+        void enable_header() { shouldPrintHeader = true; }
     
         private:
             template<typename ...P>
@@ -51,6 +54,8 @@ class Logger
             Log* parent;
             LogLevel level;
             std::ostream& dest;                 // short for Destember Holiday
+
+            bool shouldPrintHeader = true;
 
             const std::string levels[7] = {"", "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "DEV"};
 };
@@ -77,6 +82,7 @@ public:
     void set_log_level(LogLevel level) { gLogLevel = level; }
     LogLevel get_log_level() const { return gLogLevel; }
 
+
 private:
     friend class Logger;
     LogLevel gLogLevel = LogLevel::LOG_INFO;
@@ -95,7 +101,7 @@ void Logger::call(std::format_string<P...> format, P &&... params)
     if (parent->get_log_level() > level)
     {
         std::string msg = std::format(format, std::forward<P>(params)...);
-        printHeader();
+        if (shouldPrintHeader) printHeader();
         dest << msg;
     }
 }

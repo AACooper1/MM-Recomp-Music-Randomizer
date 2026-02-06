@@ -70,6 +70,7 @@ class Seed
 
         void randomize();
         std::vector<int> get_available_tracks(SongSlotID slotId);
+        std::string get_slot_name(SongSlotID slotId);
 
         AudioTable generate_audiotable();
     private:
