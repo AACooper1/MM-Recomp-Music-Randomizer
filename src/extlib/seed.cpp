@@ -5,7 +5,7 @@
 
 std::vector<int> Seed::get_available_tracks(SongSlotID slotId)
 {
-    return songSlots[(int)slotId].availableTracks;
+    return songSlots[(int)slotId].availableTracksNoRemove;
 }
 
 void Seed::randomize()
@@ -27,18 +27,23 @@ void Seed::randomize()
 
 void Seed::populate_track_table()
 {
+    int idx = 0;
     if (use_vanilla)
     {
         for (int i = 0; i < vanillaTracks.size(); i++)
         {
-            tracks.emplace(vanillaTracks[i]->id, vanillaTracks[i]);
+            tracks.emplace(idx, vanillaTracks[i]);
+            vanillaTracks[i]->seedIdx = idx;
+            idx++;
         }
     }
     if (use_custom)
     {
         for (const auto & [ id, track ] : db->tables->track->entries)
         {
-            tracks.emplace(id, track);
+            tracks.emplace(idx, track);
+            track->seedIdx = idx;
+            idx++;
         }
     }
 }
@@ -51,30 +56,27 @@ void Seed::prepare_song_slots()
         {
             if ((*track->categories)[j])
             {
-                categories[j].seqIDs.push_back(track->id);
+                categories[j].trackList.push_back(id);
             }
         }
     }
 
-    for (int slot = 2; slot < songSlots.size(); slot++)
+    for (int i = 2; i < songSlots.size(); i++)
     {
+        SongSlot& slot = songSlots[i];
         std::set<int> availTracks;
-        for (int category = 0; category < songSlots[slot].categories.size(); category++)
+        for (int j = 0; j < songSlots[i].categories.size(); j++)
         {
-            for(int seqID = 0; seqID < categories[category].seqIDs.size(); seqID++)
+            int category = songSlots[i].categories[j];
+
+            for(int k = 0; k < categories[category].trackList.size(); k++)
             {
-                availTracks.insert(categories[category].seqIDs[seqID]);
+                availTracks.insert(categories[category].trackList[k]);
             }
         }
 
-        // Do this as a set so we don't get duplicates
-        if (use_vanilla)
-        {
-            availTracks.insert(songSlots[slot].id);
-        }
-
-        songSlots[slot].availableTracks.assign(availTracks.begin(), availTracks.end());
-        songSlots[slot].availableTracksNoRemove = songSlots[slot].availableTracks;
+        slot.availableTracks.assign(availTracks.begin(), availTracks.end());
+        slot.availableTracksNoRemove = slot.availableTracks;
     }
 
 }
@@ -115,7 +117,7 @@ std::array<SongSlot, 0x80> Seed::songSlots
         SongSlot(0x17, "Clock Town (Day 3)", {TOWN}),
         SongSlot(0x18, "File Select", {TOWN, BUILDING, CALM}),
         SongSlot(0x19, "Event Clear", {FANFARE}),
-        SongSlot(0x1A, "Battle", {MINIGAME, COMBAT}),
+        SongSlot(0x1A, "Battle", {MINIGAME, BOSS, ACTION}),
         SongSlot(0x1B, "Boss Battle", {BOSS}),
         SongSlot(0x1C, "Woodfall Temple", {DUNGEON}),
         SongSlot(0x1D, "Sun's Song (Morning Sequence)", {}), // Look into this - might be able to use the IO thing

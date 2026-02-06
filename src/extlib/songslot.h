@@ -8,7 +8,7 @@ class SongSlot
 {
     public:
         SongSlot(int id, std::string name, const std::vector<int>& categories) : 
-            name(name), categories(categories), id(id) {}
+            name(name), categories(categories), id(id) {this->categories.push_back(id + 0x100);}
         
         std::string name;
         std::vector<int> categories;

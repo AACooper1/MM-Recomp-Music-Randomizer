@@ -32,6 +32,7 @@ class Track
             this->name = name;
             this->bankNo = bankNo;
             this->id = id;
+            this->timestamp = 954494531;
 
             this->categories = std::make_unique<std::vector<char>>();
             this->categories->resize(0x200);
@@ -43,13 +44,15 @@ class Track
 
         bool read_from_file();
         
-        int databaseIndex;
+        int id = 0;
+        int databaseIndex = 0;
+        int seedIdx = 0;
+
         fs::path path;
         long long int timestamp;
         std::string name;
         std::unique_ptr<std::vector<char>> categories;
         unsigned short bankNo = 0;
-        int id = 0;
         TrackType type;
         FormMask formmask;
 

@@ -330,7 +330,7 @@ TEST_CASE("Database Operations", "[Database]")
 TEST_CASE("Song Slots", "[Seed]")
 {
     fs::path testCasePath = create_path(testDataPath / "tests" / "4 - Song Slots");
-    SECTION("Termina Field Slot Receives Correct Vanilla Tracks")
+    SECTION("Termina Field Slot Receives Correct Vanilla Tracks", "[Seed]")
     {
         fs::path sectionPath = create_path(testCasePath / "1. Termina Field Slot Receives Correct Vanilla Tracks");
 
@@ -342,19 +342,17 @@ TEST_CASE("Song Slots", "[Seed]")
 
         REQUIRE(terminaFieldTracks.size() == 8);
 
-        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::TERMINA_FIELD) != terminaFieldTracks.end());
-        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::SOUTHERN_SWAMP) != terminaFieldTracks.end());
-        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::MOUNTAIN_VILLAGE) != terminaFieldTracks.end());
-        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::GREAT_BAY_COAST) != terminaFieldTracks.end());
-        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::IKANA_VALLEY) != terminaFieldTracks.end());
-        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::ROMANI_RANCH) != terminaFieldTracks.end());
-        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::DEKU_PALACE) != terminaFieldTracks.end());
-        REQUIRE(std::find(terminaFieldTracks.begin(), terminaFieldTracks.end(), (int)SongSlotID::WOODS_OF_MYSTERY) != terminaFieldTracks.end());
-
-        logger.dev(" ");
+        REQUIRE(seed.tracks[terminaFieldTracks[0]]->name == "Termina Field");
+        REQUIRE(seed.tracks[terminaFieldTracks[1]]->name == "Southern Swamp");
+        REQUIRE(seed.tracks[terminaFieldTracks[2]]->name == "Mountain Village");
+        REQUIRE(seed.tracks[terminaFieldTracks[3]]->name == "Great Bay Coast");
+        REQUIRE(seed.tracks[terminaFieldTracks[4]]->name == "Ikana Valley");
+        REQUIRE(seed.tracks[terminaFieldTracks[5]]->name == "Romani Ranch");
+        REQUIRE(seed.tracks[terminaFieldTracks[6]]->name == "Deku Palace");
+        REQUIRE(seed.tracks[terminaFieldTracks[7]]->name == "Woods of Mystery");
     }
 
-    SECTION("Custom Track Can Be Added to Slot")
+    SECTION("Custom Track Can Be Added to Slot", "[Seed]")
     {
         fs::path sectionPath = create_path(testCasePath / "2. Custom Track Can Be Added to Slot");
 
@@ -376,7 +374,67 @@ TEST_CASE("Song Slots", "[Seed]")
         std::vector<int> terminaFieldTracks = seed.get_available_tracks(SongSlotID::TERMINA_FIELD);
 
         REQUIRE(terminaFieldTracks.size() == 1);
-        REQUIRE(terminaFieldTracks[0] == dummyTrack->id);
+        REQUIRE(seed.tracks[terminaFieldTracks[0]]->name == dummyTrack->name);
+    }
+    SECTION("Vanilla and Custom Receive Correct Tracks", "[Seed]")
+    {
+        fs::path sectionPath = create_path(testCasePath / "3. Vanilla and Custom Receive Correct Vanilla Tracks");
+
+        std::shared_ptr<Database> db = std::make_shared<Database>(sectionPath);
+        db->init();
+
+        std::shared_ptr<Track> dummyTrack = create_dummy_track(false, false, 0);
+        for (int i = 0; i < 0x200; i++)
+        {
+            (*dummyTrack->categories)[i] = false;
+        }
+        (*dummyTrack->categories)[0] = true;
+
+        db->add_song(dummyTrack);
+        db->load_all_tracks();
+
+        Seed seed(0x00, db, true, true);
+
+        std::vector<int> terminaFieldTracks = seed.get_available_tracks(SongSlotID::TERMINA_FIELD);
+
+        REQUIRE(terminaFieldTracks.size() == 9);
+
+        REQUIRE(seed.tracks[terminaFieldTracks[0]]->name == "Termina Field");
+        REQUIRE(seed.tracks[terminaFieldTracks[1]]->name == "Southern Swamp");
+        REQUIRE(seed.tracks[terminaFieldTracks[2]]->name == "Mountain Village");
+        REQUIRE(seed.tracks[terminaFieldTracks[3]]->name == "Great Bay Coast");
+        REQUIRE(seed.tracks[terminaFieldTracks[4]]->name == "Ikana Valley");
+        REQUIRE(seed.tracks[terminaFieldTracks[5]]->name == "Romani Ranch");
+        REQUIRE(seed.tracks[terminaFieldTracks[6]]->name == "Deku Palace");
+        REQUIRE(seed.tracks[terminaFieldTracks[7]]->name == "Woods of Mystery");
+        REQUIRE(seed.tracks[terminaFieldTracks[8]]->name == dummyTrack->name);
+    }
+    SECTION("Randomize. What do I test here", "[Seed]")
+    {
+        fs::path sectionPath = create_path(testCasePath / "3. Vanilla and Custom Receive Correct Vanilla Tracks");
+
+        std::shared_ptr<Database> db = std::make_shared<Database>(sectionPath);
+        db->init();
+
+        std::shared_ptr<Track> dummyTrack = create_dummy_track(false, false, 0);
+        for (int i = 0; i < 0x200; i++)
+        {
+            (*dummyTrack->categories)[i] = false;
+        }
+        (*dummyTrack->categories)[0] = true;
+
+        db->add_song(dummyTrack);
+        db->load_all_tracks();
+
+        Seed seed(0x00, db, true, true);
+
+        seed.randomize();
+
+        for (const auto & [ id, track ] : seed.randomized)
+        {
+            std::vector<int> tracks = seed.get_available_tracks(SongSlotID(id));
+            REQUIRE(std::find(tracks.begin(), tracks.end(), track->seedIdx) != tracks.end());
+        }
 
         logger.dev(" ");
     }

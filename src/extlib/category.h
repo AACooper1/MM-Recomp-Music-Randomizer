@@ -26,7 +26,7 @@ struct Category
     Category() {}
     Category(int id) : id(CategoryID(id)) {}
     CategoryID id;
-    std::vector<int> seqIDs;
+    std::vector<int> trackList;
 };
 
 #endif

@@ -201,5 +201,5 @@ void Track::parse_categories(const std::vector<int>& categories)
             logger.warning << "Vanila track " << name << "had category " << categories[i] << ", which is not allowed." << std::endl;
         }
     }
-    (*this->categories)[id + 0x100] = true;
+    (*this->categories)[id] = true;
 }
