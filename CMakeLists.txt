@@ -8,9 +8,10 @@ set(TARGET_NAME $ENV{LIB_NAME})
 
 include_directories("./offline_build")
 include_directories("./include/extlib")
-include_directories("./include/shared")
+include_directories("./include/mod")
 include_directories("./src/extlib")
 include_directories("./src/extlib/database")
+
 
 add_library(${TARGET_NAME} SHARED)
 

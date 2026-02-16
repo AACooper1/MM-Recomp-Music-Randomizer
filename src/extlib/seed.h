@@ -11,31 +11,12 @@
 
 #include "database.h"
 
+#define N_VANILLA_SEQS 0x7F
+#define N_VANILLA_BANKS 0x28
+#define N_VANILLA_SOUNDS 0xFF
+
 class songSlot;
 static auto rng = std::default_random_engine {};
-
-typedef struct AudioTableHeader {
-    /* 0x00 */ s16 numEntries;
-    /* 0x02 */ s16 unkMediumParam;
-    /* 0x04 */ uintptr_t romAddr;
-    /* 0x08 */ char pad[0x8];
-} AudioTableHeader; // size = 0x10
-
-typedef struct AudioTableEntry {
-    /* 0x0 */ uintptr_t romAddr;
-    /* 0x4 */ size_t size;
-    /* 0x8 */ s8 medium;
-    /* 0x9 */ s8 cachePolicy;
-    /* 0xA */ s16 shortData1;
-    /* 0xC */ s16 shortData2;
-    /* 0xE */ s16 shortData3;
-} AudioTableEntry; // size = 0x10
-
-typedef struct AudioTable {
-    /* 0x00 */ AudioTableHeader header;
-    /* 0x10 */ AudioTableEntry entries[1]; // (dynamic size)
-} AudioTable; // size >= 0x20
-
 
 class SongSlot;
 enum class SongSlotID;
@@ -72,11 +53,11 @@ class Seed
         std::vector<int> get_available_tracks(SongSlotID slotId);
         std::string get_slot_name(SongSlotID slotId);
 
-        AudioTable generate_audiotable();
     private:
-        AudioTable* audioTableAddr;
         void populate_track_table();
         void prepare_song_slots();
+        void link_slots_to_vanilla();
+        void prepare_tracks();
 
         Category categories[0x200];
 
@@ -85,8 +66,10 @@ class Seed
 
         static std::array<std::shared_ptr<Track>, 0x80> vanillaTracks;
 
+
         static std::array<SongSlot, 0x80> songSlots;
         
 };
+
 
 #endif

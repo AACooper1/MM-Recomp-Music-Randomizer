@@ -164,10 +164,11 @@ template<typename T> std::shared_ptr<T> Table<T>::select(int id)
     std::string query = std::format("SELECT * FROM {0} WHERE id={1};", name, id);
     statement.prepare(query);
 
-    std::shared_ptr<T> obj = std::make_shared<T>();
+    std::shared_ptr<T> obj = nullptr;
 
     if(statement.step() == SQLITE_ROW)
     {
+        obj = std::make_shared<T>();
         create_from_statement(statement, obj);
     }
     else
@@ -190,6 +191,22 @@ template<typename T> void Table<T>::load_entries()
         create_from_statement(statement, entry);
 
         entries.emplace(returnedId, entry);
+    }
+
+    return;
+}
+
+template<typename T> void Table<T>::load_entry(int id)
+{
+    std::shared_ptr<T> obj = select(id);
+
+    if (obj)
+    {
+        entries.emplace(id, obj);
+    }
+    else
+    {
+        logger.error << "Could not find " << name << " with id " << id << "." << std::endl;
     }
 
     return;

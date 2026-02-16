@@ -100,8 +100,11 @@ class Database : public std::enable_shared_from_this<Database>
 
         void init();
         int update_from_music_dir();
+
         int load_all_tracks();
         int load_all_songs();
+
+        int prepare_track(int id);
 
         int exec(std::string query);
 

@@ -11,7 +11,7 @@ fs::path testDataPath;
 
 RECOMP_DLL_FUNC(launch_tests) 
 {
-    logger.set_log_level(LogLevel::LOG_DEV);
+    logger.set_log_level(LogLevel::LOG_DEBUG);
 
     sqlite3_config(SQLITE_CONFIG_SERIALIZED);
 
@@ -409,14 +409,14 @@ TEST_CASE("Song Slots", "[Seed]")
         REQUIRE(seed.tracks[terminaFieldTracks[7]]->name == "Woods of Mystery");
         REQUIRE(seed.tracks[terminaFieldTracks[8]]->name == dummyTrack->name);
     }
-    SECTION("Randomize. What do I test here", "[Seed]")
+    SECTION("Randomization", "[Seed]")
     {
         fs::path sectionPath = create_path(testCasePath / "3. Vanilla and Custom Receive Correct Vanilla Tracks");
 
         std::shared_ptr<Database> db = std::make_shared<Database>(sectionPath);
         db->init();
 
-        std::shared_ptr<Track> dummyTrack = create_dummy_track(false, false, 0);
+        std::shared_ptr<Track> dummyTrack = create_dummy_track(true, false, 0);
         for (int i = 0; i < 0x200; i++)
         {
             (*dummyTrack->categories)[i] = false;
@@ -430,14 +430,25 @@ TEST_CASE("Song Slots", "[Seed]")
 
         seed.randomize();
 
-        logger.dev.disable_header();
+        logger.debug.disable_header();
         for (const auto & [ id, track ] : seed.randomized)
         {
             std::vector<int> tracks = seed.get_available_tracks(SongSlotID(id));
             REQUIRE(std::find(tracks.begin(), tracks.end(), track->seedIdx) != tracks.end());
 
-            logger.dev << "Shuffled " << seed.get_slot_name(SongSlotID(id)) << " to " << track->name << "!" << std::endl;
+            logger.debug << "Shuffled " << seed.get_slot_name(SongSlotID(id)) << " to " << track->name << "!" << std::endl;
         }
-        logger.dev.enable_header();
+        logger.debug.enable_header();
+    }
+}
+
+TEST_CASE("Load into mod code", "[Seed]")
+{
+    std::shared_ptr<Database> db;
+    SECTION("Properly loads sequence table")
+    {
+        Seed seed(0x00, db, true, false);
+
+        logger.dev(" ");
     }
 }

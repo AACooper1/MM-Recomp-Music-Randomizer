@@ -6,13 +6,18 @@
 
 #include "logging.h"
 
-struct Logger logger;
+Logger logger;
 
 RECOMP_IMPORT("*", unsigned char* recomp_get_mod_folder_path());
-RECOMP_IMPORT(".", int launch_tests(char* savePath))
+RECOMP_IMPORT(".", int launch_tests(char* savePath));
 
-RECOMP_HOOK("ConsoleLogo_Init") void run()
+RECOMP_HOOK_RETURN("AudioLoad_Init") void run()
 {
     unsigned char* savePath = recomp_get_mod_folder_path();
+
+    recomp_printf("%p\n", &gAudioCtx.sequenceTable);
+    recomp_printf("%p\n", gAudioCtx.sequenceTable);
+    recomp_printf("%i\n", gAudioCtx.sequenceTable->header.numEntries);
+
     launch_tests(savePath);
 }

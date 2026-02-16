@@ -10,6 +10,8 @@
 
 #include "miniz.h"
 
+#include "category.h"
+
 namespace fs = std::filesystem;
 
 enum class TrackType
@@ -43,6 +45,8 @@ class Track
         Track();
 
         bool read_from_file();
+        bool is_fanfare() 
+            {return ((*categories)[FANFARE] || (*categories)[AREA_CLEAR] || (*categories)[GAME_OVER]); }
         
         int id = 0;
         int databaseIndex = 0;
@@ -56,7 +60,7 @@ class Track
         TrackType type;
         FormMask formmask;
 
-        int seqId = 0;
+        u32 seqId = 0;
         std::shared_ptr<Sequence> sequence = nullptr;
 
         int bankId = 0;

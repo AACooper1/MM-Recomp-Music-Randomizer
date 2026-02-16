@@ -189,37 +189,38 @@ bool Database::add_song(std::shared_ptr<Track>& track)
         }
         else
         {
-            seqNo = tables->seq->insert(track->sequence);
-            if (seqNo > 0)
+            track->seqId = tables->seq->insert(track->sequence);
+            if (track->seqId > 0)
             {
-                tables->relation.track_to_seq->insert(trackNo, seqNo);
+                tables->relation.track_to_seq->insert(trackNo, track->seqId);
             }
             else return false;
         }
     }
     if (track->bank)
     {
-        int bankNo = tables->relation.track_to_bank->select(trackNo);
-        if (bankNo > 0)
+        track->bankId = tables->relation.track_to_bank->select(trackNo);
+        if (track->bankId > 0)
         {
-            if (tables->bank->update(bankNo, track->bank)) { return false; };
+            if (tables->bank->update(track->bankId, track->bank)) { return false; };
         }
         else
         {
-            bankNo = tables->bank->insert(track->bank);
-            if (bankNo > 0)
+            track->bankId = tables->bank->insert(track->bank);
+            if (track->bankId > 0)
             {
-                tables->relation.track_to_bank->insert(trackNo, bankNo);
+                tables->relation.track_to_bank->insert(trackNo, track->bankId);
             }
             else return false;
         }
     }
-    
+
     int soundNo = 0;
     Statement statement = tables->relation.track_to_sound->select_iter(trackNo);
     for (int i = 0; (soundNo = statement.exec_and_return_id()) > 0; i++)
     {
         track->sounds[i]->databaseIndex = soundNo;
+        track->soundIds.push_back(soundNo);
     }
     for (int i = 0; i < track->sounds.size(); i++) 
     {
@@ -279,15 +280,26 @@ bool Database::remove_song(int id)
     return true;
 }
 
-/* Only loads tracks, leaves their seq/bank/sounds empty. */
+/* Loads all tracks, leaves their seq/bank/sounds empty. */
 int Database::load_all_tracks()
 {
     tables->track->load_entries();
+    for (const auto & [id, track] : tables->track->entries)
+    {
+        track->seqId = tables->relation.track_to_seq->select(id);
+        track->bankId = tables->relation.track_to_bank->select(id);
+        
+        Statement statement = tables->relation.track_to_sound->select_iter(id);
+        while (statement.step() == SQLITE_ROW)
+        {
+            track->soundIds.push_back(statement.column_int(1));
+        }
+    }
 
     return tables->track->entries.size();
 }
 
-/* This generally shouldn't be used - only load necessary songs*/
+/* This generally shouldn't be used - only load necessary songs where possible */
 int Database::load_all_songs()
 {
     tables->track->load_entries();
@@ -296,4 +308,32 @@ int Database::load_all_songs()
     tables->sound->load_entries();
 
    return tables->track->entries.size();
+}
+
+int Database::prepare_track(int id)
+{
+    std::shared_ptr<Track> track = tables->track->entries[id];
+    if (track)
+    {
+        if (track->seqId)
+        {
+            tables->seq->load_entry(track->seqId);
+            track->sequence = tables->seq->entries[track->seqId];
+        }
+        if (track->bankId > 0)
+        {
+            tables->bank->load_entry(track->bankId);
+            track->bank = tables->bank->entries[track->bankId];
+        }
+        for (int i = 0; i < track->soundIds.size(); i++)
+        {
+            tables->sound->load_entry(track->soundIds[i]);
+            track->sounds.push_back(tables->sound->entries[track->soundIds[i]]);
+        }
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }

@@ -25,7 +25,7 @@ std::array<std::shared_ptr<Track>, 0x80> Seed::vanillaTracks
         std::make_shared<Track>("Deku Palace", CAT(TOWN, FIELD), 0x19, 0x112),
 
         /* Dungeons */
-        std::make_shared<Track>("Cavern", CAT(DUNGEON, CALM), 0x1A, 0x3B),
+        std::make_shared<Track>("Cavern", CAT(DUNGEON, CALM), 0x1A, 0x13B),
         std::make_shared<Track>("Woodfall Temple", CAT(DUNGEON, CALM), 0x14, 0x11C),
         std::make_shared<Track>("Snowhead Temple", CAT(DUNGEON, CALM), 0x15, 0x165),
         std::make_shared<Track>("Great Bay Temple", CAT(DUNGEON, CALM), 0x16, 0x166),

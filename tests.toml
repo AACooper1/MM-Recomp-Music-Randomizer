@@ -38,7 +38,7 @@ dependencies = [
 
 # Native libraries (e.g. DLLs) and the functions they export.
 native_libraries = [
-   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["update_database", "_log", "launch_tests"] }
+   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["prepare_database", "_log", "launch_tests"] }
 ]
 
 # Inputs to the mod tool.

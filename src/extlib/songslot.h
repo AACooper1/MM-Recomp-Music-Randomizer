@@ -10,12 +10,25 @@ class SongSlot
         SongSlot(int id, std::string name, const std::vector<int>& categories) : 
             name(name), categories(categories), id(id) {this->categories.push_back(id + 0x100);}
         
+        bool is_fanfare() 
+        {
+            for (int i = 0; i < categories.size(); i++)
+            {
+                if (categories[i] == FANFARE || categories[i] == AREA_CLEAR || categories[i] == GAME_OVER)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
         std::string name;
         std::vector<int> categories;
 
         std::vector<int> availableTracks;
         std::vector<int> availableTracksNoRemove;
         int id = 0;
+        std::shared_ptr<Track> vanillaTrack;
     private:
         std::shared_ptr<Seed> seed;
 };

@@ -33,12 +33,12 @@ minimum_recomp_version = "1.2.0"
 
 # Dependency mods. Each entry is the mod's ID and then an optional minimum version of the dependency mod.
 dependencies = [
-
+   "magemods_audio_api"
 ]
 
 # Native libraries (e.g. DLLs) and the functions they export.
 native_libraries = [
-   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["update_database", "_log"] }
+   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["_log", "_set_log_level", "_get_log_level", "prepare_database", "prepare_seed", "fetch_randomized_track", "fetch_seq", "fetch_bank", "fetch_sound"] }
 ]
 
 # Inputs to the mod tool.

@@ -21,6 +21,23 @@ void Seed::randomize()
         {
             songSlots[i].availableTracks = songSlots[i].availableTracksNoRemove;
         }
+        // If there are really no tracks available at all, just choose from everything available. 
+        // Only distinguishes between fanfare and BGM
+        if (songSlots[i].availableTracks.size() == 0)
+        {
+            for (const auto & [ id, track ] : tracks)
+            {
+                if (!(track->is_fanfare() ^ songSlots[i].is_fanfare()))
+                    songSlots[i].availableTracks.push_back(id);
+            }
+        }
+        // If we don't have anything available at all after accounting for fanfare and BGM,
+        // Just don't randomize the slot (i.e. choose the vanilla track)
+        if (songSlots[i].availableTracks.size() == 0)
+        {
+            randomized.emplace(i, songSlots[i].vanillaTrack);
+            continue;
+        }
 
         std::ranges::shuffle(songSlots[i].availableTracks, rng);
 
@@ -28,6 +45,8 @@ void Seed::randomize()
 
         randomized.emplace(i, tracks[trackId]);
     }
+
+    prepare_tracks();
 }
 
 void Seed::populate_track_table()
@@ -53,8 +72,18 @@ void Seed::populate_track_table()
     }
 }
 
+void Seed::link_slots_to_vanilla()
+{
+    for (int i = 0; i < vanillaTracks.size(); i++)
+    {
+        songSlots[vanillaTracks[i]->id - 0x100].vanillaTrack = vanillaTracks[i];
+    }
+}
+
 void Seed::prepare_song_slots()
 {
+    link_slots_to_vanilla();
+
     for (const auto & [ id, track ] : tracks)
     {
         for (int j = 0; j < 0x200; j++)
@@ -86,9 +115,13 @@ void Seed::prepare_song_slots()
 
 }
 
-AudioTable Seed::generate_audiotable()
+void Seed::prepare_tracks()
 {
-
+    for (const auto & [id, track] : tracks)
+    {
+        if (track->type != TrackType::VANILLA)
+            db->prepare_track(track->databaseIndex);
+    }
 }
 
 std::array<SongSlot, 0x80> Seed::songSlots

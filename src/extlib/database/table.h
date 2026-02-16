@@ -30,6 +30,7 @@ class Table
         Statement select_iter(int id, std::string cols, int ncol);
 
         void load_entries();
+        void load_entry(int id);
 
         virtual int insert(std::shared_ptr<T> entry);
         virtual int update(int id, std::shared_ptr<T> entry);
