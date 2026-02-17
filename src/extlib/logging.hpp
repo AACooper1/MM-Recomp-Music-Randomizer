@@ -82,12 +82,14 @@ public:
     void set_log_level(LogLevel level) { gLogLevel = level; }
     LogLevel get_log_level() const { return gLogLevel; }
 
+    std::chrono::system_clock::time_point get_time()
+    {
+        return std::chrono::system_clock::now();
+    }
 
 private:
     friend class Logger;
     LogLevel gLogLevel = LogLevel::LOG_INFO;
-    
-    std::chrono::system_clock::time_point time = std::chrono::system_clock::now();
 
     std::string parentModName = "MUSIC RANDOMIZER";
     std::string header;
@@ -98,7 +100,7 @@ template<typename ...P>
 void Logger::call(std::format_string<P...> format, P &&... params)
 {
     this->dest.clear();
-    if (parent->get_log_level() > level)
+    if (parent->get_log_level() >= level)
     {
         std::string msg = std::format(format, std::forward<P>(params)...);
         if (shouldPrintHeader) printHeader();

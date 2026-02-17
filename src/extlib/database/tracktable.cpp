@@ -47,7 +47,7 @@ template<> int TrackTable::insert(std::shared_ptr<Track> entry)
         return -2;
     }
 
-    statement.bind_text(entry->path.filename().string());
+    statement.bind_text(entry->path.string());
     statement.bind_int((int)entry->type);
     statement.bind_int64(entry->timestamp);
     statement.bind_text(entry->name);

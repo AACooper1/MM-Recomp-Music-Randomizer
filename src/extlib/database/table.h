@@ -125,4 +125,11 @@ class TrackToSoundTable : public RelationTable
         RelationTable(db, name) {col1 = "trackId"; col2 = "soundId"; init(true); }
 };
 
+class SlotToTrackTable : public RelationTable
+{
+    public:
+        SlotToTrackTable(std::shared_ptr<Database> db, std::string name):
+        RelationTable(db, name) { col1 = "slotId"; col2 = "trackId"; init(); }
+};
+
 #endif

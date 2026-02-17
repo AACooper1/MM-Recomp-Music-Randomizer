@@ -29,7 +29,7 @@ typedef struct cSequence_t
     u32 size;
     char* data;
     #ifndef __cplusplus 
-    char pad[4] ;
+    u32 pad;
     #endif
 } cSequence;
 
@@ -40,7 +40,7 @@ typedef struct cBank_t
     u32 size;
     char* data;
     #ifndef __cplusplus 
-    char pad[4] ;
+    u32 pad;
     #endif
 } cBank;
 
@@ -50,7 +50,7 @@ typedef struct cSound_t
     u32 size;
     char* data;
     #ifndef __cplusplus 
-    char pad[4] ;
+    u32 pad;
     #endif
     unsigned int sampleAddr;
 } cSound;

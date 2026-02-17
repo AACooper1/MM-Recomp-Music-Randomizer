@@ -91,6 +91,7 @@ class Database : public std::enable_shared_from_this<Database>
 {
     public:
         Database(fs::path path);
+        Database(fs::path path, bool is_seed_db);
         ~Database();
 
         std::shared_ptr<sqlite3> sqlite() { return db; };
@@ -115,6 +116,7 @@ class Database : public std::enable_shared_from_this<Database>
         char* lastErrMsg;
         
         std::unique_ptr<dbTables> tables;
+        std::unique_ptr<RelationTable> seedTable;
 
     protected:
         std::shared_ptr<sqlite3> db;

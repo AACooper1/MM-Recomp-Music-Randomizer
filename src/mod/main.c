@@ -4,68 +4,62 @@
 #define NUM_SONG_SLOTS 0x80
 
 RECOMP_IMPORT("*", unsigned char* recomp_get_mod_folder_path());
+
 RECOMP_IMPORT(".", int prepare_database(unsigned char* modPath));
-RECOMP_IMPORT(".", int prepare_seed(int randoSeed));
+RECOMP_IMPORT(".", int prepare_seed(int randoSeed, unsigned char* savePath, bool use_custom, bool use_vanilla));
 
 RECOMP_IMPORT(".", void fetch_randomized_track(int slotIdx, cTrack* modTrack));
 RECOMP_IMPORT(".", void fetch_seq(int id, char* dst, size_t size));
 RECOMP_IMPORT(".", void fetch_bank(int id, char* dst, size_t size));
 RECOMP_IMPORT(".", void fetch_sound(int id, char* dst, size_t size));
 
+RECOMP_IMPORT(".", u32 get_current_time());
+
+RECOMP_IMPORT("mm_recomp_rando", u32 rando_get_random_seed_external());
+
+RECOMP_DECLARE_EVENT(music_rando_db_updated())
+
 Logger logger;
 cTrack randomized[NUM_SONG_SLOTS];
 
-RECOMP_HOOK("ConsoleLogo_Init") void create_db()
+RECOMP_HOOK_RETURN("ConsoleLogo_Init") void music_rando_update_db()
 {
     logger_init(&logger);
     set_log_level(LOG_DEV);
-    logger.debug("And the %c side of it works too!\n\n", 67);
+    logger.debug("%s", "Mod-side logger OK!\n");
+    logger.noheader.debug("%s", "Mod-side no-header logger OK!\n");
 
     unsigned char* modPath = recomp_get_mod_folder_path();
-    logger.debug("Mod path: %s", modPath);
-    logger.dev("sizeof cseq in mod code: %i\n", sizeof(cSequence));
 
     prepare_database(modPath);
-    // Update when rando integration is good
-    prepare_seed(0x00);
+    music_rando_db_updated();
+}
 
-    prepare_tracks();
+RECOMP_CALLBACK(".", music_rando_db_updated) void music_rando_ready_seed()
+{
+    unsigned char* savePath = recomp_get_save_file_path();
 
-    for (int i = 2; i < NUM_SONG_SLOTS; i++)
+    int randoSeed;
+
+    if (recomp_is_dependency_met("mm_recomp_rando") == DEPENDENCY_STATUS_FOUND)
     {
-        logger.noheader.debug("Randomized %s to %s!\n", randomized[i].slotName, randomized[i].name);
-    }
-
-    // Testing
-    AudioTableEntry* mySeq = recomp_alloc(sizeof(AudioTableEntry));
-
-    cTrack* track = &randomized[2];
-
-    mySeq->romAddr = (uintptr_t) track->seq.data;
-    mySeq->size = track->seq.size;
-    mySeq->medium = MEDIUM_CART;
-    mySeq->cachePolicy = CACHE_EITHER;
-    mySeq->shortData1 = 0;
-    mySeq->shortData2 = 0;
-    mySeq->shortData3 = 0;
-
-    AudioApi_ReplaceSequence(NA_BGM_FILE_SELECT, mySeq);
-    if (track->bankNo == 0x28)
-    {
-        s32 bankNo = AudioApi_ImportVanillaSoundFont(
-            (uintptr_t*)track->bank.data,
-            track->bank.header[2],
-            track->bank.header[3],
-            track->bank.header[4],
-            track->bank.header[5],
-            track->bank.header[6]
-        );
-        AudioApi_ReplaceSequenceFont(NA_BGM_FILE_SELECT, 0, bankNo);
-        logger.dev("Sequence font: %x\nBank Number: %x\n", AudioApi_GetSequenceFont(NA_BGM_FILE_SELECT, 0), bankNo);
+        logger.dev("Test\n");
+        randoSeed = rando_get_random_seed_external();
+        logger.dev("ing\n");
     }
     else
     {
-        AudioApi_ReplaceSequenceFont(NA_BGM_FILE_SELECT, 0, track->bankNo);
+        randoSeed = get_current_time();
+    }
+
+    prepare_seed(randoSeed, savePath, true, true);
+
+    prepare_tracks();
+
+    logger.info("");
+    for (int i = 2; i < NUM_SONG_SLOTS; i++)
+    {
+        logger.noheader.info("Randomized %s to %s!\n", randomized[i].slotName, randomized[i].name);
     }
 }
 
@@ -82,12 +76,6 @@ void prepare_tracks()
         }
         if (randomized[i].hasBank)
         {
-            logger.debug("\
-                name: %s\n\
-                  id: %x\n\
-                 hdr: %llx\n\
-                data: %p\n\
-                ", randomized[i].name, randomized[i].bank.id, (u64)randomized[i].bank.header, randomized[i].bank.data);
             randomized[i].bank.data = recomp_alloc(randomized[i].bank.size);
             fetch_bank(randomized[i].bank.id, randomized[i].bank.data, randomized[i].bank.size);
         }

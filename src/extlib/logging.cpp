@@ -21,7 +21,7 @@ void Logger::printHeader()
 {
     dest << std::endl << 
             "[" << parent->parentModName << "] " << 
-            "[" << parent->time << "] " <<
+            "[" << parent->get_time() << "] " <<
             "[" << levels[(int)level] << "]"
         << std::endl;
 }

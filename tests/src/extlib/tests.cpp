@@ -8,6 +8,7 @@
 extern Log logger;
 
 fs::path testDataPath;
+fs::path savePath;
 
 RECOMP_DLL_FUNC(launch_tests) 
 {
@@ -16,6 +17,7 @@ RECOMP_DLL_FUNC(launch_tests)
     sqlite3_config(SQLITE_CONFIG_SERIALIZED);
 
     testDataPath = RECOMP_ARG_STR(0);
+    savePath = testDataPath;
     testDataPath = testDataPath.parent_path();
     testDataPath /= "test_data";
 
@@ -336,7 +338,7 @@ TEST_CASE("Song Slots", "[Seed]")
 
         std::shared_ptr<Database> db = std::make_shared<Database>(sectionPath);
         db->init();
-        Seed seed(0x00, db, false, true);
+        Seed seed(0x00, db, savePath, false, true);
 
         std::vector<int> terminaFieldTracks = seed.get_available_tracks(SongSlotID::TERMINA_FIELD);
 
@@ -369,7 +371,7 @@ TEST_CASE("Song Slots", "[Seed]")
         db->add_song(dummyTrack);
         db->load_all_tracks();
 
-        Seed seed(0x00, db, true, false);
+        Seed seed(0x00, db, savePath, true, false);
 
         std::vector<int> terminaFieldTracks = seed.get_available_tracks(SongSlotID::TERMINA_FIELD);
 
@@ -393,7 +395,7 @@ TEST_CASE("Song Slots", "[Seed]")
         db->add_song(dummyTrack);
         db->load_all_tracks();
 
-        Seed seed(0x00, db, true, true);
+        Seed seed(0x00, db, savePath, true, true);
 
         std::vector<int> terminaFieldTracks = seed.get_available_tracks(SongSlotID::TERMINA_FIELD);
 
@@ -426,7 +428,7 @@ TEST_CASE("Song Slots", "[Seed]")
         db->add_song(dummyTrack);
         db->load_all_tracks();
 
-        Seed seed(0x00, db, true, true);
+        Seed seed(0x00, db, savePath, true, true);
 
         seed.randomize();
 
@@ -447,7 +449,7 @@ TEST_CASE("Load into mod code", "[Seed]")
     std::shared_ptr<Database> db;
     SECTION("Properly loads sequence table")
     {
-        Seed seed(0x00, db, true, false);
+        Seed seed(0x00, db, savePath, true, false);
 
         logger.dev(" ");
     }

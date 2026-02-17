@@ -24,8 +24,8 @@ enum class SongSlotID;
 class Seed
 {
     public:
-        Seed(long long seed, std::shared_ptr<Database> db, bool use_custom, bool use_vanilla) : 
-            seed(seed), db(db), use_custom(use_custom), use_vanilla(use_vanilla) 
+        Seed(long long seed, std::shared_ptr<Database> db, fs::path savePath, bool use_custom, bool use_vanilla) : 
+            seed(seed), db(db), use_custom(use_custom), use_vanilla(use_vanilla), savePath(savePath)
             { 
                 if (!(use_custom || use_vanilla))
                 {
@@ -50,8 +50,12 @@ class Seed
         std::map<int, std::shared_ptr<Track>> randomized;
 
         void randomize();
+        void randomize_slot(int i);
         std::vector<int> get_available_tracks(SongSlotID slotId);
         std::string get_slot_name(SongSlotID slotId);
+
+        int save_seed();
+        int load_seed(fs::path savePath);
 
     private:
         void populate_track_table();
@@ -63,6 +67,8 @@ class Seed
 
         bool use_custom;
         bool use_vanilla;
+
+        fs::path savePath;
 
         static std::array<std::shared_ptr<Track>, 0x80> vanillaTracks;
 

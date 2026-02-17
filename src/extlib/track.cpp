@@ -138,7 +138,7 @@ bool Track::read_from_mmrs()
         }
         else if (filename.ends_with(".mp3") || filename.ends_with(".ogg") || filename.ends_with("wav"))
         {
-            logger.error << "Streamed music is not yet implemented." << std::endl;
+            // logger.error << "Streamed music is not yet implemented." << std::endl;
             continue;
         }
         else if (filename == "categories.txt")

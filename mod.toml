@@ -36,9 +36,13 @@ dependencies = [
    "magemods_audio_api"
 ]
 
+optional_dependencies = [
+    "mm_recomp_rando"
+]
+
 # Native libraries (e.g. DLLs) and the functions they export.
 native_libraries = [
-   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["_log", "_set_log_level", "_get_log_level", "prepare_database", "prepare_seed", "fetch_randomized_track", "fetch_seq", "fetch_bank", "fetch_sound"] }
+   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["_log", "_set_log_level", "_get_log_level", "get_current_time", "prepare_database", "prepare_seed", "fetch_randomized_track", "fetch_seq", "fetch_bank", "fetch_sound"] }
 ]
 
 # Inputs to the mod tool.

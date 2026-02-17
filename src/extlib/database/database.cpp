@@ -2,7 +2,6 @@
 
 Database::Database(fs::path path)
 {
-    logger.dev << "Entering Database constructor here" << std::endl;
     this->dbPath = path;
     this->musicPath = dbPath / "music";
 
@@ -11,8 +10,6 @@ Database::Database(fs::path path)
         fs::create_directories(this->musicPath);
         logger.info << "Created new directory " << musicPath << "." << std::endl;
     }
-
-    bool initDb = false;
 
     this->dbPath /= "music.db";
     
@@ -28,6 +25,23 @@ Database::Database(fs::path path)
 
     this->db.reset(dbPtrRaw, sqlite3_close);
     this->tables = std::make_unique<dbTables>();
+}
+
+Database::Database(fs::path path, bool is_seed_db)
+{
+    this->dbPath = path;
+    
+    std::string dbPath_forSql = dbPath.string();
+
+    lastErrMsg = new char;
+
+    sqlite3* dbPtrRaw = nullptr;
+
+    int rc = sqlite3_open(dbPath_forSql.c_str(), &dbPtrRaw);
+
+    set_last_rc(rc);
+
+    this->db.reset(dbPtrRaw, sqlite3_close);
 }
 
 Database::~Database() 
@@ -86,7 +100,7 @@ bool Database::check_if_in_db(fs::directory_entry entry)
 
     std::string query = std::format(
         "SELECT * FROM track WHERE filename = \"{0}\" AND modified = {1};",
-        entry.path().filename().string(), 
+        fs::relative(entry.path(), musicPath).string(),
         std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(entry.path()).time_since_epoch()).count()
     );
 
@@ -173,6 +187,7 @@ void Database::remove_if_not_in_music_dir()
 
 bool Database::add_song(std::shared_ptr<Track>& track)
 {
+    track->path = fs::relative(track->path, musicPath);
     int trackNo = tables->track->insert(track);
 
     if (trackNo < 0)

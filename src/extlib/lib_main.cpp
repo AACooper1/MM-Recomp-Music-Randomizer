@@ -18,7 +18,7 @@ RECOMP_DLL_FUNC(prepare_database) {
     std::string modPath = RECOMP_ARG_STR(0);
     
     logger.set_log_level(LogLevel::LOG_DEV);
-    logger.dev << "If you're seeing this, the extlib's logger works." << std::endl;
+    logger.dev << "Extlib-side logger OK!" << std::endl;
 
     fs::path dbPath = (fs::path)modPath;
     dbPath = dbPath.parent_path();
@@ -54,9 +54,22 @@ RECOMP_DLL_FUNC(prepare_database) {
 RECOMP_DLL_FUNC(prepare_seed)
 {
     int randoSeed = RECOMP_ARG(int, 0);
+    fs::path savePath = RECOMP_ARG_STR(1);
+    bool use_custom = RECOMP_ARG(bool, 2);
+    bool use_vanilla = RECOMP_ARG(bool, 3);
 
-    seed = std::make_shared<Seed>(randoSeed, db, true, false);
-    seed->randomize();
+    savePath = savePath.replace_extension(".music.db");
+    seed = std::make_shared<Seed>(randoSeed, db, savePath, use_custom, use_vanilla);
+
+    if (fs::exists(savePath))
+    {
+        seed->load_seed(savePath);
+    }
+    else
+    {
+        seed->randomize();
+        seed->save_seed();
+    }
 }
 
 void copy_into_mod_ram(char* dst, char* src, size_t size)
@@ -68,9 +81,6 @@ void copy_into_mod_ram(char* dst, char* src, size_t size)
 
     return;
 }
-
-template<typename T>
-T reverse_endian(T obj);
 
 RECOMP_DLL_FUNC(fetch_randomized_track)
 {
@@ -147,21 +157,6 @@ RECOMP_DLL_FUNC(fetch_randomized_track)
     modTrack->formmask.cumulativeStates = extlibTrack->formmask.cumulativeStates;
 }
 
-template<typename T>
-T reverse_endian(T obj)
-{
-    char copy[sizeof(T)];
-    std::memcpy(&copy, &obj, sizeof(T));
-
-    char* ptr = (char*)&obj;
-    for (int i = 0; i < sizeof(T); i++)
-    {
-        ptr[i] = copy[i^3];
-    }
-
-    return obj;
-}
-
 RECOMP_DLL_FUNC(fetch_seq)
 {
     int id = RECOMP_ARG(int, 0);
@@ -221,4 +216,9 @@ RECOMP_DLL_FUNC(_set_log_level)
 RECOMP_DLL_FUNC(_get_log_level)
 {
     RECOMP_RETURN(int, logger.get_log_level());
+}
+
+RECOMP_DLL_FUNC(get_current_time)
+{
+    RECOMP_RETURN(u32, (u32)(time(nullptr) & 0xFFFFFF));
 }

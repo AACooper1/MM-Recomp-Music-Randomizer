@@ -17,36 +17,45 @@ void Seed::randomize()
 {
     for (int i = 2; i < songSlots.size(); i++)
     {
-        if (songSlots[i].availableTracks.size() == 0)
-        {
-            songSlots[i].availableTracks = songSlots[i].availableTracksNoRemove;
-        }
-        // If there are really no tracks available at all, just choose from everything available. 
-        // Only distinguishes between fanfare and BGM
-        if (songSlots[i].availableTracks.size() == 0)
-        {
-            for (const auto & [ id, track ] : tracks)
-            {
-                if (!(track->is_fanfare() ^ songSlots[i].is_fanfare()))
-                    songSlots[i].availableTracks.push_back(id);
-            }
-        }
-        // If we don't have anything available at all after accounting for fanfare and BGM,
-        // Just don't randomize the slot (i.e. choose the vanilla track)
-        if (songSlots[i].availableTracks.size() == 0)
-        {
-            randomized.emplace(i, songSlots[i].vanillaTrack);
-            continue;
-        }
+        randomize_slot(i); 
+    }
+    
+    prepare_tracks();
+}
 
-        std::ranges::shuffle(songSlots[i].availableTracks, rng);
-
-        int trackId = songSlots[i].availableTracks[0];
-
-        randomized.emplace(i, tracks[trackId]);
+void Seed::randomize_slot(int i)
+{
+    if (songSlots[i].availableTracks.size() == 0)
+    {
+        songSlots[i].availableTracks = songSlots[i].availableTracksNoRemove;
+    }
+    // If there are really no tracks available at all, just choose from everything available. 
+    // Only distinguishes between fanfare and BGM
+    if (songSlots[i].availableTracks.size() == 0)
+    {
+        for (const auto & [ id, track ] : tracks)
+        {
+            if (!(track->is_fanfare() ^ songSlots[i].is_fanfare()))
+                songSlots[i].availableTracks.push_back(id);
+        }
+    }
+    // If we don't have anything available at all after accounting for fanfare and BGM,
+    // Just don't randomize the slot (i.e. choose the vanilla track)
+    if (songSlots[i].availableTracks.size() == 0)
+    {
+        randomized.emplace(i, songSlots[i].vanillaTrack);
+        return;
     }
 
-    prepare_tracks();
+    std::ranges::shuffle(songSlots[i].availableTracks, rng);
+
+    int trackId = songSlots[i].availableTracks[0];
+
+    randomized.emplace(i, tracks[trackId]);
+    for (int i = 2; i < songSlots.size(); i++)
+    {
+        std::erase(songSlots[i].availableTracks, trackId);
+    }
 }
 
 void Seed::populate_track_table()
@@ -56,8 +65,8 @@ void Seed::populate_track_table()
     {
         for (int i = 0; i < vanillaTracks.size(); i++)
         {
-            tracks.emplace(idx, vanillaTracks[i]);
-            vanillaTracks[i]->seedIdx = idx;
+            tracks.emplace(vanillaTracks[i]->id * -1, vanillaTracks[i]);
+            vanillaTracks[i]->seedIdx = vanillaTracks[i]->id * -1;
             idx++;
         }
     }
@@ -65,8 +74,8 @@ void Seed::populate_track_table()
     {
         for (const auto & [ id, track ] : db->tables->track->entries)
         {
-            tracks.emplace(idx, track);
-            track->seedIdx = idx;
+            tracks.emplace(track->databaseIndex, track);
+            track->seedIdx = track->databaseIndex;
             idx++;
         }
     }
@@ -123,6 +132,83 @@ void Seed::prepare_tracks()
             db->prepare_track(track->databaseIndex);
     }
 }
+
+int Seed::save_seed()
+{
+    std::shared_ptr<Database> seedDb = std::make_shared<Database>(this->savePath, true);
+    seedDb->seedTable = std::make_unique<SlotToTrackTable>(seedDb, "slot_to_track");
+
+    for (const auto & [slotId, track] : randomized)
+    {
+        if (track->type != TrackType::VANILLA)
+        {
+            seedDb->seedTable->insert(slotId, track->databaseIndex);
+        }
+        else
+        {
+            seedDb->seedTable->insert(slotId, track->id * -1);
+        }
+    }
+
+    return 1;
+}
+
+int Seed::load_seed(fs::path savePath)
+{
+    std::shared_ptr<Database> seedDb = std::make_shared<Database>(this->savePath, true);
+    seedDb->seedTable = std::make_unique<SlotToTrackTable>(seedDb, "slot_to_track");
+    for (int i = 2; i < songSlots.size(); i++)
+    {
+        int trackId = seedDb->seedTable->select(i);
+
+        if (trackId >= 0)
+        {
+            if (tracks.contains(trackId))
+            {
+                bool can_go_in_slot = false;
+                for (int j = 0; j < songSlots[i].categories.size(); j++)
+                {
+                    if ((*tracks[trackId]->categories)[j])
+                    {
+                        can_go_in_slot = true;
+                        break;
+                    }
+                }
+                if (can_go_in_slot)
+                {
+                    randomized[i] = tracks[trackId];
+                }
+                else
+                {
+                    randomize_slot(i);
+                }
+            }
+            else
+            {
+                randomize_slot(i);
+            }
+        }
+        else if (trackId > -0x200)
+        {
+            if (use_vanilla)
+            {
+                randomized[i] = tracks[trackId];
+            }
+            else
+            {
+                randomize_slot(i);
+            }
+        }
+        else
+        {
+            randomize_slot(i);
+        }
+    }
+
+    return true;
+}
+
+
 
 std::array<SongSlot, 0x80> Seed::songSlots
 (
