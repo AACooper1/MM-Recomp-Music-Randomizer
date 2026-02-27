@@ -64,7 +64,7 @@ Statement RelationTable::select_iter(int id)
 {
     Statement statement(get_sqlite());
 
-    std::string query = std::format(("SELECT * FROM {0} WHERE {1}={2} RETURNING {3};"), name, col1, id, col2);
+    std::string query = std::format(("SELECT * FROM {0} WHERE {1}={2};"), name, col1, id, col2);
 
     statement.prepare(query);
     return statement;

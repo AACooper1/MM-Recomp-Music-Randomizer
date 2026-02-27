@@ -90,12 +90,15 @@ RECOMP_IMPORT("magemods_audio_api", bool cseq_ldchan(CSeqSection* section, u8 ch
 RECOMP_IMPORT("magemods_audio_api", bool cseq_instr(CSeqSection* section, u8 instNum));
 
 // Sequence commands
+RECOMP_IMPORT("magemods_audio_api", bool cseq_volscale(CSeqSection* sequence, u8 arg));
 RECOMP_IMPORT("magemods_audio_api", bool cseq_mutescale(CSeqSection* sequence, u8 arg));
 RECOMP_IMPORT("magemods_audio_api", bool cseq_initchan(CSeqSection* sequence, u16 bitmask));
 RECOMP_IMPORT("magemods_audio_api", bool cseq_freechan(CSeqSection* sequence, u16 bitmask));
 RECOMP_IMPORT("magemods_audio_api", bool cseq_tempo(CSeqSection* sequence, u8 bpm));
+RECOMP_IMPORT("magemods_audio_api", bool cseq_runseq(CSeqSection* sequence, u8 playerIndex, u8 seqId));
 
 // Channel commands
+RECOMP_IMPORT("magemods_audio_api", bool cseq_notepri(CSeqSection* section, u8 priority));
 RECOMP_IMPORT("magemods_audio_api", bool cseq_font(CSeqSection* section, u8 fontId));
 RECOMP_IMPORT("magemods_audio_api", bool cseq_fontinstr(CSeqSection* section, u8 fontId, u8 instId));
 RECOMP_IMPORT("magemods_audio_api", bool cseq_noshort(CSeqSection* section));
@@ -103,6 +106,8 @@ RECOMP_IMPORT("magemods_audio_api", bool cseq_short(CSeqSection* section));
 RECOMP_IMPORT("magemods_audio_api", bool cseq_ldlayer(CSeqSection* channel, u8 layerNum, CSeqSection* layer));
 RECOMP_IMPORT("magemods_audio_api", bool cseq_pan(CSeqSection* section, u8 pan));
 RECOMP_IMPORT("magemods_audio_api", bool cseq_panweight(CSeqSection* section, u8 weight));
+RECOMP_IMPORT("magemods_audio_api", bool cseq_setval(CSeqSection* section, u8 value));
+RECOMP_IMPORT("magemods_audio_api", bool cseq_stio(CSeqSection* section, u8 port));
 
 // Layer commands
 RECOMP_IMPORT("magemods_audio_api", bool cseq_ldelay(CSeqSection* section, u16 delay));

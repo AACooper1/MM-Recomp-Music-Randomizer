@@ -36,8 +36,8 @@ typedef struct cSequence_t
 typedef struct cBank_t
 {
     int id;
-    char header[8];
     u32 size;
+    char header[8];
     char* data;
     #ifndef __cplusplus 
     u32 pad;
@@ -48,11 +48,11 @@ typedef struct cSound_t
 {
     int id;
     u32 size;
+    u32 sampleAddr;
     char* data;
     #ifndef __cplusplus 
-    u32 pad;
+    u64 pad;
     #endif
-    unsigned int sampleAddr;
 } cSound;
 
 typedef struct cTrack_t
@@ -61,7 +61,7 @@ typedef struct cTrack_t
     char name[256];
     char slotName[256];
     int bankNo;
-    int tableIdx;
+    int slotIdx;
 
     int hasSeq;
     int hasBank;

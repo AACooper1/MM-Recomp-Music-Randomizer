@@ -39,6 +39,7 @@ typedef enum : u32 {
     AUDIOAPI_CODEC_AUTO,
     AUDIOAPI_CODEC_WAV,
     AUDIOAPI_CODEC_FLAC,
+    AUDIOAPI_CODEC_MP3,
     AUDIOAPI_CODEC_VORBIS,
     AUDIOAPI_CODEC_OPUS,
 } AudioApiCodec;
@@ -48,6 +49,15 @@ typedef enum : u32 {
     AUDIOAPI_CHANNEL_TYPE_MONO,
     AUDIOAPI_CHANNEL_TYPE_STEREO,
 } AudioApiChannelType;
+
+typedef enum : u32 {
+    AUDIOAPI_SEQ_IO_NONE,          // No special IO channels
+    AUDIOAPI_SEQ_IO_BREMEN,        // Channel 15, IO port 0: writes 0x00 every tatum (march sync)
+    AUDIOAPI_SEQ_IO_CREDITS_1,     // Channel 15, IO port 0: 8 cue pulses for credits part 1 scene transitions
+    AUDIOAPI_SEQ_IO_CREDITS_2,     // Channel 15, IO port 0: 12 cue pulses for credits part 2 scene transitions
+    AUDIOAPI_SEQ_IO_WINDFISH,      // Ballad special-case: keep vanilla seq_84 for partial band, redirect full mix
+    AUDIOAPI_SEQ_IO_FROG,          // Frog Song beat pulses on IO_PORT_0 for minigame timing
+} AudioApiSequenceIO;
 
 typedef struct AudioApiFileInfo {
     u32 resourceId;

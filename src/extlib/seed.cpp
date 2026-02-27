@@ -15,8 +15,17 @@ std::string Seed::get_slot_name(SongSlotID slotId)
 
 void Seed::randomize()
 {
+    std::vector<int> randomOrder;
     for (int i = 2; i < songSlots.size(); i++)
     {
+        randomOrder.push_back(i);
+    }
+
+    std::ranges::shuffle(randomOrder, rng);
+
+    for (int s = 0; s < randomOrder.size(); s++)
+    {
+        int i = randomOrder[s];
         randomize_slot(i); 
     }
     
@@ -40,7 +49,7 @@ void Seed::randomize_slot(int i)
         }
     }
     // If we don't have anything available at all after accounting for fanfare and BGM,
-    // Just don't randomize the slot (i.e. choose the vanilla track)
+    // Just don't randomize the slot (i.e. choose the vanilla song)
     if (songSlots[i].availableTracks.size() == 0)
     {
         randomized.emplace(i, songSlots[i].vanillaTrack);
@@ -126,7 +135,7 @@ void Seed::prepare_song_slots()
 
 void Seed::prepare_tracks()
 {
-    for (const auto & [id, track] : tracks)
+    for (const auto & [id, track] : randomized)
     {
         if (track->type != TrackType::VANILLA)
             db->prepare_track(track->databaseIndex);
@@ -204,6 +213,8 @@ int Seed::load_seed(fs::path savePath)
             randomize_slot(i);
         }
     }
+
+    prepare_tracks();
 
     return true;
 }
@@ -301,7 +312,7 @@ std::array<SongSlot, 0x80> Seed::songSlots
         SongSlot(0x53, "Bremen March", {}), // Not randomized - look later into adding tempo & dog thing
         SongSlot(0x54, "Ballad of the Wind Fish", {}), // // Ocarina song
         SongSlot(0x55, "Song of Soaring", {}), // Ocarina song
-        SongSlot(0x56, "A Pointer to Milk Bar For Some Reason", {}), // Pointer
+        SongSlot(0x56, "Milk Bar (Pointer)", {}), // Pointer
         SongSlot(0x57, "Last Day", {FINAL_HOURS}),
         SongSlot(0x58, "Mikau", {}), // Not randomized bc you never hear it in the rando
         SongSlot(0x59, "Concert For You", {}), // Not randomized bc you never hear it in the rando

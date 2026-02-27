@@ -36,6 +36,13 @@ RECOMP_IMPORT("magemods_audio_api", void AudioApi_SetSequenceFlags(s32 seqId, u8
 RECOMP_IMPORT("magemods_audio_api", void AudioApi_RestoreSequenceFlags(s32 seqId));
 
 RECOMP_IMPORT("magemods_audio_api", s32 AudioApi_IsSequencePlaying(s32 seqId));
+
+/**
+ * Custom sequence IDs beyond the vanilla range.
+ * Replace these with AudioApi_ReplaceSequence() to activate them.
+ */
+#define NB_BGM_MORNING NA_BGM_MAX
+
 RECOMP_IMPORT("magemods_audio_api", void AudioApi_PlayFanfare(s32 seqId, u16 seqArgs));
 RECOMP_IMPORT("magemods_audio_api", void AudioApi_PlayMainBgm(s32 seqId));
 RECOMP_IMPORT("magemods_audio_api", void AudioApi_PlayObjSoundBgm(Vec3f* pos, s32 seqId));

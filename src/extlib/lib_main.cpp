@@ -82,30 +82,16 @@ void copy_into_mod_ram(char* dst, char* src, size_t size)
     return;
 }
 
-RECOMP_DLL_FUNC(fetch_randomized_track)
+void prepare_vanilla_track(std::shared_ptr<Track> extlibTrack, cTrack* modTrack)
 {
-    int slotIdx = RECOMP_ARG(int, 0);
-    cTrack* modTrack = RECOMP_ARG(cTrack*, 1);
-    cTrack tempTrack;
+    modTrack->type = cTrackType(TrackType::VANILLA);
 
-    std::shared_ptr<Track> extlibTrack = seed->randomized[slotIdx];
-    
+    modTrack->seq.id = extlibTrack->id - 0x200;
+}
+
+void prepare_custom_track(std::shared_ptr<Track> extlibTrack, cTrack* modTrack)
+{
     modTrack->type = cTrackType(extlibTrack->type);
-
-    for(int i = 0; i < extlibTrack->name.length() && i < 256; i++)
-    {
-        modTrack->name[i ^ 3] = extlibTrack->name[i];
-    }
-
-    std::string slotName = seed->get_slot_name(SongSlotID(slotIdx));
-
-    for(int i = 0; i < slotName.length() && i < 256; i++)
-    {
-        modTrack->slotName[i ^ 3] = slotName[i];
-    }
-
-    modTrack->bankNo = extlibTrack->bankNo;
-    modTrack->tableIdx = slotIdx;
 
     if (extlibTrack->sequence)
     {
@@ -135,7 +121,7 @@ RECOMP_DLL_FUNC(fetch_randomized_track)
         modTrack->hasBank = false;
     }
 
-    modTrack->numSounds = extlibTrack->soundIds.size();
+    modTrack->numSounds = 0;
 
     for (int i = 0; i < extlibTrack->soundIds.size(); i++)
     {
@@ -155,6 +141,39 @@ RECOMP_DLL_FUNC(fetch_randomized_track)
         modTrack->formmask.states[i] = extlibTrack->formmask.states[i];
     }
     modTrack->formmask.cumulativeStates = extlibTrack->formmask.cumulativeStates;
+}
+
+RECOMP_DLL_FUNC(fetch_randomized_track)
+{
+    int slotIdx = RECOMP_ARG(int, 0);
+    cTrack* modTrack = RECOMP_ARG(cTrack*, 1);
+    cTrack tempTrack;
+
+    std::shared_ptr<Track> extlibTrack = seed->randomized[slotIdx];
+
+    for(int i = 0; i < extlibTrack->name.length() && i < 256; i++)
+    {
+        modTrack->name[i ^ 3] = extlibTrack->name[i];
+    }
+
+    std::string slotName = seed->get_slot_name(SongSlotID(slotIdx));
+
+    for(int i = 0; i < slotName.length() && i < 256; i++)
+    {
+        modTrack->slotName[i ^ 3] = slotName[i];
+    }
+
+    modTrack->bankNo = extlibTrack->bankNo;
+    modTrack->slotIdx = slotIdx;
+
+    if (extlibTrack->type != TrackType::VANILLA)
+    {
+        prepare_custom_track(extlibTrack, modTrack);
+    }
+    else
+    {
+        prepare_vanilla_track(extlibTrack, modTrack);
+    }
 }
 
 RECOMP_DLL_FUNC(fetch_seq)
