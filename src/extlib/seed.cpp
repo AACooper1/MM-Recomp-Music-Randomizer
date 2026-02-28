@@ -21,6 +21,7 @@ void Seed::randomize()
         randomOrder.push_back(i);
     }
 
+    rng.seed(this->seed);
     std::ranges::shuffle(randomOrder, rng);
 
     for (int s = 0; s < randomOrder.size(); s++)

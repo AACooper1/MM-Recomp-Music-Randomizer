@@ -147,8 +147,10 @@ void Database::add_if_not_in_db()
                 entry.path().filename().string(), 
                 fs::last_write_time(entry.path()).time_since_epoch().count()
             );
+            logger.debug.disable_header();
             continue;
         }
+        logger.debug.enable_header();
         std::shared_ptr<Track> track = std::make_shared<Track>(entry.path());
         if (track->type == TrackType::UNKNOWN)
         {

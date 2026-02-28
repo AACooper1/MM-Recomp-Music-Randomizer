@@ -16,36 +16,30 @@ void music_rando_update_db()
 
 RECOMP_HOOK_RETURN("ConsoleLogo_Init") void begin_if_no_rando()
 {
-    if (recomp_is_dependency_met("mm_recomp_rando") != DEPENDENCY_STATUS_FOUND)
+    DependencyStatus found_rando = recomp_is_dependency_met("mm_recomp_rando");
+    if (found_rando != DEPENDENCY_STATUS_FOUND)
     {
+        logger.debug("Rando not found: %i\n", found_rando);
         music_rando_update_db();
     }
 }
 
 RECOMP_CALLBACK("mm_recomp_rando", rando_on_connect) void launch_on_rando_connect()
 {
+    recomp_printf("Connected to rando. Starting music randomization...\n");
     music_rando_update_db();
 }
 
 RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_seed()
 {
-    logger.dev("in this one function now\n");
     unsigned char* savePath = recomp_get_save_file_path();
-    logger.dev("What?\n");
+    logger.noheader.dev("Save path: %s\n", savePath);
 
     int randoSeed;
-
-    if (recomp_is_dependency_met("mm_recomp_rando") == DEPENDENCY_STATUS_FOUND)
-    {
-        randoSeed = rando_get_random_seed_external();
-        logger.debug("Seed: %i\n", randoSeed);
-    }
-    else
-    {
-        randoSeed = get_current_time();
-    }
+    randoSeed = get_current_time();
 
     prepare_seed(randoSeed, savePath, true, true);
+    recomp_free(savePath);
     logger.debug("Prepared seed!\n");
 
     prepare_tracks();
@@ -91,7 +85,7 @@ void populate_custom_track(cTrack* track)
     }
     else
     {
-        logger.dev("Track %s does not have a sequence!\n", track->name);
+        logger.warning("Track %s does not have a sequence!\n", track->name);
     }
     if (track->hasBank)
     {
@@ -107,7 +101,6 @@ void populate_custom_track(cTrack* track)
 
 AudioTableEntry* create_seq_entry_from_track(cTrack* track)
 {
-    logger.dev("Creating entry for %s (id %x)...\n", track->name, track->seq.id);
     AudioTableEntry* mySeq = recomp_alloc(sizeof(AudioTableEntry));
 
     mySeq->romAddr = (uintptr_t) track->seq.data;
@@ -128,7 +121,6 @@ void link_custom_sound(cTrack* track, int soundIdx, u32* bank)
         u32 sampleAddr = track->sounds[s].sampleAddr;
         for (int i = 0; i < track->bank.size / sizeof(u32); i++)
         {
-            // logger.noheader.dev("\t@%04x: %02x %02x %02x %02x\n", i, bank[i], bank[i + 1], bank[i + 2], bank[i + 3]);
             if (bank[i] == sampleAddr)
             {
                 bank[i] = (u32)track->sounds[s].data;
@@ -159,24 +151,15 @@ s32 create_bank_entry_from_track(cTrack* track)
 
 void replace_custom(int i)
 {
-    logger.dev("Replacing track %s\n", randomized[i].name);
-    logger.noheader.dev("(type is %i)", randomized[i].type);
     cTrack* track = &randomized[i];
     AudioTableEntry* mySeq = create_seq_entry_from_track(track);
-    logger.noheader.dev("\tCreated seq\n");
     AudioApi_ReplaceSequence(i, mySeq);
 
     if (track->hasBank)
     {
         track->bankNo = create_bank_entry_from_track(track);
-        logger.noheader.dev("\tCreated bank\n");
-    }
-    else
-    {
-        logger.noheader.dev("\tUses vanilla bank\n");
     }
     AudioApi_ReplaceSequenceFont(i, 0, track->bankNo);
-    logger.noheader.dev("Replaced sequence font!");
 }
 
 void replace_vanilla(int i)
