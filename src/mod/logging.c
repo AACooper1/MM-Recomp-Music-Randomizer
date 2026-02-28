@@ -172,6 +172,10 @@ void logger_init(Logger* logger)
     logger->noheader.warning = _warning_noheader;
     logger->noheader.error = _error_noheader;
     logger->noheader.critical = _critical_noheader;
+
+    update_log_level();
+
+    logger->is_initialized = true;
 }
 
 void set_log_level(LogLevel level)
@@ -205,4 +209,31 @@ void print_bytes(void* addr, int n)
         recomp_printf("%02x ", *(unsigned char*)(addr + i));
     }
     recomp_printf("\n\n");
+}
+
+extern Logger logger;
+RECOMP_HOOK("Play_Main") void refresh_log_level()
+{
+    update_log_level();
+}
+
+void update_log_level()
+{
+    LogLevel setLevel = recomp_get_config_u32("log_level");
+    if (get_log_level() != setLevel)
+    {
+        set_log_level(setLevel);
+        recomp_printf("[MUSIC RANDOMIZER] Set log level to ");
+        switch(setLevel)
+        {
+            case 0: recomp_printf("Nothing"); break;
+            case 1: recomp_printf("Critical"); break;
+            case 2: recomp_printf("Error"); break;
+            case 3: recomp_printf("Warning"); break;
+            case 4: recomp_printf("Info"); break;
+            case 5: recomp_printf("Debug"); break;
+            case 6: recomp_printf("Dev"); break;
+        }
+        recomp_printf(".\n");
+    }
 }

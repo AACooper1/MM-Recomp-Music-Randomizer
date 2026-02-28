@@ -50,7 +50,7 @@ bool Track::read_from_file()
     memset(&archive, 0, sizeof(mz_zip_archive)); // Gotta do this because it's still 1991    
     if (!mz_zip_reader_init_file(&archive, path.string().c_str(), 0))
     {
-        logger.error << "Error reading zip file." << std::endl;
+        logger.error << "Error reading zip file " << path.string() << ": " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
         return false;
     }
 

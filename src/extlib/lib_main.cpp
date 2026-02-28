@@ -17,7 +17,6 @@ std::shared_ptr<Seed> seed;
 RECOMP_DLL_FUNC(prepare_database) {
     std::string modPath = RECOMP_ARG_STR(0);
     
-    logger.set_log_level(LogLevel::LOG_DEV);
     logger.dev << "Extlib-side logger OK!" << std::endl;
 
     fs::path dbPath = (fs::path)modPath;

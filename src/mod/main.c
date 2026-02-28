@@ -3,7 +3,7 @@
 void music_rando_update_db()
 {
     logger_init(&logger);
-    set_log_level(LOG_DEV);
+    update_log_level();
     logger.debug("%s", "Mod-side logger OK!\n");
     logger.noheader.debug("%s", "Mod-side no-header logger OK!\n");
 
@@ -51,7 +51,8 @@ RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_see
     for (int i = 2; i < NUM_SONG_SLOTS; i++)
     {
         logger.noheader.info("Randomized %s to %s!", randomized[i].slotName, randomized[i].name);
-        logger.noheader.dev("(%x --> %x)\n", randomized[i].slotIdx, randomized[i].seq.id);
+        logger.noheader.dev("(%x --> %x)", randomized[i].slotIdx, randomized[i].seq.id);
+        logger.noheader.info("\n");
     }
 }
 
@@ -164,7 +165,7 @@ void replace_custom(int i)
 
 void replace_vanilla(int i)
 {
-    AudioTableEntry* mySeq = create_seq_entry_from_track(&randomized[i]);
+    if (i == NA_BGM_FROG_SONG) return;
 
     AudioApi_ReplaceSequence(i, &origTableCopy[randomized[i].seq.id]);
     AudioApi_ReplaceSequenceFont(i, 0, randomized[i].bankNo);

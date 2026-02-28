@@ -29,6 +29,7 @@ typedef struct Logger_noheader_t
 
 typedef struct Logger_t
 {
+    bool is_initialized;
     void (*dev)(const char* fmt, ...);
     void (*debug)(const char* fmt, ...);
     void (*info)(const char* fmt, ...);
@@ -45,5 +46,6 @@ void logger_init(Logger* logger);
 
 void set_log_level(LogLevel level);
 LogLevel get_log_level();
+void update_log_level();
 
 void print_bytes(void* addr, int n);

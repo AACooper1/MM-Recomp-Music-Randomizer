@@ -116,7 +116,7 @@ id = "log_level"
 name = "Log Level"
 description = "Controls the verbosity output to the console. Only affects debug releases."
 type = "Enum"
-options = [ "Nothing", "Critical", "Error", "Warning", "Info", "Debug" ]
+options = [ "Nothing", "Critical", "Error", "Warning", "Info", "Debug", "Dev" ]
 default = "Error"
 
 [[manifest.config_options]]
