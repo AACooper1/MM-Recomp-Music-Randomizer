@@ -1,6 +1,6 @@
 #include "main.h"
 
-RECOMP_HOOK_RETURN("ConsoleLogo_Init") void music_rando_update_db()
+void music_rando_update_db()
 {
     logger_init(&logger);
     set_log_level(LOG_DEV);
@@ -10,18 +10,35 @@ RECOMP_HOOK_RETURN("ConsoleLogo_Init") void music_rando_update_db()
     unsigned char* modPath = recomp_get_mod_folder_path();
 
     prepare_database(modPath);
-    music_rando_db_updated();
+    logger.debug("Finished prepare_database!\n");
+    music_rando_begin_randomization();
 }
 
-RECOMP_CALLBACK(".", music_rando_db_updated) void music_rando_ready_seed()
+RECOMP_HOOK_RETURN("ConsoleLogo_Init") void begin_if_no_rando()
 {
+    if (recomp_is_dependency_met("mm_recomp_rando") != DEPENDENCY_STATUS_FOUND)
+    {
+        music_rando_update_db();
+    }
+}
+
+RECOMP_CALLBACK("mm_recomp_rando", rando_on_connect) void launch_on_rando_connect()
+{
+    music_rando_update_db();
+}
+
+RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_seed()
+{
+    logger.dev("in this one function now\n");
     unsigned char* savePath = recomp_get_save_file_path();
+    logger.dev("What?\n");
 
     int randoSeed;
 
     if (recomp_is_dependency_met("mm_recomp_rando") == DEPENDENCY_STATUS_FOUND)
     {
         randoSeed = rando_get_random_seed_external();
+        logger.debug("Seed: %i\n", randoSeed);
     }
     else
     {
@@ -29,8 +46,10 @@ RECOMP_CALLBACK(".", music_rando_db_updated) void music_rando_ready_seed()
     }
 
     prepare_seed(randoSeed, savePath, true, true);
+    logger.debug("Prepared seed!\n");
 
     prepare_tracks();
+    logger.debug("Prepared tracks!\n");
 
     replace_tracks();
 
@@ -42,28 +61,25 @@ RECOMP_CALLBACK(".", music_rando_db_updated) void music_rando_ready_seed()
     }
 }
 
+AudioTableEntry* origTableCopy;
+
 void prepare_tracks()
 {
+    origTableCopy = recomp_alloc(sizeof(AudioTableEntry) * gAudioCtx.sequenceTable->header.numEntries);
+    Lib_MemCpy(origTableCopy, gAudioCtx.sequenceTable->entries, sizeof(AudioTableEntry) * gAudioCtx.sequenceTable->header.numEntries);
     // Start at 2, because we want to skip the SFX and Ambience entries.
     for (int i = 2; i < NUM_SONG_SLOTS; i++)
     {
         fetch_randomized_track(i, &randomized[i]);
         if (randomized[i].type == VANILLA)
         {
-            populate_vanilla_track(&randomized[i]);
+            randomized[i].seq.id += 0x100;
         }
         else
         {
             populate_custom_track(&randomized[i]);
         }
     }
-}
-
-void populate_vanilla_track(cTrack* track)
-{
-    track->seq.id += 0x100;
-    track->seq.data = (char*)gAudioCtx.sequenceTable->entries[track->seq.id].romAddr;
-    logger.dev("Populated %s. ID is %i, addr is %p.\n", track->name, track->seq.id, track->seq.data);
 }
 
 void populate_custom_track(cTrack* track)
@@ -167,7 +183,7 @@ void replace_vanilla(int i)
 {
     AudioTableEntry* mySeq = create_seq_entry_from_track(&randomized[i]);
 
-    AudioApi_ReplaceSequence(i, mySeq);
+    AudioApi_ReplaceSequence(i, &origTableCopy[randomized[i].seq.id]);
     AudioApi_ReplaceSequenceFont(i, 0, randomized[i].bankNo);
 }
 

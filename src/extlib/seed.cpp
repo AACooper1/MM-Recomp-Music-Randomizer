@@ -164,6 +164,7 @@ int Seed::save_seed()
 
 int Seed::load_seed(fs::path savePath)
 {
+    logger.info << "Loading existing seed for save file!" << std::endl;
     std::shared_ptr<Database> seedDb = std::make_shared<Database>(this->savePath, true);
     seedDb->seedTable = std::make_unique<SlotToTrackTable>(seedDb, "slot_to_track");
     for (int i = 2; i < songSlots.size(); i++)

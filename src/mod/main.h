@@ -23,7 +23,7 @@ RECOMP_IMPORT(".", u32 get_current_time());
 
 RECOMP_IMPORT("mm_recomp_rando", u32 rando_get_random_seed_external());
 
-RECOMP_DECLARE_EVENT(music_rando_db_updated())
+RECOMP_DECLARE_EVENT(music_rando_begin_randomization())
 
 Logger logger;
 cTrack randomized[NUM_SONG_SLOTS];

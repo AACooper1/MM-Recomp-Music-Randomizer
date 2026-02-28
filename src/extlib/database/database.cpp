@@ -132,6 +132,8 @@ int Database::update_from_music_dir()
     add_if_not_in_db();
     remove_if_not_in_music_dir();
 
+    logger.debug << "Finished update_from_music_dir" << std::endl;
+
     return 0;
 }
 

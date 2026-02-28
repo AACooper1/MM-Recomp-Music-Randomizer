@@ -165,7 +165,7 @@ void Track::parse_categories(std::vector<char>& filebuffer)
         int cat = -1;
         try 
         {
-            cat = std::stoi(categories[i], 0, 16);
+            cat = std::stoi(categories[i], 0, 10);
         }
         catch (const std::exception& e) 
         {
