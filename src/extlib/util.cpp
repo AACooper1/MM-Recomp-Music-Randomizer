@@ -1,38 +1,19 @@
-#include "lib_recomp.hpp"
-#include "util.h"
+#include <vector>
+#include <string>
 
-#include <ctime>
-
-RECOMP_DLL_FUNC(get_current_time)
+std::vector<std::string> split_string(const std::string& s, const std::string& delims)
 {
-    RECOMP_RETURN(u32, (u32)(time(nullptr) & 0xFFFFFF));
-}
+    std::vector<std::string> tokens;
 
-RECOMP_DLL_FUNC(fucking_use_stoi)
-{
-    std::string whatever = RECOMP_ARG_STR(0);
+    std::string::size_type lastPos = s.find_first_not_of(delims, 0);
+    std::string::size_type pos     = s.find_first_of(delims, lastPos);
 
-    RECOMP_RETURN(int, (int)std::stoll(whatever) % INT32_MAX);
-}
-
-void mmrs_util::set_log_level(log_level_t level)
-{
-    gLogLevel = level;
-}
-
-std::ostream* mmrs_util::_log(log_level_t level)
-{
-    std::cout.clear();
-    if (gLogLevel < level)
+    while (std::string::npos != pos || std::string::npos != lastPos)
     {
-        std::cout.setstate(std::ios::failbit);
+        tokens.push_back(s.substr(lastPos, pos - lastPos));
+        lastPos = s.find_first_not_of(delims, pos);
+        pos = s.find_first_of(delims, lastPos);
     }
 
-    return &std::cout;
+    return tokens;
 }
-
-std::ostream&  mmrs_util::critical() {return *mmrs_util::_log(LOG_CRITICAL);}
-std::ostream&  mmrs_util::error() {return *mmrs_util::_log(LOG_ERROR);}
-std::ostream&  mmrs_util::warning() {return *mmrs_util::_log(LOG_WARNING);}
-std::ostream&  mmrs_util::info() {return *mmrs_util::_log(LOG_INFO);}
-std::ostream&  mmrs_util::debug() {return *mmrs_util::_log(LOG_DEBUG);}

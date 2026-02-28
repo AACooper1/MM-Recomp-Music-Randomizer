@@ -5,13 +5,13 @@
 
 # Unique ID of this mod. Pick something long enough that it'll never be the same as any other mod.
 # The name displayed in the mod management menu is separate from this so this doesn't need to be human readable.
-id = "mm_music_randomizer"
+id = "mm_music_randomizer_tests"
 
 # Version of this mod.
-version = "0.1.4"
+version = "0.0.1"
 
 # The name that will show up for this mod in the mod menu. This should be human readable.
-display_name = "MM Music Randomizer"
+display_name = "MM Music Randomizer (Tests)"
 
 # The description that will show up when this mod is displayed in the mod menu. This should be human readable.
 description =  """
@@ -33,26 +33,22 @@ minimum_recomp_version = "1.2.0"
 
 # Dependency mods. Each entry is the mod's ID and then an optional minimum version of the dependency mod.
 dependencies = [
-   "magemods_audio_api"
-]
-
-optional_dependencies = [
-    "mm_recomp_rando"
+   "magemods_audio_api:0.5.2"
 ]
 
 # Native libraries (e.g. DLLs) and the functions they export.
 native_libraries = [
-   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["_log", "_set_log_level", "_get_log_level", "get_current_time", "prepare_database", "prepare_seed", "fetch_randomized_track", "fetch_seq", "fetch_bank", "fetch_sound"] }
+   { name = "mm_recomp_mmrs_reader_extlib", funcs = ["prepare_database", "_log", "launch_tests"] }
 ]
 
 # Inputs to the mod tool.
 [inputs]
 
 # Input elf file to generate a mod from.
-elf_path = "build/mod.elf"
+elf_path = "build/test.elf"
 
 # Output mod filename.
-mod_filename = "mm_music_randomizer"
+mod_filename = "mm_music_randomizer_tests"
 
 # Reference symbol files.
 func_reference_syms_file = "Zelda64RecompSyms/mm.us.rev1.syms.toml"
@@ -64,10 +60,12 @@ additional_files = [ "thumb.png" ]
 # Info for building the extlib. If this mod will have no extlib, remove this section and
 # the build scripts disable extlib compilation and packaging. You can then safely delete 
 # ./CMakeLists.txt, ./CMakePresets.json, and ./src/extlib/**
-[extlib_compiling]
+
+# [extlib_compiling]
 
 # # Name of the extlib. This information is passed to CMake as the target name for the extlib.
-library_name = "mm_recomp_mmrs_reader_extlib"
+
+# library_name = "mm_recomp_mmrs_reader_tests"
 
 # Your CMake presets in this file should be designed to handle cross-compilation (using the provided
 # Zig toolchain is recommended). When building the mod, CMake will be invoked 3 times to build
@@ -89,59 +87,23 @@ library_name = "mm_recomp_mmrs_reader_extlib"
 # the make variables `NATIVE_CMAKE_CONFIGURE_PRESET` and `NATIVE_CMAKE_BUILD_PRESET`.
 
 # CMake presets for Debug builds. 
-windows_debug_configure_preset = "zig-windows-x64-Debug"
-windows_debug_build_preset = "zig-windows-x64-Debug"
+# windows_debug_configure_preset = "zig-windows-x64-Debug"
+# windows_debug_build_preset = "zig-windows-x64-Debug"
 
-macos_debug_configure_preset = "zig-macos-aarch64-Debug"
-macos_debug_build_preset = "zig-macos-aarch64-Debug"
+# macos_debug_configure_preset = "zig-macos-aarch64-Debug"
+# macos_debug_build_preset = "zig-macos-aarch64-Debug"
 
-linux_debug_configure_preset = "zig-linux-x64-Debug"
-linux_debug_build_preset = "zig-linux-x64-Debug"
+# linux_debug_configure_preset = "zig-linux-x64-Debug"
+# linux_debug_build_preset = "zig-linux-x64-Debug"
 
-# CMake presets for Release builds. Used to contruct preset groups in `user_build_config.json`.
-windows_release_configure_preset = "zig-windows-x64-Release"
-windows_release_build_preset = "zig-windows-x64-Release"
+# # CMake presets for Release builds. Used to contruct preset groups in `user_build_config.json`.
+# windows_release_configure_preset = "zig-windows-x64-Release"
+# windows_release_build_preset = "zig-windows-x64-Release"
 
-macos_release_configure_preset = "zig-macos-aarch64-Release"
-macos_release_build_preset = "zig-macos-aarch64-Release"
+# macos_release_configure_preset = "zig-macos-aarch64-Release"
+# macos_release_build_preset = "zig-macos-aarch64-Release"
 
-linux_release_configure_preset = "zig-linux-x64-Release"
-linux_release_build_preset = "zig-linux-x64-Release"
+# linux_release_configure_preset = "zig-linux-x64-Release"
+# linux_release_build_preset = "zig-linux-x64-Release"
 
 # Mod config options
-
-[[manifest.config_options]]
-
-id = "log_level"
-name = "Log Level"
-description = "Controls the verbosity output to the console. Only affects debug releases."
-type = "Enum"
-options = [ "Nothing", "Critical", "Error", "Warning", "Info", "Debug" ]
-default = "Error"
-
-[[manifest.config_options]]
-
-id = "disable_enemy_bgm"
-name = "Disable Combat Music"
-description = "Controls whether combat music plays while fighting a normal enemy. Does not apply to (mini-)bosses."
-type = "Enum"
-options = [ "Off", "On" ]
-default = "Off"
-
-[[manifest.config_options]]
-
-id = "enable_night_bgm"
-name = "Enable Night Music"
-description = "Controls whether music plays outdoors at night."
-type = "Enum"
-options = [ "Off", "On" ]
-default = "Off"
-
-[[manifest.config_options]]
-
-id = "show_song_titles"
-name = "Show Song Titles"
-description = "Controls whether the songs' titles are displayed on screen."
-type = "Enum"
-options = [ "Off", "On" ]
-default = "On"

@@ -1,7 +1,21 @@
 target_sources(${TARGET_NAME} PUBLIC
-    "read_mmrs.cpp"
-    "miniz.c"
     "sqlite3.c"
-    "mmrsSql.cpp"
+    "miniz.c"
+
+    "lib_main.cpp"
+
+    "database/database.cpp"
+    "database/table.cpp"
+    "database/tracktable.cpp"
+    "database/sequencetable.cpp"
+    "database/banktable.cpp"
+    "database/soundtable.cpp"
+    "database/relationtable.cpp"
+    
+    "audiofile.cpp"
+    "track.cpp"
+    "logging.cpp"
     "util.cpp"
+    "formmask.cpp"
+    "seed.cpp"
 )

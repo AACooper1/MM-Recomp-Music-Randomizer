@@ -1,4 +1,5 @@
 *.d
+*.c_
 *.o
 *.out
 *.elf
@@ -11,9 +12,11 @@
 *.pdb
 *.exp
 *.pyc
+.vs
 *.thunderstore.zip
 *.nrm
 ./funcs.h
+mm-decomp/tools
 patches.map
 assets_extracted/
 build/
@@ -31,3 +34,8 @@ src/mod/sound_randomizer.h
 src/mod/song_name_display.c
 .gitignore
 src/mod/song_name_display.h
+binaries/
+py/
+downloads/
+test_env/
+.vscode/

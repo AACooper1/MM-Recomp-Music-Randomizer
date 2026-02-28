@@ -56,7 +56,7 @@ class ModInfo:
         self.build_native_pdb_file = self.build_native_file.with_suffix(".pdb")
         
         self.runtime_dll_file = self.runtime_mods_dir.joinpath(self.build_dll_file.name.removeprefix("lib"))
-        self.runtime_pdb_file = self.runtime_mods_dir.joinpath(self.build_pdb_file.name.removeprefix("lib"))
+        self.runtime_pdb_file = self.runtime_mods_dir.joinpath(self.build_pdb_file.name)#.removeprefix("lib"))
         self.runtime_dylib_file = self.runtime_mods_dir.joinpath(self.build_dylib_file.name.removeprefix("lib"))
         self.runtime_so_file = self.runtime_mods_dir.joinpath(self.build_so_file.name.removeprefix("lib"))
         self.runtime_native_file = self.runtime_mods_dir.joinpath(self.build_native_file.name.removeprefix("lib"))
