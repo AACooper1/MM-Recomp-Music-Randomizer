@@ -54,6 +54,8 @@ RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_see
         logger.noheader.dev("(%x --> %x)", randomized[i].slotIdx, randomized[i].seq.id);
         logger.noheader.info("\n");
     }
+
+    music_rando_randomization_complete(randomized);
 }
 
 AudioTableEntry* origTableCopy;
