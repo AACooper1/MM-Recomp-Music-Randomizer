@@ -24,8 +24,13 @@ RECOMP_HOOK_RETURN("ConsoleLogo_Init") void begin_if_no_rando()
     }
 }
 
-RECOMP_CALLBACK("mm_recomp_rando", rando_on_connect) void launch_on_rando_connect()
+RECOMP_HOOK("Setup_InitImpl") void launch_on_rando_connect()
 {
+    DependencyStatus found_rando = recomp_is_dependency_met("mm_recomp_rando");
+    if (found_rando != DEPENDENCY_STATUS_FOUND)
+    {
+        return;
+    }
     recomp_printf("Connected to rando. Starting music randomization...\n");
     music_rando_update_db();
 }
