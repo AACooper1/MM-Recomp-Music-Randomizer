@@ -20,6 +20,8 @@ enum class LogLevel
     LOG_DEV
 };
 
+extern Log logger;
+
 class Logger
 {
     public:

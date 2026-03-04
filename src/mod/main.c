@@ -52,15 +52,16 @@ RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_see
 
     replace_tracks();
 
+    music_rando_randomization_complete(randomized);
+
     logger.info("");
     for (int i = 2; i < NUM_SONG_SLOTS; i++)
     {
-        logger.noheader.info("Randomized %s to %s!", randomized[i].slotName, randomized[i].name);
+        if (should_skip_song_title_display[i]) continue;
+        logger.noheader.info("%s --> %s!", randomized[i].slotName, randomized[i].name);
         logger.noheader.dev("(%x --> %x)", randomized[i].slotIdx, randomized[i].seq.id);
         logger.noheader.info("\n");
     }
-
-    music_rando_randomization_complete(randomized);
 }
 
 AudioTableEntry* origTableCopy;

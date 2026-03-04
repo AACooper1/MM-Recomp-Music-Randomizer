@@ -18,4 +18,5 @@ target_sources(${TARGET_NAME} PUBLIC
     "util.cpp"
     "formmask.cpp"
     "seed.cpp"
+    "songforce_songtest.cpp"
 )

@@ -79,7 +79,8 @@ int RelationTable::insert(int id_1, int id_2)
 {
     std::string query = std::format(
         "INSERT INTO {0} ({1}, {2})"
-        "VALUES ({3}, {4})",
+        "VALUES ({3}, {4})"
+        "ON CONFLICT ({1}) DO UPDATE SET {2}={4};",
         name, col1, col2, id_1, id_2
     );
 

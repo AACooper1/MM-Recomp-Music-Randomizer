@@ -27,7 +27,7 @@ void Seed::randomize()
     for (int s = 0; s < randomOrder.size(); s++)
     {
         int i = randomOrder[s];
-        randomize_slot(i); 
+        randomize_slot(i);
     }
     
     prepare_tracks();
@@ -54,6 +54,7 @@ void Seed::randomize_slot(int i)
     if (songSlots[i].availableTracks.size() == 0)
     {
         randomized.emplace(i, songSlots[i].vanillaTrack);
+        clear_track_availability(songSlots[i].vanillaTrack->id);
         return;
     }
 
@@ -62,9 +63,20 @@ void Seed::randomize_slot(int i)
     int trackId = songSlots[i].availableTracks[0];
 
     randomized.emplace(i, tracks[trackId]);
+
+    clear_track_availability(trackId);
+}
+
+void Seed::clear_track_availability(int trackId)
+{
     for (int i = 2; i < songSlots.size(); i++)
     {
         std::erase(songSlots[i].availableTracks, trackId);
+    }
+
+    if (songforceTracks.contains(trackId))
+    {
+        songforceTracks.erase(trackId);
     }
 }
 
@@ -86,6 +98,10 @@ void Seed::populate_track_table()
         {
             tracks.emplace(track->databaseIndex, track);
             track->seedIdx = track->databaseIndex;
+            if (track->name.contains("songforce"))
+            {
+                songforceTracks.insert(id);
+            }
             idx++;
         }
     }
@@ -138,6 +154,8 @@ void Seed::prepare_tracks()
 {
     for (const auto & [id, track] : randomized)
     {
+        if (track->is_prepared)
+            continue;
         if (track->type != TrackType::VANILLA)
             db->prepare_track(track->databaseIndex);
     }

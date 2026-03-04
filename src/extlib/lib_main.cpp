@@ -10,8 +10,9 @@ extern "C" {
     DLLEXPORT uint32_t recomp_api_version = 1;
 }
 
-std::shared_ptr<Database> db;
 Log logger;
+
+std::shared_ptr<Database> db;
 std::shared_ptr<Seed> seed;
 
 RECOMP_DLL_FUNC(prepare_database) {
@@ -69,6 +70,12 @@ RECOMP_DLL_FUNC(prepare_seed)
         seed->randomize();
         seed->save_seed();
     }
+    if (seed->songforceTracks.size())
+    {
+        seed->apply_songforce();
+        seed->save_seed();
+    }
+    seed->apply_songtest();
 }
 
 void copy_into_mod_ram(char* dst, char* src, size_t size)
@@ -206,37 +213,4 @@ RECOMP_DLL_FUNC(fetch_sound)
     char* sound = db->tables->sound->entries[id]->data->data();
 
     copy_into_mod_ram(dst, sound, size);
-}
-
-RECOMP_DLL_FUNC(_log)
-{
-    std::string msg = RECOMP_ARG_STR(0);
-    LogLevel level = (LogLevel)RECOMP_ARG(int, 1);
-    if (logger.get_log_level() > LogLevel::LOG_DEV) logger.set_log_level(LogLevel::LOG_DEV);
-    switch (level)
-    {
-        case LogLevel::LOG_DEV: logger.dev << msg; break;
-        case LogLevel::LOG_DEBUG: logger.debug << msg; break;
-        case LogLevel::LOG_INFO: logger.info << msg; break;
-        case LogLevel::LOG_WARNING: logger.warning << msg; break;
-        case LogLevel::LOG_ERROR: logger.error << msg; break;
-        case LogLevel::LOG_CRITICAL: logger.critical << msg; break;
-        default: break;
-    }
-}
-
-RECOMP_DLL_FUNC(_set_log_level)
-{
-    LogLevel level = LogLevel(RECOMP_ARG(int, 0));
-    logger.set_log_level(level);
-}
-
-RECOMP_DLL_FUNC(_get_log_level)
-{
-    RECOMP_RETURN(int, logger.get_log_level());
-}
-
-RECOMP_DLL_FUNC(get_current_time)
-{
-    RECOMP_RETURN(u32, (u32)(time(nullptr) & 0xFFFFFF));
 }

@@ -31,6 +31,8 @@ cTrack randomized[NUM_SONG_SLOTS];
 cSound customSounds[256];
 AudioTable* vanillaTableCopy;
 
+extern bool should_skip_song_title_display[0x7F];
+
 AudioTableEntry* create_seq_entry_from_track(cTrack* track);
 AudioTable* copy_vanilla_audiotable();
 

@@ -20,7 +20,7 @@ Track::Track(fs::path path)
     {
         type = TrackType::UNKNOWN;
     }
-
+    
     sequence = nullptr;
     bank = nullptr;
     bankNo = 0;

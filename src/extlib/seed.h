@@ -46,6 +46,7 @@ class Seed
 
         std::shared_ptr<Database> db;
         std::map<int, std::shared_ptr<Track>> tracks;
+        std::set<int> songforceTracks;
 
         std::map<int, std::shared_ptr<Track>> randomized;
 
@@ -53,6 +54,9 @@ class Seed
         void randomize_slot(int i);
         std::vector<int> get_available_tracks(SongSlotID slotId);
         std::string get_slot_name(SongSlotID slotId);
+
+        void apply_songtest();
+        void apply_songforce();
 
         int save_seed();
         int load_seed(fs::path savePath);
@@ -62,6 +66,7 @@ class Seed
         void prepare_song_slots();
         void link_slots_to_vanilla();
         void prepare_tracks();
+        void clear_track_availability(int trackId);
 
         Category categories[0x200];
 

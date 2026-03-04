@@ -1,6 +1,8 @@
 #include <vector>
 #include <string>
 
+#include "util.h"
+
 std::vector<std::string> split_string(const std::string& s, const std::string& delims)
 {
     std::vector<std::string> tokens;
@@ -16,4 +18,9 @@ std::vector<std::string> split_string(const std::string& s, const std::string& d
     }
 
     return tokens;
+}
+
+RECOMP_DLL_FUNC(get_current_time)
+{
+    RECOMP_RETURN(u32, (u32)(time(nullptr) & 0xFFFFFF));
 }

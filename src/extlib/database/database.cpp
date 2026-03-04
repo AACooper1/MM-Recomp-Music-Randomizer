@@ -349,6 +349,7 @@ int Database::prepare_track(int id)
             tables->sound->load_entry(track->soundIds[i]);
             track->sounds.push_back(tables->sound->entries[track->soundIds[i]]);
         }
+        track->is_prepared = true;
         return true;
     }
     else

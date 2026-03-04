@@ -21,9 +21,12 @@ class SongSlot
             }
             return false;
         }
+
+        void roll_songforce(int i);
         
         std::string name;
         std::vector<int> categories;
+        bool is_songforce = false;
 
         std::vector<int> availableTracks;
         std::vector<int> availableTracksNoRemove;

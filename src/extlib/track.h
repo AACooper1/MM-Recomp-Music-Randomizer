@@ -51,6 +51,7 @@ class Track
         int id = 0;
         int databaseIndex = 0;
         int seedIdx = 0;
+        bool is_prepared = false;
 
         fs::path path;
         long long int timestamp;
