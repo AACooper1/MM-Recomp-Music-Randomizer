@@ -1,5 +1,16 @@
 #include "main.h"
 
+RECOMP_HOOK("Graph_UpdateGame") void extract_gamestate(GameState* gameState)
+{
+    gCtx = gameState;
+    return;
+}
+
+RECOMP_HOOK_RETURN("Graph_UpdateGame") void after_graph_updategame()
+{
+    
+}
+
 void music_rando_update_db()
 {
     logger_init(&logger);

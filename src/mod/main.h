@@ -26,6 +26,16 @@ RECOMP_IMPORT("mm_recomp_rando", u32 rando_get_random_seed_external());
 RECOMP_DECLARE_EVENT(music_rando_begin_randomization());
 RECOMP_DECLARE_EVENT(music_rando_randomization_complete(cTrack* randomizedAddr));
 
+typedef struct MusicState_t 
+{
+    cTrack* nowPlaying;
+    bool has_formmask;
+    cFormMask state;
+} MusicState;
+
+GameState* gCtx;
+MusicState gMusicState;
+
 Logger logger;
 cTrack randomized[NUM_SONG_SLOTS];
 cSound customSounds[256];
