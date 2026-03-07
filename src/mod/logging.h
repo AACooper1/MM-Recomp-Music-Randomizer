@@ -1,3 +1,6 @@
+#ifndef LOGGING_H
+#define LOGGING_H
+
 // MM Recomp Mod Requirements
 #include "modding.h"
 #include "global.h"
@@ -49,3 +52,5 @@ LogLevel get_log_level();
 void update_log_level();
 
 void print_bytes(void* addr, int n);
+
+#endif

@@ -49,7 +49,7 @@
                 "MIPS"
             ],
             "compilerPath": "clang",
-            "cStandard": "c99",
+            "cStandard": "c23",
             "cppStandard": "c++23",
             "intelliSenseMode": "clang-x86"
         },

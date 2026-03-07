@@ -1,14 +1,14 @@
 #include "main.h"
 
-RECOMP_HOOK("Graph_UpdateGame") void extract_gamestate(GameState* gameState)
+RECOMP_HOOK("Play_Update") void extract_gamestate(PlayState* this)
 {
-    gCtx = gameState;
+    playCtx = this;
     return;
 }
 
-RECOMP_HOOK_RETURN("Graph_UpdateGame") void after_graph_updategame()
+RECOMP_HOOK_RETURN("Play_Update") void after_play_update()
 {
-    
+    update_music_state(playCtx);
 }
 
 void music_rando_update_db()

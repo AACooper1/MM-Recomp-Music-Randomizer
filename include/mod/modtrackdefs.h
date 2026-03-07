@@ -1,3 +1,6 @@
+#ifndef MODTRACKDEFS_H
+#define MODTRACKDEFS_H
+
 #ifndef __cplusplus
     #include "modding.h"
     #include "global.h"
@@ -72,3 +75,5 @@ typedef struct cTrack_t
     cBank bank;
     cSound sounds[64];
 } cTrack;
+
+#endif
