@@ -82,7 +82,6 @@ RECOMP_HOOK_RETURN("Audio_Update") void lower_title_display_opacity()
     recompui_open_context(titleDispCtx.context);
     if (titleDispCtx.bg_color.a >= 0xF) 
     {
-        logger.dev("Hiding title display.\n");
         hide_title_display(); 
         recompui_close_context(titleDispCtx.context); 
         return;

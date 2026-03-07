@@ -99,6 +99,8 @@ class RelationTable
         std::string col1;
         std::string col2;
 
+        bool swap_primary_key = false;
+
         std::shared_ptr<Database> db;
 };
 

@@ -33,6 +33,8 @@ int RelationTable::init(bool swap_primary_key)
         );
     }
 
+    this->swap_primary_key = swap_primary_key;
+
     return db->exec(query);
 }
 
@@ -77,12 +79,24 @@ int RelationTable::init()
 
 int RelationTable::insert(int id_1, int id_2)
 {
-    std::string query = std::format(
-        "INSERT INTO {0} ({1}, {2})"
-        "VALUES ({3}, {4})"
-        "ON CONFLICT ({1}) DO UPDATE SET {2}={4};",
-        name, col1, col2, id_1, id_2
-    );
+    std::string query;
+    if (!swap_primary_key)
+    {
+        query = std::format(
+            "INSERT INTO {0} ({1}, {2})"
+            "VALUES ({3}, {4})"
+            "ON CONFLICT ({1}) DO UPDATE SET {2}={4};",
+            name, col1, col2, id_1, id_2
+        );
+    }
+    else
+    {
+        query = std::format(
+            "INSERT INTO {0} ({1}, {2})"
+            "VALUES ({3}, {4})",
+            name, col1, col2, id_1, id_2
+        );
+    }
 
     return db->exec(query);
 }

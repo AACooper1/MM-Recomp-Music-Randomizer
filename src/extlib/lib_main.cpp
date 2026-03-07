@@ -68,13 +68,12 @@ RECOMP_DLL_FUNC(prepare_seed)
     else
     {
         seed->randomize();
-        seed->save_seed();
     }
     if (seed->songforceTracks.size())
     {
         seed->apply_songforce();
-        seed->save_seed();
     }
+    seed->save_seed();
     seed->apply_songtest();
 }
 

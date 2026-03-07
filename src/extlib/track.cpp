@@ -165,7 +165,9 @@ void Track::parse_categories(std::vector<char>& filebuffer)
         int cat = -1;
         try 
         {
-            cat = std::stoi(categories[i], 0, 10);
+            cat = std::stoi(categories[i], 0, 16);
+            if (cat == 0x10) { cat = 10; }  // Special handling for these two, as MMR handles
+            if (cat == 0x16) {cat = 16; }   // song slots in base 16 but categories in base 10
         }
         catch (const std::exception& e) 
         {

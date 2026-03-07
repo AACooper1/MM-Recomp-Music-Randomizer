@@ -197,7 +197,8 @@ int Seed::load_seed(fs::path savePath)
                 bool can_go_in_slot = false;
                 for (int j = 0; j < songSlots[i].categories.size(); j++)
                 {
-                    if ((*tracks[trackId]->categories)[j])
+                    int category = songSlots[i].categories[j];
+                    if ((*tracks[trackId]->categories)[category])
                     {
                         can_go_in_slot = true;
                         break;
