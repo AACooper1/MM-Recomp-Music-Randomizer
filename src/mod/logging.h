@@ -43,7 +43,7 @@ typedef struct Logger_t
     Logger_noheader noheader;
 } Logger;
 
-
+void sprintf_binary(char* s, u16 val);
 
 void logger_init(Logger* logger);
 

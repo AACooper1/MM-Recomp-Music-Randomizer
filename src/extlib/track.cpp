@@ -148,6 +148,7 @@ bool Track::read_from_mmrs()
         else if (filename.ends_with(".formmask"))
         {
             formmask.parse_file(*filebuffer);
+            formmask.is_default = false;
         }
     }
 

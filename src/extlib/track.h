@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <chrono>
 #include "audiofile.h"
-#include "formmask.h"
+#include "formmask.hpp"
 #include "util.h"
 
 #include "miniz.h"

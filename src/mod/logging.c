@@ -237,3 +237,15 @@ void update_log_level()
         recomp_printf(".\n");
     }
 }
+
+// Assume s is 20 bytes already allocated
+void sprintf_binary(char* s, u16 val)
+{
+    for (int i = 15; i >= 0; i--)
+    {
+        *s++ = (val & (1 << i)) ? '1' : '0';
+        if (i % 4 == 0 && i != 0)
+            *s++ = ' ';
+    }
+    *s++ = '\0';
+}

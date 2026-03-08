@@ -22,16 +22,68 @@ void update_music_state(PlayState* play)
     state |= musicState.is_cave ? CAVE : 0;
     state |= musicState.is_epona ? EPONA : 0;
     state |= musicState.is_swim ? SWIM : 0;
+    state |= musicState.is_spike_rolling ? SPIKES : 0;
     state |= musicState.is_combat ? COMBAT : 0;
     state |= musicState.is_critical_health ? CRITICAL_HEALTH : 0;
     state |= musicState.is_day ? DAY : NIGHT;
+    state &= 0x7FFF;
 
-    musicState.state = state;
-    if (musicState.prevState != musicState.state)
+    musicState.playState = state;
+    if (musicState.prevPlayState != musicState.playState)
     {
-        logger.debug("Formmask: %x\n", musicState.state);
+        sprintf_binary(musicState.state_str, state);
+        logger.debug("Music state: %s\n", musicState.state_str);
     }
-    musicState.prevState = state;
+    musicState.prevPlayState = state;
+}
+
+void apply_mask()
+{
+    for (int playerIdx = 0; playerIdx < SEQ_PLAYER_MAX; playerIdx++)
+    {
+        if (gActiveSeqs[playerIdx].seqId < 2 || gActiveSeqs[playerIdx].seqId > 0x7F) { continue; }
+
+        cFormMask* currMask = &musicState.nowPlaying[playerIdx]->formmask;
+        for (int channelIdx = 0; channelIdx < 16; channelIdx++)
+        {
+            u16 channelMask = currMask->states[channelIdx];
+            u16 channelState = 0;
+
+            for (int state = 0; state < 15; state++)
+            {
+                if (channelMask & musicState.playState)
+                {
+                    channelState = currMask->cumulativeStates & 1 << state ?
+                        channelState | 1 << state : 1 << state;
+                }
+            }
+            musicState.prevChannelStates[channelIdx] = musicState.channelStates[channelIdx];
+            musicState.channelStates[channelIdx] = channelState;
+            channelState &= 0x7FFF;
+        }
+        for (int i = 0; i < 16; i++)
+        {
+            SequenceChannel* channel = gAudioCtx.seqPlayers[playerIdx].channels[i];
+            if (musicState.channelStates[i] & musicState.playState)
+            {
+                if (channel->muted)
+                {
+                    logger.noheader.dev("Unmuting channel %x.\n", i);
+                    channel->muted = false;
+                }
+            }
+            else
+            {
+                if (!channel->muted)
+                {
+                    channel->muted = true;
+                    logger.noheader.dev("Muting channel %x.\n", i);
+                }
+            }
+        }
+    }
+
+
 }
 
 bool check_indoors(int sceneId)
@@ -86,6 +138,7 @@ RECOMP_HOOK("AudioLoad_SyncInitSeqPlayer") void update_activeseqs_seq_id(s32 pla
 {
     if (!logger.is_initialized) { return; }
     gActiveSeqs[playerIndex].seqId = seqId;
+    musicState.nowPlaying[playerIndex] = &(randomized[seqId]);
     if (seqId < 0x80)
     {
         musicState.isPlayerActive[playerIndex] = true;
@@ -97,4 +150,124 @@ RECOMP_HOOK("AudioLoad_SyncInitSeqPlayer") void update_activeseqs_seq_id(s32 pla
         musicState.nowPlaying[playerIndex] = NULL;
     }
     return;
+}
+
+extern u8 sPrevSeqMode;
+#include "overlays/actors/ovl_En_Test3/z_en_test3.h"
+extern void Player_Action_21(Player* this, PlayState* play);
+extern void Player_Action_84(Player* this, PlayState* play);
+extern void Player_Action_52(Player* this, PlayState* play);
+extern void Player_Action_53(Player* this, PlayState* play);
+extern bool func_8082EF20(Player* this);
+
+RECOMP_PATCH void Player_UpdateCamAndSeqModes(PlayState* play, Player* this) {
+    u8 seqMode;
+    s32 pad[2];
+    Camera* camera;
+    s32 camMode;
+
+    if (this == GET_PLAYER(play)) {
+        seqMode = SEQ_MODE_DEFAULT;
+        if (this->stateFlags1 & PLAYER_STATE1_100000) {
+            seqMode = SEQ_MODE_STILL;
+        } else if (this->csAction != PLAYER_CSACTION_NONE) {
+            Camera_ChangeMode(Play_GetCamera(play, CAM_ID_MAIN), CAM_MODE_NORMAL);
+        } else {
+            camera = (this->actor.id == ACTOR_PLAYER) ? Play_GetCamera(play, CAM_ID_MAIN)
+                                                      : Play_GetCamera(play, ((EnTest3*)this)->subCamId);
+            if ((this->actor.parent != NULL) && (this->stateFlags3 & PLAYER_STATE3_FLYING_WITH_HOOKSHOT)) {
+                camMode = CAM_MODE_HOOKSHOT;
+                Camera_SetViewParam(camera, CAM_VIEW_TARGET, this->actor.parent);
+            } else if (Player_Action_21 == this->actionFunc) {
+                camMode = CAM_MODE_STILL;
+            } else if (this->stateFlags3 & PLAYER_STATE3_8000) {
+                if (this->stateFlags1 & PLAYER_STATE1_8000000) {
+                    camMode = CAM_MODE_GORONDASH;
+                } else {
+                    camMode = CAM_MODE_FREEFALL;
+                }
+            } else if (this->stateFlags3 & PLAYER_STATE3_80000) {
+                if (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND) {
+                    camMode = CAM_MODE_GORONDASH;
+                } else {
+                    camMode = CAM_MODE_GORONJUMP;
+                }
+            } else if (this->stateFlags2 & PLAYER_STATE2_100) {
+                camMode = CAM_MODE_PUSHPULL;
+            } else if (this->focusActor != NULL) {
+                if (CHECK_FLAG_ALL(this->actor.flags, ACTOR_FLAG_TALK)) {
+                    camMode = CAM_MODE_TALK;
+                } else if (this->stateFlags1 & PLAYER_STATE1_FRIENDLY_ACTOR_FOCUS) {
+                    if (this->stateFlags1 & PLAYER_STATE1_ZORA_BOOMERANG_THROWN) {
+                        camMode = CAM_MODE_FOLLOWBOOMERANG;
+                    } else {
+                        camMode = CAM_MODE_FOLLOWTARGET;
+                    }
+                } else {
+                    camMode = CAM_MODE_BATTLE;
+                }
+                Camera_SetViewParam(camera, CAM_VIEW_TARGET, this->focusActor);
+            } else if (this->stateFlags1 & PLAYER_STATE1_CHARGING_SPIN_ATTACK) {
+                camMode = CAM_MODE_CHARGE;
+            } else if (this->stateFlags3 & PLAYER_STATE3_100) {
+                camMode = CAM_MODE_DEKUHIDE;
+            } else if (this->stateFlags1 & PLAYER_STATE1_ZORA_BOOMERANG_THROWN) {
+                camMode = CAM_MODE_FOLLOWBOOMERANG;
+                Camera_SetViewParam(camera, CAM_VIEW_TARGET, this->zoraBoomerangActor);
+            } else if (this->stateFlags1 & (PLAYER_STATE1_4 | PLAYER_STATE1_2000 | PLAYER_STATE1_4000)) {
+                if (Player_FriendlyLockOnOrParallel(this)) {
+                    camMode = CAM_MODE_HANGZ;
+                } else {
+                    camMode = CAM_MODE_HANG;
+                }
+            } else if ((this->stateFlags3 & PLAYER_STATE3_2000) && (this->actor.velocity.y < 0.0f)) {
+                if (this->stateFlags1 & (PLAYER_STATE1_PARALLEL | PLAYER_STATE1_LOCK_ON_FORCED_TO_RELEASE)) {
+                    camMode = CAM_MODE_DEKUFLYZ;
+                } else {
+                    camMode = CAM_MODE_DEKUFLY;
+                }
+            } else if (this->stateFlags1 & (PLAYER_STATE1_PARALLEL | PLAYER_STATE1_LOCK_ON_FORCED_TO_RELEASE)) {
+                if (func_800B7128(this) || func_8082EF20(this)) {
+                    camMode = CAM_MODE_BOWARROWZ;
+                } else if (this->stateFlags1 & PLAYER_STATE1_200000) {
+                    camMode = CAM_MODE_CLIMBZ;
+                } else {
+                    camMode = CAM_MODE_TARGET;
+                }
+            } else if ((this->stateFlags1 & PLAYER_STATE1_400000) && (this->transformation != 0)) {
+                camMode = CAM_MODE_STILL;
+            } else if (this->stateFlags1 & PLAYER_STATE1_40000) {
+                camMode = CAM_MODE_JUMP;
+            } else if (this->stateFlags1 & PLAYER_STATE1_200000) {
+                camMode = CAM_MODE_CLIMB;
+            } else if (this->stateFlags1 & PLAYER_STATE1_80000) {
+                camMode = CAM_MODE_FREEFALL;
+            } else if (((Player_Action_84 == this->actionFunc) &&
+                        (this->meleeWeaponAnimation >= PLAYER_MWA_FORWARD_SLASH_1H) &&
+                        (this->meleeWeaponAnimation <= PLAYER_MWA_ZORA_PUNCH_KICK)) ||
+                       (this->stateFlags3 & PLAYER_STATE3_8) ||
+                       ((Player_Action_52 == this->actionFunc) && (this->av2.actionVar2 == 0)) ||
+                       (Player_Action_53 == this->actionFunc)) {
+                camMode = CAM_MODE_STILL;
+            } else {
+                camMode = CAM_MODE_NORMAL;
+                if ((this->speedXZ == 0.0f) &&
+                    (!(this->stateFlags1 & PLAYER_STATE1_800000) || (this->rideActor->speed == 0.0f))) {
+                    seqMode = SEQ_MODE_STILL;
+                }
+            }
+
+            Camera_ChangeMode(camera, camMode);
+        }
+
+        if (!recomp_get_config_u32("disable_enemy_bgm"))
+        {
+            if (play->actorCtx.attention.bgmEnemy != NULL) {
+                seqMode = SEQ_MODE_ENEMY;
+                Audio_UpdateEnemyBgmVolume(sqrtf(play->actorCtx.attention.bgmEnemy->xyzDistToPlayerSq));
+            }
+        }
+
+        Audio_SetSequenceMode(seqMode);
+    }
 }

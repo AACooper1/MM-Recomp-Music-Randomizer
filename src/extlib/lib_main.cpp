@@ -143,9 +143,10 @@ void prepare_custom_track(std::shared_ptr<Track> extlibTrack, cTrack* modTrack)
     
     for (int i = 0; i < 16; i++)
     {
-        modTrack->formmask.states[i] = extlibTrack->formmask.states[i];
+        modTrack->formmask.states[i] = extlibTrack->formmask.states[i ^ 1];
     }
-    modTrack->formmask.cumulativeStates = extlibTrack->formmask.cumulativeStates;
+    // modTrack->hasFormMask = !extlibTrack->formmask.is_default;
+    modTrack->formmask.pad[0] = extlibTrack->formmask.cumulativeStates;
 }
 
 RECOMP_DLL_FUNC(fetch_randomized_track)

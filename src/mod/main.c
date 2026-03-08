@@ -9,6 +9,7 @@ RECOMP_HOOK("Play_Update") void extract_gamestate(PlayState* this)
 RECOMP_HOOK_RETURN("Play_Update") void after_play_update()
 {
     update_music_state(playCtx);
+    apply_mask();
 }
 
 void music_rando_update_db()

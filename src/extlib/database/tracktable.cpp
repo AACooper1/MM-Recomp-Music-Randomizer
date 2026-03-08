@@ -79,5 +79,7 @@ template<> void TrackTable::create_from_statement(Statement& statement, std::sha
         obj->bankNo = statement.column_int(6);
 
         std::vector<char> formmask_temp = statement.column_blob(7);
+        std::memcpy(obj->formmask.states, formmask_temp.data(), sizeof(short) * 16);
+        std::memcpy(&obj->formmask.cumulativeStates, formmask_temp.data() + sizeof(short) * 16, sizeof(short));
         obj->id = obj->databaseIndex + 0x100;
 }

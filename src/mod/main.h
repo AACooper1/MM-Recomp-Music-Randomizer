@@ -47,3 +47,4 @@ void replace_custom(int i);
 void replace_vanilla(int i);
 
 extern void update_music_state(PlayState* play);
+extern void apply_mask();

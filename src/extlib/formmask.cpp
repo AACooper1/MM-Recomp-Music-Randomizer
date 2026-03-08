@@ -1,4 +1,4 @@
-#include <formmask.h>
+#include <formmask.hpp>
 
 void FormMask::parse_file(std::vector<char>& filebuffer)
 {
@@ -7,11 +7,20 @@ void FormMask::parse_file(std::vector<char>& filebuffer)
     std::fill_n(states, 16, 0x0000);
 
     std::vector<std::string> channels = split_string(formmask_txt, "[\"]");
-    for (int i = channels.size(); i >= 0; i--)
+    for (int i = channels.size() - 1; i >= 0; i--)
     {
-        if (i % 2 == 1)
+        bool is_real_line = false;
+        for (int j = 0; j < channels[i].size(); j++)
         {
-            channels.erase(channels.begin()+i-1);
+            if (std::isalpha(channels[i][j]))
+            {
+                is_real_line = true; 
+                break;
+            }
+        }
+        if (!is_real_line)
+        {
+            channels.erase(channels.begin()+i);
         }
     }
     if (channels.size() > 17)
@@ -34,7 +43,7 @@ void FormMask::parse_file(std::vector<char>& filebuffer)
             stateIdx = 5;
         }
 
-        for (stateIdx; stateIdx < 12; stateIdx++)
+        for (stateIdx; stateIdx < 15; stateIdx++)
         {
             if (line.contains(playStates[stateIdx]))
                 states[ch] += (1 << stateIdx);
@@ -52,7 +61,7 @@ void FormMask::parse_file(std::vector<char>& filebuffer)
         }
     }
 
-    for (int c = 5; c < 13; c++)
+    for (int c = 5; c < 15; c++)
     {
         if (!formmask_txt.contains(playStates[c]))
         {

@@ -57,12 +57,16 @@ typedef struct MusicState_t
     bool is_critical_health;
     bool is_day;
 
-    u16 prevState; // For debug printing
-    u16 state;
-    u16 cumulativeStates;
+    u16 prevPlayState; // For debug printing
+    char state_str[20]; // Room for 16 bits + 3 spaces for grouping + \0 at the end
+    u16 playState;
+
+    u16 prevChannelStates[16];// For debug printing;
+    u16 channelStates[16];
 } MusicState;
 
 void update_music_state(PlayState* play);
+void apply_mask();
 
 bool check_indoors(int sceneId);
 bool check_cave(int sceneId);
