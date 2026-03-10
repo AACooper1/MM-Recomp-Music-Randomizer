@@ -14,7 +14,7 @@ class FormMask
         FormMask() 
         {
             std::fill_n(states, 16, 0xFFFF); 
-            cumulativeStates = 0;
+            cumulativeStates = 0xFFFF;
         }
         void parse_file(std::vector<char>& filebuffer);
 

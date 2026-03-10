@@ -5,6 +5,7 @@ void FormMask::parse_file(std::vector<char>& filebuffer)
     std::string formmask_txt(filebuffer.begin(), filebuffer.end());
 
     std::fill_n(states, 16, 0x0000);
+    cumulativeStates = 0;
 
     std::vector<std::string> channels = split_string(formmask_txt, "[\"]");
     for (int i = channels.size() - 1; i >= 0; i--)

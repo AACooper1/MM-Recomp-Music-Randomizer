@@ -32,6 +32,11 @@ Logger logger;
 cTrack randomized[NUM_SONG_SLOTS];
 cSound customSounds[256];
 AudioTable* vanillaTableCopy;
+bool randomization_complete;
+
+u8 maxVolChannelIdx[SEQ_PLAYER_MAX];
+f32 channelVolumeRatios[SEQ_PLAYER_MAX][16];
+f32 maxChanVol;
 
 extern bool should_skip_song_title_display[0x7F];
 

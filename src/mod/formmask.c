@@ -44,9 +44,10 @@ void apply_mask()
         if (gActiveSeqs[playerIdx].seqId < 2 || gActiveSeqs[playerIdx].seqId > 0x7F) { continue; }
 
         cFormMask* currMask = &musicState.nowPlaying[playerIdx]->formmask;
+        
         for (int channelIdx = 0; channelIdx < 16; channelIdx++)
         {
-            u16 channelMask = currMask->states[channelIdx];
+            u16 channelMask = currMask->states[channelIdx] & 0x7FFF;
             u16 channelState = 0;
 
             for (int state = 0; state < 15; state++)
@@ -68,7 +69,6 @@ void apply_mask()
             {
                 if (channel->muted)
                 {
-                    logger.noheader.dev("Unmuting channel %x.\n", i);
                     channel->muted = false;
                 }
             }
@@ -77,7 +77,6 @@ void apply_mask()
                 if (!channel->muted)
                 {
                     channel->muted = true;
-                    logger.noheader.dev("Muting channel %x.\n", i);
                 }
             }
         }

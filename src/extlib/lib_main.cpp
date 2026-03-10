@@ -90,6 +90,8 @@ void copy_into_mod_ram(char* dst, char* src, size_t size)
 void prepare_vanilla_track(std::shared_ptr<Track> extlibTrack, cTrack* modTrack)
 {
     modTrack->type = cTrackType(TrackType::VANILLA);
+    for (int i = 0; i < 16; i++) { modTrack->formmask.states[i] = 0xFFFF; }
+    modTrack->formmask.cumulativeStates = 0xFFFF;
 
     modTrack->seq.id = extlibTrack->id - 0x200;
 }
@@ -145,7 +147,6 @@ void prepare_custom_track(std::shared_ptr<Track> extlibTrack, cTrack* modTrack)
     {
         modTrack->formmask.states[i] = extlibTrack->formmask.states[i ^ 1];
     }
-    // modTrack->hasFormMask = !extlibTrack->formmask.is_default;
     modTrack->formmask.pad[0] = extlibTrack->formmask.cumulativeStates;
 }
 

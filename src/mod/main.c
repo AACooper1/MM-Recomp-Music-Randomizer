@@ -64,6 +64,7 @@ RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_see
 
     replace_tracks();
 
+    randomization_complete = true;
     music_rando_randomization_complete(randomized);
 
     logger.info("");
@@ -89,6 +90,9 @@ void prepare_tracks()
         if (randomized[i].type == VANILLA)
         {
             randomized[i].seq.id += 0x100;
+            for (int i = 0; i < 16; i++) { randomized[i].formmask.states[i] = 0xFFFF; }
+            randomized[i].formmask.cumulativeStates = 0xFFFF;
+
         }
         else
         {
@@ -103,6 +107,7 @@ void populate_custom_track(cTrack* track)
     {
         track->seq.data = recomp_alloc(track->seq.size);
         fetch_seq(track->seq.id, track->seq.data, track->seq.size);
+        logger.noheader.dev("Track %s formmask 0: %x\n", track->name, track->formmask.states[0]);
     }
     else
     {
@@ -203,5 +208,33 @@ void replace_tracks()
         {
             replace_vanilla(randomized[i].slotIdx);
         }
+    }
+}
+
+PlayState* gPlayState;
+RECOMP_HOOK("Environment_PlaySceneSequence") void save_playstate(PlayState* play)
+{
+    gPlayState = play;
+}
+
+RECOMP_PATCH void Scene_CommandSoundSettings(PlayState* play, SceneCmd* cmd) {
+    u8 ambienceId;
+
+    ambienceId = cmd->soundSettings.ambienceId;
+    if(recomp_get_config_u32("enable_night_bgm"))
+    {
+        // DAWN OF... checks. Day 2 & 3 occur at 16384 (6 AM), Day 1 occurs at 16383 (6 AM - 1)
+        if (ambienceId == 0 && !(gSaveContext.save.time == CLOCK_TIME(6,0) || gSaveContext.save.time == CLOCK_TIME(18,0) || gSaveContext.save.time == 16383))
+        {
+            ambienceId = AMBIENCE_ID_13;
+        }
+    }
+
+    play->sceneSequences.seqId = cmd->soundSettings.seqId;
+    play->sceneSequences.ambienceId = ambienceId;
+
+    if (gSaveContext.seqId == (u8)NA_BGM_DISABLED ||
+        AudioSeq_GetActiveSeqId(SEQ_PLAYER_BGM_MAIN) == NA_BGM_FINAL_HOURS) {
+        Audio_SetSpec(cmd->soundSettings.specId);
     }
 }
