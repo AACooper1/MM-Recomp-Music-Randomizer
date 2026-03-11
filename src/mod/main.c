@@ -77,6 +77,17 @@ RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_see
     }
 }
 
+RECOMP_CALLBACK(".", music_rando_randomization_complete) void milk_bar_and_final_hours_fix()
+{
+    gSequenceFontTable[NA_BGM_MILK_BAR_DUPLICATE] = (u8)(randomized[NA_BGM_MILK_BAR].bankNo);
+    Lib_MemCpy(randomized[NA_BGM_MILK_BAR_DUPLICATE].name, randomized[NA_BGM_MILK_BAR].name, 256);
+    Lib_MemCpy(&(randomized[NA_BGM_MILK_BAR_DUPLICATE].formmask), &(randomized[NA_BGM_MILK_BAR].formmask), sizeof(cFormMask));
+
+    gSequenceFontTable[NA_BGM_MAJORAS_LAIR] = (u8)(randomized[NA_BGM_FINAL_HOURS].bankNo);
+    Lib_MemCpy(randomized[NA_BGM_MAJORAS_LAIR].name, randomized[NA_BGM_FINAL_HOURS].name, 256);
+    Lib_MemCpy(&(randomized[NA_BGM_MAJORAS_LAIR].formmask), &(randomized[NA_BGM_FINAL_HOURS].formmask), sizeof(cFormMask));
+}
+
 AudioTableEntry* origTableCopy;
 
 void prepare_tracks()
@@ -195,6 +206,9 @@ void replace_vanilla(int i)
     AudioApi_ReplaceSequence(i, &origTableCopy[randomized[i].seq.id]);
     AudioApi_ReplaceSequenceFont(i, 0, randomized[i].bankNo);
 }
+
+extern u32 AudioLoad_GetRealTableIndex(s32 tableType, u32 id);
+extern void* AudioLoad_SyncLoad(s32 tableType, u32 id, s32* didAllocate);
 
 void replace_tracks()
 {
