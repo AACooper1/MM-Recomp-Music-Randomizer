@@ -119,18 +119,6 @@ options = [ "Nothing", "Critical", "Error", "Warning", "Info", "Debug", "Dev" ]
 default = "Error"
 
 [[manifest.config_options]]
-id = "bgm_volume"
-name = "BGM Volume"
-description = "Controls the volume of the music uniformly across songs."
-type= "Number"
-min = 0
-max = 100
-step = 1
-precision = 1
-percent = true
-default = 0
-
-[[manifest.config_options]]
 id = "disable_enemy_bgm"
 name = "Disable Combat Music"
 description = "Controls whether combat music plays while fighting a normal enemy. Does not apply to (mini-)bosses."

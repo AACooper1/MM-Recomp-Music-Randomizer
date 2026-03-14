@@ -191,7 +191,7 @@ LogLevel get_log_level()
 // Only prints to dev
 void print_bytes(void* addr, int n)
 {
-    if (get_log_level() > LOG_DEV) return;
+    if (get_log_level() < LOG_DEV) return;
 
     recomp_printf("Data starting from %p is:\n\n", addr);
     recomp_printf("\t\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n\n");

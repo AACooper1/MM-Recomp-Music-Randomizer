@@ -16,7 +16,7 @@
                 "${workspaceFolder}/mm-decomp/src",
                 "${workspaceFolder}/offline_build",
                 "${workspaceFolder}/assets_extracted",
-                "${workspaceFolder}/assets_extracted/assets",
+                "${workspaceFolder}/assets_extracted/assets"
             ],
             "defines": [
                 "F3DEX_GBI_2",
@@ -25,10 +25,11 @@
                 "COMBINED_INTELLISENSE",
                 "RECOMP_INCBIN_EXTERN_ONLY"
             ],
-            // "compilerPath": "clang",
             "cStandard": "c99",
-            "cppStandard": "c++23"
-            // "intelliSenseMode": "clang-x86"
+            "cppStandard": "c++23",
+            "compileCommands": [
+                "${workspaceFolder}/build/zig-macos-aarch64-Debug/compile_commands.json"
+            ]
         },
         {
             "name": "Mod_Only",

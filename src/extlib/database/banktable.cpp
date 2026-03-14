@@ -61,9 +61,9 @@ template <> int BankTable::update(int id, std::shared_ptr<Bank> entry)
 
     std::string query = 
         "UPDATE bank                        \
-         SET (                              \
+         SET                                \
             headerSize = ?, headerData = ?, \
-            dataSize = ?, data = ?)         \
+            dataSize = ?, data = ?          \
          WHERE (id = ?);                    \
         ";
 
@@ -76,7 +76,7 @@ template <> int BankTable::update(int id, std::shared_ptr<Bank> entry)
     statement.bind_blob_vec(*entry->header);
     statement.bind_int(entry->size);
     statement.bind_blob_vec(*entry->data);
-    statement.bind_int(entry->databaseIndex);
+    statement.bind_int(id);
 
     int dbIdx = statement.exec_and_return_id();
 

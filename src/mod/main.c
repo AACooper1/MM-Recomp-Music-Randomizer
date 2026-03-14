@@ -1,5 +1,10 @@
 #include "main.h"
 
+RECOMP_CALLBACK("*", recomp_on_init) void init_loggers()
+{
+    logger_init(&logger);
+}
+
 RECOMP_HOOK("Play_Update") void extract_gamestate(PlayState* this)
 {
     playCtx = this;
@@ -14,7 +19,6 @@ RECOMP_HOOK_RETURN("Play_Update") void after_play_update()
 
 void music_rando_update_db()
 {
-    logger_init(&logger);
     update_log_level();
     logger.debug("%s", "Mod-side logger OK!\n");
     logger.noheader.debug("%s", "Mod-side no-header logger OK!\n");

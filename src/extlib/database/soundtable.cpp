@@ -57,7 +57,7 @@ template <> int SoundTable::update(int id, std::shared_ptr<Sound> entry)
 
     std::string query = 
         "UPDATE sound                                   \
-         SET (size = ?, foreignKey = ?, data = ?)       \
+         SET  size = ?, foreignKey = ?, data = ?        \
          WHERE (id = ?);                                \
         ";
 
@@ -69,7 +69,7 @@ template <> int SoundTable::update(int id, std::shared_ptr<Sound> entry)
     statement.bind_int(entry->size);
     statement.bind_blob_vec(*entry->data);
     statement.bind_int64(entry->sampleAddr);
-    statement.bind_int(entry->databaseIndex);
+    statement.bind_int(id);
 
     int dbIdx = statement.exec_and_return_id();
 

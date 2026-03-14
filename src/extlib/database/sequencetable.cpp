@@ -46,8 +46,8 @@ template <> int SequenceTable::update(int id, std::shared_ptr<Sequence> entry)
 
     std::string query = 
         "UPDATE seq                     \
-         SET (size = ?, data = ?)       \
-         WHERE (id = ?);                \
+         SET size = ?, data = ?         \
+         WHERE (id = ?) RETURNING id;   \
         ";
 
     if (statement.prepare(query))
@@ -57,7 +57,7 @@ template <> int SequenceTable::update(int id, std::shared_ptr<Sequence> entry)
 
     statement.bind_int(entry->size);
     statement.bind_blob_vec(*entry->data);
-    statement.bind_int(entry->databaseIndex);
+    statement.bind_int(id);
 
     int dbIdx = statement.exec_and_return_id();
 

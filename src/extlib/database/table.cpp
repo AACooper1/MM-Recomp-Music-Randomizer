@@ -145,23 +145,10 @@ int Table<T>::remove(int id)
     return (statement.exec_and_return_id());
 }
 
-template<typename T> std::shared_ptr<T> Table<T>::select(std::string query) {}
-template<typename T> std::shared_ptr<T> Table<T>::select(std::string query, std::string cols[], int ncol) {}
-
-template<typename T> bool Table<T>::check_exists(int id)
+template<typename T> std::shared_ptr<T> Table<T>::select(std::string q) 
 {
     Statement statement(get_sqlite());
-
-    std::string query = std::format("SELECT * FROM {0} WHERE id={1};", name, id);
-
-    statement.prepare(query);
-    return (statement.exec_and_return_id() > 0);
-}
-
-template<typename T> std::shared_ptr<T> Table<T>::select(int id)
-{
-    Statement statement(get_sqlite());
-    std::string query = std::format("SELECT * FROM {0} WHERE id={1};", name, id);
+    std::string query = std::format("SELECT * FROM {0} WHERE {1};", name, q);
     statement.prepare(query);
 
     std::shared_ptr<T> obj = nullptr;
@@ -177,6 +164,24 @@ template<typename T> std::shared_ptr<T> Table<T>::select(int id)
     }
 
     return obj;
+}
+template<typename T> std::shared_ptr<T> Table<T>::select(std::string query, std::string cols[], int ncol) {}
+
+template<typename T> std::shared_ptr<T> Table<T>::select(int id)
+{
+    
+    std::string query = std::format("SELECT * FROM {0} WHERE id={1};", name, id);
+    return select(query);
+}
+
+template<typename T> bool Table<T>::check_exists(int id)
+{
+    Statement statement(get_sqlite());
+
+    std::string query = std::format("SELECT * FROM {0} WHERE id={1};", name, id);
+
+    statement.prepare(query);
+    return (statement.exec_and_return_id() > 0);
 }
 
 template<typename T> void Table<T>::load_entries()
