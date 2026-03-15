@@ -99,8 +99,7 @@ bool Track::read_from_mmrs()
         }
 
         std::string filename = stat.m_filename;
-
-        if (filename.ends_with(".zseq") || filename.ends_with(".seq"))
+        if (fs::path(filename).extension().string().ends_with("seq"))
         {
             sequence = std::make_shared<Sequence>(filebuffer, filename);
             try 
@@ -109,7 +108,7 @@ bool Track::read_from_mmrs()
             }
             catch (const std::exception& e)
             {
-                logger.error << "Could not parse int for zseq " << filename << " in MMRS " << this->name << ". Song will be skipped." << std:: endl;
+                logger.error << "Could not parse int for seq " << filename << " in MMRS " << this->name << ". Song will be skipped." << std:: endl;
                 return false;
             }
         }
@@ -150,6 +149,11 @@ bool Track::read_from_mmrs()
             formmask.parse_file(*filebuffer);
             formmask.is_default = false;
         }
+    }
+
+    if (!sequence && type != TrackType::STREAMED)
+    {
+        logger.error << "Non-streamed track " << name << " did not have a sequence and will not be added to the database!" << std::endl;
     }
 
     return true;

@@ -170,7 +170,7 @@ template<typename T> std::shared_ptr<T> Table<T>::select(std::string query, std:
 template<typename T> std::shared_ptr<T> Table<T>::select(int id)
 {
     
-    std::string query = std::format("SELECT * FROM {0} WHERE id={1};", name, id);
+    std::string query = std::format("id={1}", name, id);
     return select(query);
 }
 
@@ -208,6 +208,7 @@ template<typename T> void Table<T>::load_entry(int id)
     if (obj)
     {
         entries.emplace(id, obj);
+        logger.dev << "Successfully loaded " << name << " entry with id " << id << "." << std::endl;
     }
     else
     {

@@ -29,7 +29,7 @@ RECOMP_DLL_FUNC(prepare_database) {
         db = std::make_shared<Database>(dbPath);
         db->init();
     }
-    catch (std::exception e)
+    catch (std::exception& e)
     {
         logger.error << e.what() << std::endl;
         RECOMP_RETURN(int, 1);
@@ -41,6 +41,7 @@ RECOMP_DLL_FUNC(prepare_database) {
     {
         rc = db->update_from_music_dir();
         rc = db->load_all_tracks();
+        logger.dev << "Successfully loaded tracks!" << std::endl;
     }
     catch (std::exception& e)
     {
@@ -61,20 +62,33 @@ RECOMP_DLL_FUNC(prepare_seed)
     savePath = savePath.replace_extension(".music.db");
     seed = std::make_shared<Seed>(randoSeed, db, savePath, use_custom, use_vanilla);
 
-    if (fs::exists(savePath))
+    try
     {
-        seed->load_seed(savePath);
+        if (fs::exists(savePath))
+        {
+            seed->load_seed(savePath);
+        }
+        else
+        {
+            seed->randomize();
+            logger.debug << "Successfully finished randomization!" << std::endl;
+        }
+        if (seed->songforceTracks.size())
+        {
+            seed->apply_songforce();
+            logger.debug << "Applied songforce!" << std::endl;
+        }
+        seed->save_seed();
+        logger.debug << "Saved seed!" << std::endl;
+        seed->apply_songtest();
+        logger.debug << "Applied songtest. Returning from prepare_seed..." << std::endl;
     }
-    else
+    catch (std::exception& e)
     {
-        seed->randomize();
+        logger.error << "Could not prepare seed: " << e.what() << std::endl;
+        RECOMP_RETURN (int, false);
     }
-    if (seed->songforceTracks.size())
-    {
-        seed->apply_songforce();
-    }
-    seed->save_seed();
-    seed->apply_songtest();
+    RECOMP_RETURN (int, true);
 }
 
 void copy_into_mod_ram(char* dst, char* src, size_t size)

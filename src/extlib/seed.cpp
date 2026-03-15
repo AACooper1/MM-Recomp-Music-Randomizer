@@ -15,6 +15,7 @@ std::string Seed::get_slot_name(SongSlotID slotId)
 
 void Seed::randomize()
 {
+    logger.debug << "Starting randomization..." << std::endl;
     std::vector<int> randomOrder;
     for (int i = 2; i < songSlots.size(); i++)
     {
@@ -31,6 +32,7 @@ void Seed::randomize()
     }
     
     prepare_tracks();
+    logger.debug << "Finished randomize()!" << std::endl;
 }
 
 void Seed::randomize_slot(int i)
@@ -159,15 +161,19 @@ void Seed::prepare_tracks()
         if (track->type != TrackType::VANILLA)
             db->prepare_track(track->databaseIndex);
     }
+    logger.debug << "Finished prepare_tracks (extlib)." << std::endl;
 }
 
 int Seed::save_seed()
 {
+    logger.debug << "Entering save_seed now" << std::endl;
+    logger.debug << "Save path: " << savePath << std::endl;
     std::shared_ptr<Database> seedDb = std::make_shared<Database>(this->savePath, true);
     seedDb->seedTable = std::make_unique<SlotToTrackTable>(seedDb, "slot_to_track");
 
     for (const auto & [slotId, track] : randomized)
     {
+        logger.debug << "Inserting track " << track->name << " (id " << track->id << ") into save db...";
         if (track->type != TrackType::VANILLA)
         {
             seedDb->seedTable->insert(slotId, track->databaseIndex);
@@ -177,6 +183,8 @@ int Seed::save_seed()
             seedDb->seedTable->insert(slotId, track->id * -1);
         }
     }
+
+    logger.debug << "Saved seed!" << std::endl;
 
     return 1;
 }

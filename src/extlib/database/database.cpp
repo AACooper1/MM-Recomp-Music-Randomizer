@@ -334,6 +334,7 @@ int Database::prepare_track(int id)
     std::shared_ptr<Track> track = tables->track->entries[id];
     if (track)
     {
+        logger.debug << "Preparing track " << track->name << "..." << std::endl;
         if (track->seqId)
         {
             tables->seq->load_entry(track->seqId);
@@ -350,10 +351,12 @@ int Database::prepare_track(int id)
             track->sounds.push_back(tables->sound->entries[track->soundIds[i]]);
         }
         track->is_prepared = true;
+        logger.debug << "Track " << track->name << " prepared!" << std::endl;
         return true;
     }
     else
     {
+        logger.error << "Could not prepare track, returned NULL." << std::endl;
         return false;
     }
 }
