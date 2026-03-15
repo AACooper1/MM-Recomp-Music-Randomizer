@@ -7,6 +7,9 @@
 #include "logging.h"
 #include "modtrackdefs.h"
 
+cTrack* randomizedTable;
+extern Logger logger;
+
 // I used Claude to write this and I'm not proud of that :(
 #define FADE_OUT(a, t0, delay, fadetime)                                                                                  \
     (a) = (u8)(                                                                                                  \

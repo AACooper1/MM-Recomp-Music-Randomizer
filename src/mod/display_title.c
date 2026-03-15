@@ -1,9 +1,5 @@
 #include "display_title.h"
 
-cTrack* randomizedTable;
-extern Logger logger;
-extern u8 sStartSeqDisabled;
-
 TitleDispCtx titleDispCtx;
 
 RECOMP_CALLBACK(".", music_rando_randomization_complete) void prepare_title_display(cTrack* randomizedAddr)
@@ -13,7 +9,7 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void prepare_title_disp
     titleDispCtx.context = recompui_create_context();
     recompui_open_context(titleDispCtx.context);
     recompui_set_context_captures_input(titleDispCtx.context, false);
-    recompui_set_context_captures_input(titleDispCtx.context, false);
+    recompui_set_context_captures_mouse(titleDispCtx.context, false);
 
     titleDispCtx.root = recompui_context_root(titleDispCtx.context);
     titleDispCtx.container = recompui_create_element(titleDispCtx.context, titleDispCtx.root);

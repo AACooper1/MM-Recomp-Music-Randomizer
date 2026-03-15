@@ -123,7 +123,7 @@ std::array<std::shared_ptr<Track>, 0x80> Seed::vanillaTracks
         std::make_shared<Track>("Credits 2", CAT(SPECIAL, FINAL_HOURS), 0x25, 0x17F),
 
         /* No Categories */
-        std::make_shared<Track>("Last Day", CAT(), 0x17, 0x157),
+        std::make_shared<Track>("Last Day", CAT(FINAL_HOURS), 0x17, 0x157),
         std::make_shared<Track>("Mikau", CAT(), 0x13, 0x158),
         std::make_shared<Track>("Bass Practice", CAT(), 0x13, 0x16C),
         std::make_shared<Track>("Drum Practice", CAT(), 0x13, 0x16D),

@@ -24,6 +24,8 @@ RECOMP_IMPORT(".", u32 get_current_time());
 RECOMP_IMPORT("mm_recomp_rando", u32 rando_get_random_seed_external());
 
 RECOMP_DECLARE_EVENT(music_rando_begin_randomization());
+RECOMP_DECLARE_EVENT(music_rando_launch_menu());
+RECOMP_DECLARE_EVENT(music_rando_seed_prepared(cTrack* randomizedAddr));
 RECOMP_DECLARE_EVENT(music_rando_randomization_complete(cTrack* randomizedAddr));
 
 GameState* playCtx;
@@ -53,3 +55,5 @@ void replace_vanilla(int i);
 
 extern void update_music_state(PlayState* play);
 extern void apply_mask();
+
+void handle_morning_sequence(SequencePlayer* seqPlayer);

@@ -173,7 +173,6 @@ int Seed::save_seed()
 
     for (const auto & [slotId, track] : randomized)
     {
-        logger.debug << "Inserting track " << track->name << " (id " << track->id << ") into save db...";
         if (track->type != TrackType::VANILLA)
         {
             seedDb->seedTable->insert(slotId, track->databaseIndex);
