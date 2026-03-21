@@ -55,5 +55,3 @@ void replace_vanilla(int i);
 
 extern void update_music_state(PlayState* play);
 extern void apply_mask();
-
-void handle_morning_sequence(SequencePlayer* seqPlayer);

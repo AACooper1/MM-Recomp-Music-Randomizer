@@ -263,33 +263,3 @@ RECOMP_PATCH void Scene_CommandSoundSettings(PlayState* play, SceneCmd* cmd) {
         Audio_SetSpec(cmd->soundSettings.specId);
     }
 }
-
-s32 _lastInitializedSeqPlayerIndex;
-RECOMP_HOOK("AudioLoad_SyncInitSeqPlayer") void before_AudioLoad_SyncInitSeqPlayer(s32 playerIndex, s32 seqId, s32 arg2)
-{
-    _lastInitializedSeqPlayerIndex = playerIndex;
-}
-
-RECOMP_HOOK_RETURN("AudioLoad_SyncInitSeqPlayer") void after_AudioLoad_SyncInitSeqPlayer()
-{
-    SequencePlayer* seqPlayer = &gAudioCtx.seqPlayers[_lastInitializedSeqPlayerIndex];
-    int seqId = seqPlayer->seqId;
-    if (randomized[seqId].seq.id == 0x1D && seqId != 0x1D)
-    {
-        logger.debug("Sun's Song loaded on player %x. Handling...\n", seqPlayer->playerIndex);
-        handle_morning_sequence(seqPlayer);
-        logger.noheader.debug("Sun's Song handled!\n");
-    }
-}
-
-void handle_morning_sequence(SequencePlayer* seqPlayer)
-{
-    char* seqAddr = recomp_alloc(0x0610);
-    Lib_MemCpy(seqAddr, seqPlayer->seqData, 0x0610);
-    seqAddr[0x0D] = seqAddr[0x49] = 0x00;
-    seqAddr[0x47] = 0xFF;
-    seqPlayer->seqData = (u8*)seqAddr;
-    seqPlayer->scriptState.pc = seqPlayer->seqData;
-    logger.dev("Ran handle_morning_sequence. New data:\n");
-    print_bytes(seqPlayer->scriptState.pc, 0x4A);
-}

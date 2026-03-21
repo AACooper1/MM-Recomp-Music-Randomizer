@@ -283,7 +283,7 @@ std::array<SongSlot, 0x80> Seed::songSlots
         SongSlot(0x1A, "Battle", {MINIGAME, BOSS, ACTION}),
         SongSlot(0x1B, "Boss Battle", {BOSS}),
         SongSlot(0x1C, "Woodfall Temple", {DUNGEON}),
-        SongSlot(0x1D, "Sun's Song (Morning Sequence)", {}), // Look into this - might be able to use the IO thing
+        SongSlot(0x1D, "Sun's Song (Morning Sequence)", {GAME_OVER, AREA_CLEAR}),
         SongSlot(0x1E, "Opening", {}),
         SongSlot(0x1F, "House", {BUILDING}),
         SongSlot(0x20, "Game Over", {GAME_OVER}),
