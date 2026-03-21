@@ -13,7 +13,7 @@ extern cTrack randomized[0x80];
 s32 _lastInitializedSeqPlayerIndex;
 char* sunsSongCopyAddr;
 char* sunsSlotCopyAddr;
-char* sunsSlotCopyAddrEnd;
+char* sunsSlotCopyControlFlowAddr;
 
 void handle_morning_sequence(SequencePlayer* seqPlayer);
 void add_control_flow_to_morning_slot(SequencePlayer* seqPlayer);
