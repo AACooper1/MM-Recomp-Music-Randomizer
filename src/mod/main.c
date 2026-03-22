@@ -17,6 +17,11 @@ RECOMP_HOOK_RETURN("Play_Update") void after_play_update()
     apply_mask();
 }
 
+void music_rando_begin()
+{
+    music_rando_update_db();
+}
+
 void music_rando_update_db()
 {
     update_log_level();
@@ -35,8 +40,8 @@ RECOMP_HOOK_RETURN("ConsoleLogo_Init") void begin_if_no_rando()
     DependencyStatus found_rando = recomp_is_dependency_met("mm_recomp_rando");
     if (found_rando != DEPENDENCY_STATUS_FOUND)
     {
-        logger.debug("Rando not found: %i\n", found_rando);
-        music_rando_update_db();
+        logger.debug("Rando not found (returned %i). Launching without rando...\n", found_rando);
+        music_rando_begin();
     }
 }
 
@@ -48,7 +53,7 @@ RECOMP_HOOK("Setup_InitImpl") void launch_on_rando_connect()
         return;
     }
     recomp_printf("Connected to rando. Starting music randomization...\n");
-    music_rando_update_db();
+    music_rando_begin();
 }
 
 RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_seed()
