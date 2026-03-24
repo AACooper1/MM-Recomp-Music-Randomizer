@@ -28,6 +28,14 @@ RECOMP_DECLARE_EVENT(music_rando_launch_menu());
 RECOMP_DECLARE_EVENT(music_rando_seed_prepared(cTrack* randomizedAddr));
 RECOMP_DECLARE_EVENT(music_rando_randomization_complete(cTrack* randomizedAddr));
 
+typedef struct MusicRando_Config_t {
+    unsigned long randomization_on;
+    unsigned long track_types;
+    unsigned long randomize_suns_song;
+} MusicRando_Config;
+
+MusicRando_Config config;
+
 GameState* playCtx;
 
 Logger logger;

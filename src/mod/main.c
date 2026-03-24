@@ -41,11 +41,11 @@ RECOMP_HOOK_RETURN("ConsoleLogo_Init") void begin_if_no_rando()
     if (found_rando != DEPENDENCY_STATUS_FOUND)
     {
         logger.debug("Rando not found (returned %i). Launching without rando...\n", found_rando);
-        music_rando_begin();
+        // music_rando_begin();
     }
 }
 
-RECOMP_HOOK("Setup_InitImpl") void launch_on_rando_connect()
+RECOMP_HOOK_RETURN("ConsoleLogo_Init") void launch_on_rando_connect()
 {
     DependencyStatus found_rando = recomp_is_dependency_met("mm_recomp_rando");
     if (found_rando != DEPENDENCY_STATUS_FOUND)
@@ -53,7 +53,7 @@ RECOMP_HOOK("Setup_InitImpl") void launch_on_rando_connect()
         return;
     }
     recomp_printf("Connected to rando. Starting music randomization...\n");
-    music_rando_begin();
+    // music_rando_begin();
 }
 
 RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_seed()
@@ -64,7 +64,11 @@ RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_see
     int randoSeed;
     randoSeed = get_current_time();
 
-    if (!prepare_seed(randoSeed, savePath, true, true))
+    config.track_types = 3 - config.track_types;
+    bool use_custom = config.track_types & 1;
+    bool use_vanilla = config.track_types & 2;
+
+    if (!prepare_seed(randoSeed, savePath, use_custom, use_vanilla))
     {
         logger.critical("Could not prepare seed, aborting music rando!\n");
         recomp_free(savePath);
@@ -78,6 +82,7 @@ RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_see
     music_rando_seed_prepared(randomized);
 
     replace_tracks();
+    logger.debug("Replaced tracks!\n");
 
     randomization_complete = true;
     music_rando_randomization_complete(randomized);

@@ -3,14 +3,14 @@
 StartMenu startMenu;
 
 static const char* randomization_options[] = {"On", "Off"};
-static const char* track_source_options[] = {"Vanilla only", "Custom only", "Both"};
+static const char* track_source_options[] = {"Any", "Vanilla only", "Custom only"};
 static const char* morning_song_options[] = {"Vanilla", "Randomized"};
 
 StartMenu_Option music_rando_startup_options[OPTIONS_MAX] = 
 {
-    {"Randomization", randomization_options, 2},
-    {"Use Tracks", track_source_options, 3},
-    {"Morning Song", morning_song_options, 2},
+    {"Randomization", randomization_options, 2, 0, &config.randomization_on},
+    {"Use Tracks", track_source_options, 3, 0, &config.track_types},
+    {"Morning Song", morning_song_options, 2, 1, &config.randomize_suns_song},
     
     {NULL, NULL, 0} // Sentinel
 };
@@ -22,7 +22,7 @@ void music_rando_create_start_menu()
     recompui_open_context(startMenu.context);
     startMenu.root = recompui_context_root(startMenu.context);
 
-    recompui_set_context_captures_input(startMenu.context, false);
+    recompui_set_context_captures_input(startMenu.context, true);
     recompui_set_context_captures_mouse(startMenu.context, true);
 
     // Make the frame take up the entire window.
@@ -85,9 +85,11 @@ void music_rando_create_start_menu()
         recompui_set_flex_direction(startMenu.options[i].container, FLEX_DIRECTION_ROW);
 
         startMenu.options[i].label = recompui_create_label(startMenu.context, startMenu.options[i].container, startMenu.options[i].option->name, LABELSTYLE_NORMAL);
-        recompui_set_padding_top(startMenu.options[i].label, 10.0f, UNIT_DP);
         startMenu.options[i].radio = recompui_create_labelradio(startMenu.context, startMenu.options[i].container, this_option->options, this_option->num_options);
-        recompui_set_padding_top(startMenu.options[i].radio, 5.0f, UNIT_DP);
+        recompui_set_input_value_u32(startMenu.options[i].radio, this_option->default_value);
+        
+        recompui_set_padding_top(startMenu.options[i].label, 10.0f, UNIT_DP);
+        recompui_set_padding_top(startMenu.options[i].radio, 10.0f, UNIT_DP);
         recompui_set_nav_auto(startMenu.options[i].radio, NAVDIRECTION_UP);
         recompui_set_nav_auto(startMenu.options[i].radio, NAVDIRECTION_DOWN);
     }
@@ -101,9 +103,35 @@ void music_rando_create_start_menu()
 
     startMenu.start_button = recompui_create_button(startMenu.context, startMenu.footer, "Start", BUTTONSTYLE_PRIMARY);
     recompui_set_nav_auto(startMenu.start_button, NAVDIRECTION_DOWN);
+    recompui_register_callback(startMenu.start_button, start_button_pressed, NULL);
 
     recompui_close_context(startMenu.context);
     startMenu.ready = true;
+}
+
+void start_button_pressed(RecompuiResource resource, const RecompuiEventData* event, void* userdata)
+{
+    for (int i = 0; i < OPTIONS_MAX; i++)
+    {
+        if (!music_rando_startup_options[i].name)
+        {
+            break;
+        }
+        else
+        {
+            *music_rando_startup_options[i].config_value = recompui_get_input_value_u32(startMenu.options[i].radio);
+        }
+    }
+    if (event->type == UI_EVENT_CLICK)
+    {
+        if (startMenu.shown)
+        {
+            recompui_hide_context(startMenu.context);
+            startMenu.shown = false;
+            logger.dev("Hode context!\n");
+        }
+        game_started = true;
+    }
 }
 
 // We need to induce a gamestate similar to what rando does. Do this after ConsoleLogo_Init.
@@ -118,11 +146,6 @@ void music_rando_startup_menu_main()
         recompui_show_context(startMenu.context);
         startMenu.shown = true;
     }
-    Input* input = CONTROLLER1(gState);
-    if (CHECK_BTN_ALL(input->press.button, BTN_B))
-    {
-        game_started = true;
-    }
     if (game_started)
     {
         if (startMenu.shown)
@@ -130,8 +153,11 @@ void music_rando_startup_menu_main()
             recompui_hide_context(startMenu.context);
             startMenu.shown = false;
         }
+        music_rando_update_db();
         gState->main = ConsoleLogo_Main;
     }
+
+    func_8012CF0C(gState->gfxCtx, true, false, 0, 0, 0);
 }
 
 RECOMP_HOOK("ConsoleLogo_Init") void get_game_state(GameState* thisx)
@@ -139,9 +165,10 @@ RECOMP_HOOK("ConsoleLogo_Init") void get_game_state(GameState* thisx)
     gState = thisx;
 }
 
+extern void Setup_Destroy(GameState* thisx);
+
 RECOMP_HOOK_RETURN("ConsoleLogo_Init") void music_rando_startup_menu_init()
 {
     gState->main = music_rando_startup_menu_main;
-    gState->destroy = ConsoleLogo_Destroy;
+    gState->destroy = Setup_Destroy;
 }
-
