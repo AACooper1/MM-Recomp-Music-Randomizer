@@ -37,7 +37,8 @@ dependencies = [
 ]
 
 optional_dependencies = [
-    "mm_recomp_rando"
+    "mm_recomp_rando",
+    "mm_bens_remastered_soundtrack"
 ]
 
 # Native libraries (e.g. DLLs) and the functions they export.
