@@ -27,6 +27,10 @@ void Seed::apply_songforce()
             int trackId = songSlots[slotIdx].availableTracks[i];
             if (songforceTracks.contains(trackId))
             {
+                if (!tracks[trackId]->is_prepared)
+                {
+                    db->prepare_track(trackId);
+                }
                 randomized[slotIdx] = tracks[trackId];
                 songSlots[slotIdx].is_songforce = true;
                 songforceTracks.erase(trackId);

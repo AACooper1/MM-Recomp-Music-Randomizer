@@ -129,11 +129,13 @@ bool Track::read_from_mmrs()
         else if (filename.ends_with(".zsound"))
         {
             std::shared_ptr<Sound> sound = std::make_shared<Sound>(filebuffer, filename);
-            sounds.push_back(sound);
             if (!sound->parse_foreignKey())
             {
                 logger.error << "Could not parse zsound " << filename << " in track " << this->name << ", skipping!" << std::endl;
+                return false;
             }
+            sounds.push_back(sound);
+
         }
         else if (filename.ends_with(".mp3") || filename.ends_with(".ogg") || filename.ends_with("wav"))
         {
