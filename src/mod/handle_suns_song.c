@@ -130,76 +130,19 @@ RECOMP_HOOK_RETURN("AudioScript_SequencePlayerProcessSequence") void return_to_s
 
 // Prints live data read by seqPlayer playing Sun's Song. 
 // Disabling but not deleting in case I need to use it in the future.
-bool should_print_seqdata;
-bool should_print_next;
-u8* seqDataStart;
-
-RECOMP_HOOK("AudioScript_SequencePlayerProcessSequence") void turn_off_print_if_not_0(SequencePlayer* seqPlayer)
-{
-    if (seqPlayer->playerIndex)
-    {
-        should_print_seqdata = false;
-    }
-    else
-    {
-        should_print_seqdata = true;
-        seqDataStart = seqPlayer->seqData;
-    }
-}
 
 RECOMP_HOOK("AudioScript_ScriptReadU8") void print_the_thingy(SeqScriptState* state)
 {
-    // if (state->pc - (u8*)sunsSlotCopyAddr < 0x1000 && state->pc - (u8*)sunsSlotCopyAddr > -0x1000)
-    if (!should_print_seqdata || !should_print_next) { return; }
-    if (state->pc - gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].seqData < 0x4D && gActiveSeqs[SEQ_PLAYER_BGM_MAIN].seqId == 2)
+    if (state->pc - (u8*)sunsSlotCopyAddr < 0x1000 && state->pc - (u8*)sunsSlotCopyAddr > -0x1000)
     {
-        // logger.noheader.dev("%04p: %02x \n", state->pc - seqDataStart, *(state->pc));
-        if (*state->pc == 0xCE && *state->pc + 1 == 0x20)
-        {
-            should_print_next = true;
-        }
-        if (*(state->pc - 2) == 0xCE)
-        {
-            logger.noheader.dev("Random value set to %x (=== %x)\n", state->value, state->value % 0x20);
-        }
+        logger.noheader.dev("%02x ", *state->pc);
     }
 }
 
-// RECOMP_HOOK("AudioScript_ScriptReadS16") void print_the_thingy2(SeqScriptState* state)
-// {
-//     // if (state->pc - (u8*)sunsSlotCopyAddr < 0x1000 && state->pc - (u8*)sunsSlotCopyAddr > -0x1000)
-//     if (!should_print_seqdata) { return; }
-//     if (state->pc - gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].seqData < 0x4D && gActiveSeqs[SEQ_PLAYER_BGM_MAIN].seqId == 2)
-//     {
-//         logger.noheader.dev("%04p: %04x \n", state->pc - seqDataStart, *(state->pc) << 8 |*(state->pc + 1));
-//     }
-// }
-
-// RECOMP_HOOK("AudioScript_ScriptReadCompressedU16") void print_the_thingy3(SeqScriptState* state)
-// {
-//     // if (state->pc - (u8*)sunsSlotCopyAddr < 0x1000 && state->pc - (u8*)sunsSlotCopyAddr > -0x1000)
-//     if (!should_print_seqdata) { return; }
-//     if (state->pc - gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].seqData < 0x4D && gActiveSeqs[SEQ_PLAYER_BGM_MAIN].seqId == 2)
-//     {
-//         u16 ret = *(state->pc);
-
-//         if (ret & 0x80) {
-//             ret = (ret << 8) & 0x7F00;
-//             ret = *(state->pc + 1) | ret;
-//         }
-
-//         logger.noheader.dev("%04p: %04x \n", state->pc - seqDataStart, ret);
-//     }
-// }
-
-// RECOMP_HOOK("AudioScript_SeqLayerProcessScript") void print_the_layer_addr(SequenceLayer* layer)
-// {
-//     if (!should_print_seqdata) { return; }
-//     SeqScriptState* state = &layer->scriptState;
-//     SeqScriptState* chanState = &layer->channel->scriptState;
-//     if (chanState->pc - gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].seqData < 0x2744 && gActiveSeqs[SEQ_PLAYER_BGM_MAIN].seqId == 2)
-//     {
-//         if (layer->delay) { return; }
-//         logger.noheader.dev("%04p: %02x \n", layer->scriptState.pc - seqDataStart, *state->pc);
-//     }
-// }
+RECOMP_HOOK("AudioScript_ScriptReadS16") void print_the_thingy2(SeqScriptState* state)
+{
+    if (state->pc - (u8*)sunsSlotCopyAddr < 0x1000 && state->pc - (u8*)sunsSlotCopyAddr > -0x1000)
+    {
+        logger.noheader.dev("%04x ", *state->pc);
+    }
+}

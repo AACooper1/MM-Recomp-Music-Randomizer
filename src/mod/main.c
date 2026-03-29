@@ -236,6 +236,7 @@ void replace_custom(int i)
     AudioApi_ReplaceSequenceFont(i, 0, track->bankNo);
 }
 
+RECOMP_IMPORT("mm_bens_remastered_soundtrack", u8 BensSoundtrack_GetOriginalBankIdx(int seqId));
 void replace_vanilla(int i)
 {
     if (i == NA_BGM_FROG_SONG) return;
@@ -243,6 +244,11 @@ void replace_vanilla(int i)
     AudioTableEntry* origTrack = &origTableCopy[randomized[i].seq.id];
     AudioApi_ReplaceSequence(i, origTrack);
     AudioApi_ReplaceSequenceFont(i, 0, randomized[i].bankNo);
+    if (recomp_is_dependency_met("mm_bens_remastered_soundtrack") == DEPENDENCY_STATUS_FOUND)
+    {
+        u8 streamedBankNo = BensSoundtrack_GetOriginalBankIdx(randomized[i].seq.id);
+        if (streamedBankNo) { AudioApi_ReplaceSequenceFont(i, 0, streamedBankNo); }
+    }
 }
 
 extern u32 AudioLoad_GetRealTableIndex(s32 tableType, u32 id);
@@ -288,5 +294,19 @@ RECOMP_PATCH void Scene_CommandSoundSettings(PlayState* play, SceneCmd* cmd) {
     if (gSaveContext.seqId == (u8)NA_BGM_DISABLED ||
         AudioSeq_GetActiveSeqId(SEQ_PLAYER_BGM_MAIN) == NA_BGM_FINAL_HOURS) {
         Audio_SetSpec(cmd->soundSettings.specId);
+    }
+}
+
+RECOMP_IMPORT("mm_bens_remastered_soundtrack", void BensSoundtrack_SetDisableChannelSwitching(int playerIndex, bool shouldDisable));
+RECOMP_HOOK("AudioLoad_SyncInitSeqPlayer") void bens_soundtrack_disable_switching(s32 playerIndex, s32 seqId, s32 arg2)
+{
+    if (recomp_is_dependency_met("mm_bens_remastered_soundtrack") != DEPENDENCY_STATUS_FOUND) return;
+    if (randomized[seqId].type == VANILLA)
+    {
+        BensSoundtrack_SetDisableChannelSwitching(playerIndex, false);
+    }
+    else
+    {
+        BensSoundtrack_SetDisableChannelSwitching(playerIndex, true);
     }
 }
