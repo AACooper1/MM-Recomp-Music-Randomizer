@@ -3,6 +3,28 @@
 #include "songslot.h"
 #include "seed.h"
 
+Seed::Seed(long long seed, std::shared_ptr<Database> db, fs::path savePath, bool use_custom, bool use_vanilla) : 
+seed(seed), db(db), use_custom(use_custom), use_vanilla(use_vanilla), savePath(savePath)
+{ 
+    if (!(use_custom || use_vanilla))
+    {
+        logger.debug("Randomization disabled for this seed.\n");
+        do_not_randomize = true;
+        for (int i = 0; i < songSlots.size(); i++)
+        {
+            songSlots[i].categories = {};
+        }
+    }
+
+    for (int i = 0; i < 0x200; i++)
+    {
+        categories[i] = Category(i);
+    }
+
+    populate_track_table();
+    prepare_song_slots();
+}
+
 std::vector<int> Seed::get_available_tracks(SongSlotID slotId)
 {
     return songSlots[(int)slotId].availableTracksNoRemove;
@@ -43,7 +65,7 @@ void Seed::randomize_slot(int i)
     }
     // If there are really no tracks available at all, just choose from everything available. 
     // Only distinguishes between fanfare and BGM
-    if (songSlots[i].availableTracks.size() == 0)
+    if (songSlots[i].availableTracks.size() == 0 && !do_not_randomize)
     {
         for (const auto & [ id, track ] : tracks)
         {
@@ -63,6 +85,12 @@ void Seed::randomize_slot(int i)
     std::ranges::shuffle(songSlots[i].availableTracks, rng);
 
     int trackId = songSlots[i].availableTracks[0];
+
+    // If a pointer randomizes to itself, the game crashes. Handle this for File Select.
+    if (i == 0x18 && trackId ==  -0x128)
+    {
+        trackId = -0x118;
+    }
 
     randomized.emplace(i, tracks[trackId]);
 
@@ -85,15 +113,17 @@ void Seed::clear_track_availability(int trackId)
 void Seed::populate_track_table()
 {
     int idx = 0;
-    if (use_vanilla)
+    for (int i = 0; i < vanillaTracks.size(); i++)
     {
-        for (int i = 0; i < vanillaTracks.size(); i++)
+        // If the song has no categories, it should not be randomized.
+        if (use_vanilla || songSlots[vanillaTracks[i]->id - 0x100].categories.size() < 2)
         {
             tracks.emplace(vanillaTracks[i]->id * -1, vanillaTracks[i]);
             vanillaTracks[i]->seedIdx = vanillaTracks[i]->id * -1;
-            idx++;
         }
+        idx++;
     }
+
     if (use_custom)
     {
         for (const auto & [ id, track ] : db->tables->track->entries)
@@ -339,7 +369,7 @@ std::array<SongSlot, 0x80> Seed::songSlots
         SongSlot(0x52, "Get the Ocarina!", {FANFARE}), 
         SongSlot(0x53, "Bremen March", {}), // Not randomized - look later into adding tempo & dog thing
         SongSlot(0x54, "Ballad of the Wind Fish", {}), // // Ocarina song
-        SongSlot(0x55, "Song of Soaring", {}), // Ocarina song
+        SongSlot(0x55, "Song of Soaring", {FANFARE, GAME_OVER}),
         SongSlot(0x56, "Milk Bar (Pointer)", {}), // Pointer
         SongSlot(0x57, "Last Day", {FINAL_HOURS}),
         SongSlot(0x58, "Mikau", {}), // Not randomized bc you never hear it in the rando

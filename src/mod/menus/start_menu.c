@@ -4,13 +4,13 @@ StartMenu startMenu;
 
 static const char* randomization_options[] = {"On", "Off"};
 static const char* track_source_options[] = {"Any", "Vanilla only", "Custom only"};
-static const char* morning_song_options[] = {"Vanilla", "Randomized"};
+// static const char* morning_song_options[] = {"Randomized", "Vanilla"};
 
 StartMenu_Option music_rando_startup_options[OPTIONS_MAX] = 
 {
-    {"Randomization", randomization_options, 2, 0, &config.randomization_on},
+    {"Randomization", randomization_options, 2, 0, &config.randomization_off},
     {"Use Tracks", track_source_options, 3, 0, &config.track_types},
-    {"Morning Song", morning_song_options, 2, 1, &config.randomize_suns_song},
+    // {"Morning Song", morning_song_options, 2, 0, &config.disable_randomize_suns_song},
     
     {NULL, NULL, 0} // Sentinel
 };
@@ -153,7 +153,7 @@ void music_rando_startup_menu_main()
             recompui_hide_context(startMenu.context);
             startMenu.shown = false;
         }
-        music_rando_update_db();
+        music_rando_begin_randomization();
         gState->main = ConsoleLogo_Main;
     }
 
@@ -169,6 +169,16 @@ extern void Setup_Destroy(GameState* thisx);
 
 RECOMP_HOOK_RETURN("ConsoleLogo_Init") void music_rando_startup_menu_init()
 {
-    gState->main = music_rando_startup_menu_main;
-    gState->destroy = Setup_Destroy;
+    unsigned char* savePath = recomp_get_save_file_path();
+    if (!check_seed_exists(savePath))
+    {
+        logger.dev("??\n");
+        gState->main = music_rando_startup_menu_main;
+        gState->destroy = Setup_Destroy;
+    }
+    else
+    {
+        music_rando_begin_randomization();
+    }
+    recomp_free(savePath);
 }

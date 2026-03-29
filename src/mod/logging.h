@@ -49,8 +49,10 @@ void logger_init(Logger* logger);
 
 void set_log_level(LogLevel level);
 LogLevel get_log_level();
-void update_log_level();
 
-void print_bytes(void* addr, int n);
+void update_log_level();
+void update_log_dest();
+
+void print_bytes(Logger* logger, void* addr, int n);
 
 #endif

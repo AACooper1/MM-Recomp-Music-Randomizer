@@ -2,8 +2,11 @@
 #include "logging.h"
 extern Logger logger;
 
+RECOMP_IMPORT(".", int check_seed_exists(unsigned char* savePath));
+
 #define OPTIONS_MAX 64
 
+RECOMP_IMPORT(".", void music_rando_begin_randomization());
 typedef enum {
     OPTION_RADIO,
     OPTION_BOOL
@@ -18,9 +21,9 @@ typedef struct StartMenu_Option_t {
 } StartMenu_Option;
 
 typedef struct MusicRando_Config_t {
-    unsigned long randomization_on;
+    unsigned long randomization_off;
     unsigned long track_types;
-    unsigned long randomize_suns_song;
+    // unsigned long disable_randomize_suns_song;
 } MusicRando_Config;
 
 typedef struct StartMenu_Option_Element_t {
@@ -55,6 +58,7 @@ typedef struct StartMenu_t {
 
 GameState* gState;
 bool game_started;
+extern bool is_existing_seed;
 
 extern MusicRando_Config config;
 

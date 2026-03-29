@@ -66,7 +66,7 @@ void hide_title_display()
 
 void show_title_display()
 {
-    if (!titleDispCtx.shown)
+    if (!titleDispCtx.shown && recomp_get_config_u32("show_song_titles"))
     {
         logger.dev("Showing title display context.\n");
         recompui_show_context(titleDispCtx.context);

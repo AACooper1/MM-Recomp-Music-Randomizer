@@ -52,6 +52,20 @@ RECOMP_DLL_FUNC(prepare_database) {
     RECOMP_RETURN(int, rc);
 }
 
+RECOMP_DLL_FUNC(check_seed_exists) 
+{
+    fs::path savePath = RECOMP_ARG_STR(0);
+    savePath = savePath.replace_extension(".music.db");
+    if (fs::exists(savePath))
+    {
+        RECOMP_RETURN(int, true);
+    }
+    else
+    {
+        RECOMP_RETURN(int, false);
+    }
+}
+
 RECOMP_DLL_FUNC(prepare_seed)
 {
     int randoSeed = RECOMP_ARG(int, 0);

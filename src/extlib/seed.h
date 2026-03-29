@@ -24,23 +24,7 @@ enum class SongSlotID;
 class Seed
 {
     public:
-        Seed(long long seed, std::shared_ptr<Database> db, fs::path savePath, bool use_custom, bool use_vanilla) : 
-            seed(seed), db(db), use_custom(use_custom), use_vanilla(use_vanilla), savePath(savePath)
-            { 
-                if (!(use_custom || use_vanilla))
-                {
-
-                    throw("Tried to create custom music with custom and vanilla tracks both off?!");
-                }
-
-                for (int i = 0; i < 0x200; i++)
-                {
-                    categories[i] = Category(i);
-                }
-
-                populate_track_table();
-                prepare_song_slots();
-            }
+        Seed(long long seed, std::shared_ptr<Database> db, fs::path savePath, bool use_custom, bool use_vanilla);
         
         long long seed;
 
@@ -72,6 +56,7 @@ class Seed
 
         bool use_custom;
         bool use_vanilla;
+        bool do_not_randomize;
 
         fs::path savePath;
 

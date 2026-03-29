@@ -3,6 +3,7 @@
 RECOMP_CALLBACK("*", recomp_on_init) void init_loggers()
 {
     logger_init(&logger);
+    log_opts_setup();
 }
 
 RECOMP_HOOK("Play_Update") void extract_gamestate(PlayState* this)
@@ -31,8 +32,8 @@ void music_rando_update_db()
     unsigned char* modPath = recomp_get_mod_folder_path();
 
     prepare_database(modPath);
+    recomp_free(modPath);
     logger.noheader.debug("Finished prepare_database!\n");
-    music_rando_begin_randomization();
 }
 
 RECOMP_HOOK_RETURN("ConsoleLogo_Init") void begin_if_no_rando()
@@ -41,7 +42,7 @@ RECOMP_HOOK_RETURN("ConsoleLogo_Init") void begin_if_no_rando()
     if (found_rando != DEPENDENCY_STATUS_FOUND)
     {
         logger.debug("Rando not found (returned %i). Launching without rando...\n", found_rando);
-        // music_rando_begin();
+        music_rando_begin();
     }
 }
 
@@ -53,7 +54,7 @@ RECOMP_HOOK_RETURN("ConsoleLogo_Init") void launch_on_rando_connect()
         return;
     }
     recomp_printf("Connected to rando. Starting music randomization...\n");
-    // music_rando_begin();
+    music_rando_begin();
 }
 
 RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_seed()
@@ -67,11 +68,17 @@ RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_see
     config.track_types = 3 - config.track_types;
     bool use_custom = config.track_types & 1;
     bool use_vanilla = config.track_types & 2;
+    if (config.randomization_off) { use_custom = use_vanilla = false; }
 
     if (!prepare_seed(randoSeed, savePath, use_custom, use_vanilla))
     {
         logger.critical("Could not prepare seed, aborting music rando!\n");
         recomp_free(savePath);
+        return;
+    }
+    if (config.randomization_off)
+    {
+        logger.debug("Randomization off. Aborting music rando.\n");
         return;
     }
     recomp_free(savePath);
@@ -109,11 +116,19 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void milk_bar_and_final
 }
 
 AudioTableEntry* origTableCopy;
+u8* origSeqBanks;
 
 void prepare_tracks()
 {
     origTableCopy = recomp_alloc(sizeof(AudioTableEntry) * gAudioCtx.sequenceTable->header.numEntries);
     Lib_MemCpy(origTableCopy, gAudioCtx.sequenceTable->entries, sizeof(AudioTableEntry) * gAudioCtx.sequenceTable->header.numEntries);
+
+    origSeqBanks = recomp_alloc(gAudioCtx.sequenceTable->header.numEntries);
+    for (int i = 0; i < gAudioCtx.sequenceTable->header.numEntries; i++)
+    {
+        origSeqBanks[i] = AudioApi_GetSequenceFont(i, 0);
+    }
+
     // Start at 2, because we want to skip the SFX and Ambience entries.
     for (int i = 2; i < NUM_SONG_SLOTS; i++)
     {
@@ -173,18 +188,20 @@ AudioTableEntry* create_seq_entry_from_track(cTrack* track)
 
 void link_custom_sound(cTrack* track, int soundIdx, u32* bank)
 {
-    for (int s = 0; s < track->numSounds; s++)
+    bool found_sound_addr = false;
+    u32 sampleAddr = track->sounds[soundIdx].sampleAddr;
+    for (int i = 0; i < track->bank.size / sizeof(u32); i++)
     {
-        u32 sampleAddr = track->sounds[s].sampleAddr;
-        for (int i = 0; i < track->bank.size / sizeof(u32); i++)
+        if (bank[i] == sampleAddr)
         {
-            if (bank[i] == sampleAddr)
-            {
-                bank[i] = (u32)track->sounds[s].data;
-                break;
-            }
+            found_sound_addr = true;
+            logger.debug("Sound %x for track %s found at index %p.\n", soundIdx, track->name, i * 4);
+            bank[i] = (u32)track->sounds[soundIdx].data;
+            return;
         }
     }
+    logger.warning("Could not find sound %x (sampleAddr: %p) for track %s!\n", soundIdx, track->sounds[soundIdx].sampleAddr, track->name);
+    print_bytes(&logger, track->bank.data, track->bank.size);
 }
 
 s32 create_bank_entry_from_track(cTrack* track)

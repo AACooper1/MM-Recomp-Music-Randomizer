@@ -29,9 +29,9 @@ RECOMP_DECLARE_EVENT(music_rando_seed_prepared(cTrack* randomizedAddr));
 RECOMP_DECLARE_EVENT(music_rando_randomization_complete(cTrack* randomizedAddr));
 
 typedef struct MusicRando_Config_t {
-    unsigned long randomization_on;
+    unsigned long randomization_off;
     unsigned long track_types;
-    unsigned long randomize_suns_song;
+    // unsigned long disable_randomize_suns_song;
 } MusicRando_Config;
 
 MusicRando_Config config;
@@ -43,6 +43,7 @@ cTrack randomized[NUM_SONG_SLOTS];
 cSound customSounds[256];
 AudioTable* vanillaTableCopy;
 bool randomization_complete;
+bool is_existing_seed;
 
 u8 maxVolChannelIdx[SEQ_PLAYER_MAX];
 f32 channelVolumeRatios[SEQ_PLAYER_MAX][16];
@@ -66,3 +67,5 @@ void replace_vanilla(int i);
 
 extern void update_music_state(PlayState* play);
 extern void apply_mask();
+
+extern void log_opts_setup();

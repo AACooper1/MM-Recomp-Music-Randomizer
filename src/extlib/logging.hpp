@@ -2,12 +2,15 @@
 #define LOGGING_H
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <format>
 #include <chrono>
 #include <string>
+#include <filesystem>
 
 class Log;
+namespace fs = std::filesystem;
 
 enum class LogLevel
 {
@@ -30,6 +33,24 @@ class Logger
         {
             stream();
             dest << text;
+            return dest;
+        }
+        void set_outfile(std::string path) 
+        { 
+            if (file.is_open())
+            {
+                file.close();
+            }
+            file.open(path);
+            dest.rdbuf(file.rdbuf());
+            return;
+        }
+        void set_out_console()
+        {
+            dest.rdbuf(cout);
+        }
+        std::ostream& get_dest()
+        {
             return dest;
         }
 
@@ -56,6 +77,8 @@ class Logger
             Log* parent;
             LogLevel level;
             std::ostream& dest;                 // short for Destember Holiday
+            std::ofstream file;
+            std::streambuf* cout = std::cout.rdbuf();
 
             bool shouldPrintHeader = true;
 
@@ -73,6 +96,20 @@ public:
       debug    (LogLevel::LOG_DEBUG,    this),
       dev      (LogLevel::LOG_DEV,      this)
     {}
+    void set_outfile()
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            loggers[i]->set_outfile(filePath);
+        }
+    }
+    void set_out_console()
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            loggers[i]->set_out_console();
+        }
+    }
 
     Logger critical;
     Logger error;
@@ -80,6 +117,10 @@ public:
     Logger info;
     Logger debug;
     Logger dev;
+
+    Logger* loggers[6] = {&critical, &error, &warning, &info, &debug, &dev};
+    std::string filePath;
+    bool dest_is_file = false;
 
     void set_log_level(LogLevel level) { gLogLevel = level; }
     LogLevel get_log_level() const { return gLogLevel; }
