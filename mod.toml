@@ -8,14 +8,14 @@
 id = "mm_music_randomizer"
 
 # Version of this mod.
-version = "0.1.4"
+version = "1.0.0"
 
 # The name that will show up for this mod in the mod menu. This should be human readable.
 display_name = "MM Music Randomizer"
 
 # The description that will show up when this mod is displayed in the mod menu. This should be human readable.
 description =  """
-Reads .mmrs files and randomizes music. 
+Music randomizer for MM Recomp. Place music in your mod_data/music folder!
 """
 
 # A short description that will show up in this mod's entry in the mod list. This should be human readable and kept short
@@ -43,7 +43,7 @@ optional_dependencies = [
 
 # Native libraries (e.g. DLLs) and the functions they export.
 native_libraries = [
-   { name = "mm_recomp_music_rando", funcs = ["_log", "_set_log_level", "_get_log_level", "get_current_time", "_get_log_dest", "_set_log_file", "_set_log_console", "prepare_database", "check_seed_exists", "prepare_seed", "fetch_randomized_track", "fetch_seq", "fetch_bank", "fetch_sound"] }
+   { name = "mm_recomp_music_randomizer_extlib", funcs = ["_log", "_set_log_level", "_get_log_level", "get_current_time", "_get_log_dest", "_set_log_file", "_set_log_console", "prepare_database", "check_seed_exists", "prepare_seed", "fetch_randomized_track", "fetch_seq", "fetch_bank", "fetch_sound"] }
 ]
 
 # Inputs to the mod tool.
@@ -53,7 +53,7 @@ native_libraries = [
 elf_path = "build/mod.elf"
 
 # Output mod filename.
-mod_filename = "mm_music_randomizer"
+mod_filename = "mm_recomp_music_randomizer"
 
 # Reference symbol files.
 func_reference_syms_file = "Zelda64RecompSyms/mm.us.rev1.syms.toml"
@@ -68,7 +68,7 @@ additional_files = [ "thumb.png" ]
 [extlib_compiling]
 
 # # Name of the extlib. This information is passed to CMake as the target name for the extlib.
-library_name = "mm_recomp_mmrs_reader_extlib"
+library_name = "mm_recomp_music_randomizer_extlib"
 
 # Your CMake presets in this file should be designed to handle cross-compilation (using the provided
 # Zig toolchain is recommended). When building the mod, CMake will be invoked 3 times to build

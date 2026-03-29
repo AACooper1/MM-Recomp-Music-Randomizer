@@ -1,3 +1,7 @@
+# v1.0.0
+* Total rewrite of entire mod. Too many changes to list here
+* Updated README.md
+
 # v0.2.0
 * **Changed music directory to `mod_data/music`.**
 * Added a progress counter to the debug mode when reading the `music` directory.
@@ -11,6 +15,7 @@
 # v0.1.3
 * Fixed issue with category string not being null-terminated, resulting in final categories not being read correctly in some circumstances.
 * Added a log-level mask to a certain print_bytes call.
+* Updated README.md.
 
 # v0.1.2
 * Fixed handling of empty or missing music folder.
@@ -20,6 +25,8 @@
 
 # v0.1.1
 * Added Recomp Rando as a dependency.
+* Updated README.md.
 
 # v0.1.0
 * Initial release.
+* Updated README.md.

@@ -97,7 +97,7 @@ RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_see
     logger.info("");
     for (int i = 2; i < NUM_SONG_SLOTS; i++)
     {
-        if (should_skip_song_title_display[i]) continue;
+        if (should_skip_song_title_display[i] && get_log_level() != LOG_DEV) continue;
         logger.noheader.info("%s --> %s!", randomized[i].slotName, randomized[i].name);
         logger.noheader.dev("(%x --> %x)", randomized[i].slotIdx, randomized[i].seq.id);
         logger.noheader.info("\n");
@@ -106,11 +106,13 @@ RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_see
 
 RECOMP_CALLBACK(".", music_rando_randomization_complete) void milk_bar_and_final_hours_fix()
 {
-    gSequenceFontTable[NA_BGM_MILK_BAR_DUPLICATE] = (u8)(randomized[NA_BGM_MILK_BAR].bankNo);
+    AudioApi_ReplaceSequenceFont(NA_BGM_MILK_BAR_DUPLICATE, 0, randomized[NA_BGM_MILK_BAR].bankNo);
     Lib_MemCpy(randomized[NA_BGM_MILK_BAR_DUPLICATE].name, randomized[NA_BGM_MILK_BAR].name, 256);
     Lib_MemCpy(&(randomized[NA_BGM_MILK_BAR_DUPLICATE].formmask), &(randomized[NA_BGM_MILK_BAR].formmask), sizeof(cFormMask));
+    logger.debug("Replaced Milk Bar Ptr bank with bank 0x%02x (orig. has bank %02x).\n", AudioApi_GetSequenceFont(NA_BGM_MILK_BAR_DUPLICATE, 0), randomized[NA_BGM_MILK_BAR].bankNo);
 
-    gSequenceFontTable[NA_BGM_MAJORAS_LAIR] = (u8)(randomized[NA_BGM_FINAL_HOURS].bankNo);
+    AudioApi_ReplaceSequenceFont(NA_BGM_MAJORAS_LAIR, 0, randomized[NA_BGM_FINAL_HOURS].bankNo);
+    logger.debug("Replaced Majora's Lair bank with bank 0x%02x (Final Hours has bank %02x).\n", AudioApi_GetSequenceFont(NA_BGM_MAJORAS_LAIR, 0), randomized[NA_BGM_FINAL_HOURS].bankNo);
     Lib_MemCpy(randomized[NA_BGM_MAJORAS_LAIR].name, randomized[NA_BGM_FINAL_HOURS].name, 256);
     Lib_MemCpy(&(randomized[NA_BGM_MAJORAS_LAIR].formmask), &(randomized[NA_BGM_FINAL_HOURS].formmask), sizeof(cFormMask));
 }
