@@ -236,19 +236,13 @@ void replace_custom(int i)
     AudioApi_ReplaceSequenceFont(i, 0, track->bankNo);
 }
 
-RECOMP_IMPORT("mm_bens_remastered_soundtrack", u8 BensSoundtrack_GetOriginalBankIdx(int seqId));
 void replace_vanilla(int i)
 {
     if (i == NA_BGM_FROG_SONG) return;
 
     AudioTableEntry* origTrack = &origTableCopy[randomized[i].seq.id];
     AudioApi_ReplaceSequence(i, origTrack);
-    AudioApi_ReplaceSequenceFont(i, 0, randomized[i].bankNo);
-    if (recomp_is_dependency_met("mm_bens_remastered_soundtrack") == DEPENDENCY_STATUS_FOUND)
-    {
-        u8 streamedBankNo = BensSoundtrack_GetOriginalBankIdx(randomized[i].seq.id);
-        if (streamedBankNo) { AudioApi_ReplaceSequenceFont(i, 0, streamedBankNo); }
-    }
+    AudioApi_ReplaceSequenceFont(i, 0, origSeqBanks[randomized[i].seq.id]);
 }
 
 extern u32 AudioLoad_GetRealTableIndex(s32 tableType, u32 id);
