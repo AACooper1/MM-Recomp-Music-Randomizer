@@ -51,6 +51,7 @@ bool Track::read_from_file()
     if (!mz_zip_reader_init_file(&archive, path.string().c_str(), 0))
     {
         logger.error << "Error reading zip file " << path.string() << ": " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
+        mz_zip_reader_end(&archive);
         return false;
     }
 
@@ -70,6 +71,7 @@ bool Track::read_from_file()
             return false;
     }
 
+    mz_zip_reader_end(&archive);
     return true;
 }
 

@@ -9,17 +9,17 @@ RECOMP_HOOK_RETURN("AudioLoad_SyncInitSeqPlayer") void after_AudioLoad_SyncInitS
 {
     SequencePlayer* seqPlayer = &gAudioCtx.seqPlayers[_lastInitializedSeqPlayerIndex];
     int seqId = seqPlayer->seqId;
-    if (randomized[seqId].seq.id == 0x1D && seqId != 0x1D)
+    if (randomized[seqId].seq.id == 0x1D && randomized[seqId].type == VANILLA && seqId != 0x1D)
     {
-        logger.debug("Sun's Song loaded on player %x. Handling...\n", seqPlayer->playerIndex);
+        logger.debug("Morning Sequence loaded on player %x. Handling...\n", seqPlayer->playerIndex);
         handle_morning_sequence(seqPlayer);
-        logger.noheader.debug("Sun's Song handled!\n");
+        logger.noheader.debug("Morning Sequence handled!\n");
     }
     else if (seqId == 0x1D && randomized[seqId].seq.id != 0x1D)
     {
-        logger.debug("Morning sequence is randomized (id %x). Handling...\n", randomized[seqId].seq.id);
+        logger.debug("Morning Sequence slot is randomized (id %x). Handling...\n", randomized[seqId].seq.id);
         add_control_flow_to_morning_slot(seqPlayer);
-        logger.noheader.debug("Randomized Morning sequence handled!\n");
+        logger.noheader.debug("Randomized Morning Sequence slot handled!\n");
     }
 }
 
@@ -28,22 +28,28 @@ void handle_morning_sequence(SequencePlayer* seqPlayer)
     logger.debug("Running handle_morning_sequence...\n");
     if (!sunsSongCopyAddr)
     {
+        // Check the thing we're copying into is actually the morning sequence
+        if (seqPlayer->seqData[0x0D] != 0x2D || seqPlayer->seqData[0x47] != 0xC4)
+        {
+            logger.debug("Sequence data did not match Morning Sequence data!\n");
+        }
+
         sunsSongCopyAddr = recomp_alloc(0x0610);
         Lib_MemCpy(sunsSongCopyAddr, seqPlayer->seqData, 0x0610);
         sunsSongCopyAddr[0x0D] = sunsSongCopyAddr[0x49] = 0x00;
         sunsSongCopyAddr[0x47] = 0xFF;
-        logger.noheader.debug("Allocated 0x610 bytes at $0x%p for Sun's Song copy!", sunsSongCopyAddr);
+        logger.noheader.debug("Allocated 0x610 bytes at $0x%p for Morning Sequence copy!", sunsSongCopyAddr);
         logger.noheader.dev(" New data:");
         logger.noheader.debug("\n");
         print_bytes(&logger, seqPlayer->scriptState.pc, 0x4A);
     }
     else
     {
-        logger.noheader.debug("Sun's Song copy already prepared at $0x%p.\n", sunsSongCopyAddr);
+        logger.noheader.debug("Morning Sequence copy already prepared at $0x%p.\n", sunsSongCopyAddr);
     }
     seqPlayer->seqData = (u8*)sunsSongCopyAddr;
     seqPlayer->scriptState.pc = seqPlayer->seqData;
-    logger.noheader.debug("Loaded modified Sun's Song into seqPlayer %x.\n", seqPlayer->playerIndex);
+    logger.noheader.debug("Loaded modified Morning Sequence into seqPlayer %x.\n", seqPlayer->playerIndex);
 }
 
 void add_control_flow_to_morning_slot(SequencePlayer* seqPlayer)
@@ -119,7 +125,7 @@ RECOMP_HOOK_RETURN("AudioScript_SequencePlayerProcessSequence") void return_to_s
     {
         if (gAudioCtx.seqPlayers[i].seqId == 0x1D && gAudioCtx.seqPlayers[i].finished)
         {
-            logger.debug("Reached end of randomized Sun's Song slot. Playing Clock Town Day %x...\n", gSaveContext.save.day);
+            logger.debug("Reached end of randomized Morning Sequence slot. Playing Clock Town Day %x...\n", gSaveContext.save.day);
             AudioLoad_SyncInitSeqPlayer(i, 0x15 + gSaveContext.save.day - 1, 0);
             logger.noheader.debug("Success!\n");
         }
@@ -131,18 +137,18 @@ RECOMP_HOOK_RETURN("AudioScript_SequencePlayerProcessSequence") void return_to_s
 // Prints live data read by seqPlayer playing Sun's Song. 
 // Disabling but not deleting in case I need to use it in the future.
 
-RECOMP_HOOK("AudioScript_ScriptReadU8") void print_the_thingy(SeqScriptState* state)
-{
-    if (state->pc - (u8*)sunsSlotCopyAddr < 0x1000 && state->pc - (u8*)sunsSlotCopyAddr > -0x1000)
-    {
-        logger.noheader.dev("%02x ", *state->pc);
-    }
-}
+// RECOMP_HOOK("AudioScript_ScriptReadU8") void print_the_thingy(SeqScriptState* state)
+// {
+//     if (state->pc - (u8*)sunsSlotCopyAddr < 0x1000 && state->pc - (u8*)sunsSlotCopyAddr > -0x1000)
+//     {
+//         logger.noheader.dev("%02x ", *state->pc);
+//     }
+// }
 
-RECOMP_HOOK("AudioScript_ScriptReadS16") void print_the_thingy2(SeqScriptState* state)
-{
-    if (state->pc - (u8*)sunsSlotCopyAddr < 0x1000 && state->pc - (u8*)sunsSlotCopyAddr > -0x1000)
-    {
-        logger.noheader.dev("%04x ", *state->pc);
-    }
-}
+// RECOMP_HOOK("AudioScript_ScriptReadS16") void print_the_thingy2(SeqScriptState* state)
+// {
+//     if (state->pc - (u8*)sunsSlotCopyAddr < 0x1000 && state->pc - (u8*)sunsSlotCopyAddr > -0x1000)
+//     {
+//         logger.noheader.dev("%04x ", *state->pc);
+//     }
+// }

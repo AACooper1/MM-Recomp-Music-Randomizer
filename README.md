@@ -1,4 +1,4 @@
-# MM Recomp Music Randomizer (v1.0.0)
+# MM Recomp Music Randomizer (v1.0.1)
 
 Reimplements the music randomization features from [MMR](https://github.com/ZoeyZolotova/mm-rando).
 
