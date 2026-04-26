@@ -15,6 +15,8 @@ Log logger;
 std::shared_ptr<Database> db;
 std::shared_ptr<Seed> seed;
 
+bool can_use_ootrs;
+
 RECOMP_DLL_FUNC(prepare_database) {
     std::string modPath = RECOMP_ARG_STR(0);
     
@@ -74,7 +76,7 @@ RECOMP_DLL_FUNC(prepare_seed)
     bool use_vanilla = RECOMP_ARG(bool, 3);
 
     savePath = savePath.replace_extension(".music.db");
-    seed = std::make_shared<Seed>(randoSeed, db, savePath, use_custom, use_vanilla);
+    seed = std::make_shared<Seed>(randoSeed, db, savePath, use_custom, use_vanilla, can_use_ootrs);
 
     try
     {
@@ -176,6 +178,58 @@ void prepare_custom_track(std::shared_ptr<Track> extlibTrack, cTrack* modTrack)
         modTrack->formmask.states[i] = extlibTrack->formmask.states[i ^ 1];
     }
     modTrack->formmask.pad[0] = extlibTrack->formmask.cumulativeStates;
+}
+
+OoTAudioBin* audiobinTest;
+
+RECOMP_DLL_FUNC(read_oot_audiobin)
+{    
+    if (fs::exists(db->get_db_dir() / "OOT.audiobin"))
+    {
+        logger.info << "Found OoT audiobin, reading..." << std::endl;
+        audiobinTest = new OoTAudioBin(db->get_db_dir() / "OOT.audiobin");
+
+        if (audiobinTest->successfully_parsed)
+        {
+            logger.info.disable_header();
+            logger.info << "Success!" << std::endl;
+            logger.info.enable_header();
+            RECOMP_RETURN(bool, true);
+        }
+    }
+    RECOMP_RETURN(bool, false);
+}
+
+RECOMP_DLL_FUNC(get_oot_audiobin_headers)
+{
+    AudioTableHeader* soundTableHeader = RECOMP_ARG(AudioTableHeader*, 0);
+    AudioTableHeader* bankTableHeader = RECOMP_ARG(AudioTableHeader*, 1);
+    
+
+    if (audiobinTest->successfully_parsed)
+    {
+        can_use_ootrs = true;
+        std::memcpy(soundTableHeader, audiobinTest->soundTableHeader->data(), 0x10);
+        std::memcpy(bankTableHeader, audiobinTest->bankTableHeader->data(), 0x10);
+    }
+}
+
+RECOMP_DLL_FUNC(get_oot_audiobin_entries)
+{
+    AudioTableEntry* soundTableEntries = RECOMP_ARG(AudioTableEntry*, 0);
+    AudioTableEntry* bankTableEntries = RECOMP_ARG(AudioTableEntry*, 1);
+}
+
+RECOMP_DLL_FUNC(get_oot_audiobin_data)
+{
+    void* soundData = RECOMP_ARG(void*, 0);
+    void* bankData = RECOMP_ARG(void*, 1);
+
+    if (audiobinTest->successfully_parsed)
+    {
+        std::memcpy(soundData, audiobinTest->soundTable->data(), audiobinTest->soundTable->size());
+        std::memcpy(bankData, audiobinTest->bankTable->data(), audiobinTest->bankTable->size());
+    }
 }
 
 RECOMP_DLL_FUNC(fetch_randomized_track)

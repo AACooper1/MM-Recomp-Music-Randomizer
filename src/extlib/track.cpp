@@ -64,6 +64,7 @@ bool Track::read_from_file()
             read_from_mmrs();
             break;
         case TrackType::OOTRS:
+            read_from_ootrs();
         case TrackType::STREAMED:
         case TrackType::UNKNOWN:
         default:
@@ -77,8 +78,7 @@ bool Track::read_from_file()
 
 bool Track::read_from_mmrs()
 {
-    logger.dev << "Reading track \"" << name << "\"" << std::endl;
-    logger.debug << "Detected file type MMRS." << std::endl;
+    logger.dev << "Detected file type MMRS." << std::endl;
 
     int num_files = (int)mz_zip_reader_get_num_files(&archive);
     
@@ -161,6 +161,24 @@ bool Track::read_from_mmrs()
     }
 
     return true;
+}
+
+bool Track::read_from_ootrs()
+{
+    logger.dev << "Detected file type OOTRS." << std::endl;
+
+    int num_files = (int)mz_zip_reader_get_num_files(&archive);
+
+    for (int i = 0; i < num_files; i++)
+    {
+        mz_zip_archive_file_stat stat;
+
+        if (!mz_zip_reader_file_stat(&archive, i, &stat))
+        {
+            logger.error << "Error reading file " << stat.m_filename << ", skipping!" << std::endl;
+            continue;
+        }
+    }
 }
 
 void Track::parse_categories(std::vector<char>& filebuffer)

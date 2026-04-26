@@ -174,7 +174,6 @@ archive_extractions['assets'] = assets_archive_job
 # ModTomlJob instances automatically register the resultant .nrm file as a mod_output_file. Therefore the .nrm will 
 # automatically be added to any build output folders or thunderstore packages that depend on this job.
 main_toml = ModTomlJob(mod_tool_path, root_dir.joinpath("mod.toml"))
-test_toml = ModTomlJob(mod_tool_path, root_dir.joinpath("tests.toml"))
 
 # The mod toml file is read when the job is first created. We now have access to all the information in the toml.
 
@@ -195,35 +194,19 @@ main_makefile = MakefileJob(
     }
 )
 
-test_makefile = MakefileJob(
-    root_dir.joinpath("mod_elf.mk"),
-    {
-        "_ELF_PATH": str(test_toml.get_elf_path()),
-        "_BUILD_DIR": str(test_toml.build_dir),
-        "_MIPS_CC": str(make_mips_compiler_path),
-        "_MIPS_LD": str(make_mips_linker_path),
-        "_SRC_DIR": "tests/src/mod"
-    }
-)
-
 # We've set the makefile to use the MIPS-only clang and ld.lld that we downloaded and extracted (The 'llvmmips' DownloadJob and ArchiveExtractJob).
 # So, we'll mark this MakefileJob as depending on that ArchiveExtractJob. We don't need to mark it as depending on the DownloadJob,
 # since the ArchiveExtractJob already depends on the DownloadJob.
 # Also declaring dependency on the asset archive extraction job.
 main_makefile.depends_on([archive_extractions["llvmmips"], assets_archive_job])
-test_makefile.depends_on([archive_extractions["llvmmips"], assets_archive_job])
 
 # Our toml file depends on the makefile to produce the mod elf, so we'll declare that dependency here.
 # It also depends on the RecompModTool we extracted from 'llvmmips', so we declare that dependency too.
 main_toml.depends_on([main_makefile, archive_extractions["llvmmips"]])
-test_toml.depends_on([test_makefile, archive_extractions["llvmmips"]])
 
 # Adding both jobs to their respective dicts for direct invoking.
 mod_tomls['mod'] = main_toml
 makefiles['mod'] = main_makefile
-
-mod_tomls['tests'] = test_toml
-makefiles['tests'] = test_makefile
 
 # ============== CMake/Extlib Compilation ==============
 
@@ -391,8 +374,7 @@ debug_test_dir = BuildOutputJob(root_dir.joinpath("test_env/mods"))
 
 # To include mod_output_files from other jobs in the build output, add those jobs as dependencies.
 debug_test_dir.depends_on([
-    mod_tomls['mod'],
-    mod_tomls['tests'],
+    mod_tomls['mod']
 ] + [i for i in cmake_build_groups["Debug"].values()])
 
 # You can also declare additional files to include using `debug_test_dir.add_mod_output_files(...)` method.

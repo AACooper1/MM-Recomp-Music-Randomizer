@@ -24,7 +24,7 @@ enum class SongSlotID;
 class Seed
 {
     public:
-        Seed(long long seed, std::shared_ptr<Database> db, fs::path savePath, bool use_custom, bool use_vanilla);
+        Seed(long long seed, std::shared_ptr<Database> db, fs::path savePath, bool use_custom, bool use_vanilla, bool use_ootrs);
         
         long long seed;
 
@@ -56,6 +56,7 @@ class Seed
 
         bool use_custom;
         bool use_vanilla;
+        bool use_ootrs;
         bool do_not_randomize;
 
         fs::path savePath;

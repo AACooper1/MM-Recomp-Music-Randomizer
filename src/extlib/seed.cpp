@@ -3,7 +3,7 @@
 #include "songslot.h"
 #include "seed.h"
 
-Seed::Seed(long long seed, std::shared_ptr<Database> db, fs::path savePath, bool use_custom, bool use_vanilla) : 
+Seed::Seed(long long seed, std::shared_ptr<Database> db, fs::path savePath, bool use_custom, bool use_vanilla, bool use_ootrs) : 
 seed(seed), db(db), use_custom(use_custom), use_vanilla(use_vanilla), savePath(savePath)
 { 
     if (!(use_custom || use_vanilla))
@@ -128,6 +128,10 @@ void Seed::populate_track_table()
     {
         for (const auto & [ id, track ] : db->tables->track->entries)
         {
+            if (track->type == TrackType::OOTRS && !use_ootrs)
+            {
+                continue;
+            }
             tracks.emplace(track->databaseIndex, track);
             track->seedIdx = track->databaseIndex;
             if (track->name.contains("songforce"))

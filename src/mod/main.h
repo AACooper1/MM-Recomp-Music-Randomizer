@@ -51,11 +51,18 @@ f32 maxChanVol;
 
 extern bool should_skip_song_title_display[0x7F];
 
+AudioTable* OoTSoundTable;
+AudioTable* OoTBankTable;
+
+bool found_oot_audiobin;
+
 AudioTableEntry* create_seq_entry_from_track(cTrack* track);
 AudioTable* copy_vanilla_audiotable();
 
 extern void create_startup_menu();
 void music_rando_update_db();
+
+extern bool prepare_oot_audiotables();
 
 void prepare_tracks();
 void populate_custom_track(cTrack* track);

@@ -7,6 +7,7 @@
 #include "audiofile.h"
 #include "formmask.hpp"
 #include "util.h"
+#include "ootrs.hpp"
 
 #include "miniz.h"
 
@@ -72,7 +73,7 @@ class Track
 
     private:
         bool read_from_mmrs();
-        bool read_from_ootrs() {return false;};
+        bool read_from_ootrs();
         bool read_from_streamed() {return false;};
 
         void parse_categories(std::vector<char>& filebuffer);

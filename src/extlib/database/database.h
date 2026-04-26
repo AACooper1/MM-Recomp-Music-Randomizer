@@ -109,6 +109,7 @@ class Database : public std::enable_shared_from_this<Database>
 
         int exec(std::string query);
 
+        fs::path get_db_dir() { return dbPath.parent_path(); }
 
         void set_last_rc(int rc);
         int get_last_rc() { return lastRC; };
