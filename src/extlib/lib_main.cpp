@@ -15,6 +15,7 @@ Log logger;
 std::shared_ptr<Database> db;
 std::shared_ptr<Seed> seed;
 
+OoTAudioBin* audiobinTest;
 bool can_use_ootrs;
 
 RECOMP_DLL_FUNC(prepare_database) {
@@ -180,8 +181,6 @@ void prepare_custom_track(std::shared_ptr<Track> extlibTrack, cTrack* modTrack)
     modTrack->formmask.pad[0] = extlibTrack->formmask.cumulativeStates;
 }
 
-OoTAudioBin* audiobinTest;
-
 RECOMP_DLL_FUNC(read_oot_audiobin)
 {    
     if (fs::exists(db->get_db_dir() / "OOT.audiobin"))
@@ -196,6 +195,10 @@ RECOMP_DLL_FUNC(read_oot_audiobin)
             logger.info.enable_header();
             RECOMP_RETURN(bool, true);
         }
+    }
+    else
+    {
+        logger.info << "No OoT audiobin found, will not use OOTRS files." << std::endl;
     }
     RECOMP_RETURN(bool, false);
 }
@@ -218,17 +221,35 @@ RECOMP_DLL_FUNC(get_oot_audiobin_entries)
 {
     AudioTableEntry* soundTableEntries = RECOMP_ARG(AudioTableEntry*, 0);
     AudioTableEntry* bankTableEntries = RECOMP_ARG(AudioTableEntry*, 1);
-}
-
-RECOMP_DLL_FUNC(get_oot_audiobin_data)
-{
-    void* soundData = RECOMP_ARG(void*, 0);
-    void* bankData = RECOMP_ARG(void*, 1);
 
     if (audiobinTest->successfully_parsed)
     {
-        std::memcpy(soundData, audiobinTest->soundTable->data(), audiobinTest->soundTable->size());
-        std::memcpy(bankData, audiobinTest->bankTable->data(), audiobinTest->bankTable->size());
+        std::memcpy(soundTableEntries, audiobinTest->soundTableHeader->data() + 0x10, audiobinTest->soundTableHeader->size() - 0x10);
+        std::memcpy(bankTableEntries, audiobinTest->bankTableHeader->data() + 0x10, audiobinTest->bankTableHeader->size() - 0x10);
+    }
+}
+
+RECOMP_DLL_FUNC(get_oot_sound_data)
+{
+    void* dest = RECOMP_ARG(void*, 0);
+    int blob_index = RECOMP_ARG(int, 1);
+    int size = RECOMP_ARG(int, 2);
+
+    if (audiobinTest->successfully_parsed)
+    {
+        std::memcpy(dest, audiobinTest->soundTable->data(), size);
+    }
+}
+
+RECOMP_DLL_FUNC(get_oot_bank_data)
+{
+    void* dest = RECOMP_ARG(void*, 0);
+    int blob_index = RECOMP_ARG(int, 1);
+    int size = RECOMP_ARG(int, 2);
+
+    if (audiobinTest->successfully_parsed)
+    {
+        std::memcpy(dest, audiobinTest->bankTable->data(), size);
     }
 }
 

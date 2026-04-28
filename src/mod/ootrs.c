@@ -17,3 +17,8 @@ bool prepare_oot_audiotables()
         get_oot_audiobin_entries(OoTSoundTable->entries, OoTBankTable->entries);
     }
 }
+
+void prepare_oot_track()
+{
+    
+}

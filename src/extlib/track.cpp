@@ -65,6 +65,7 @@ bool Track::read_from_file()
             break;
         case TrackType::OOTRS:
             read_from_ootrs();
+            break;
         case TrackType::STREAMED:
         case TrackType::UNKNOWN:
         default:
@@ -133,7 +134,7 @@ bool Track::read_from_mmrs()
             std::shared_ptr<Sound> sound = std::make_shared<Sound>(filebuffer, filename);
             if (!sound->parse_foreignKey())
             {
-                logger.error << "Could not parse zsound " << filename << " in track " << this->name << ", skipping!" << std::endl;
+                logger.error << "Could not parse zsound " << filename << " in MMRS " << this->name << ", skipping!" << std::endl;
                 return false;
             }
             sounds.push_back(sound);
@@ -178,11 +179,82 @@ bool Track::read_from_ootrs()
             logger.error << "Error reading file " << stat.m_filename << ", skipping!" << std::endl;
             continue;
         }
+
+        int filesize = stat.m_uncomp_size;
+        std::shared_ptr<std::vector<char>> filebuffer = std::make_shared<std::vector<char>>(filesize);
+
+        if (!mz_zip_reader_extract_to_mem(&archive, i, filebuffer->data(), filebuffer->size(), 0))
+        {
+            throw std::runtime_error("mz_zip_reader_extract_to_mem() failed");
+        }
+
+        std::string filename = stat.m_filename;
+        if (fs::path(filename).extension().string().ends_with("seq"))
+        {
+            sequence = std::make_shared<Sequence>(filebuffer, filename);
+        }
+        else if (filename.ends_with(".zbank"))
+        {
+            if (!bank)
+                bank = std::make_shared<Bank>(filebuffer, filename, false);
+            else
+                bank->read_from_file(filebuffer);
+        }
+        else if (filename.ends_with(".bankmeta"))
+        {
+            if (!bank)
+                bank = std::make_shared<Bank>(filebuffer, filename, true);
+            else
+                bank->read_header(filebuffer);
+        }
+        else if (filename.ends_with(".zsound"))
+        {
+            std::shared_ptr<Sound> sound = std::make_shared<Sound>(filebuffer, filename);
+            if (!sound->parse_foreignKey())
+            {
+                logger.error << "Could not parse zsound " << filename << " in OOTRS " << this->name << ", skipping!" << std::endl;
+                return false;
+            }
+            sounds.push_back(sound);
+
+        }
+        else if(filename.ends_with(".meta"))
+        {
+            parse_meta(*filebuffer);
+        }
+
     }
+}
+
+void Track::parse_meta(std::vector<char>& filebuffer)
+{
+    if (type != TrackType::OOTRS)
+    {
+        logger.error << "Tried to use parse_meta on a non-OOTRS track?!?!" << std::endl;
+    }
+    std::string meta_txt(filebuffer.begin(), filebuffer.end());
+
+    std::vector<std::string> lines = split_string(meta_txt, "\n");
+
+    if (lines.size() < 2)
+    {
+        logger.error << ".meta file for track " << name << " has only " << lines.size() << " lines, skipping!" << std::endl;
+        return;
+    }
+    else
+    {
+        name = lines[0];
+    }
+
+
 }
 
 void Track::parse_categories(std::vector<char>& filebuffer)
 {
+    if (type == TrackType::OOTRS)
+    {
+        logger.error << "Tried to use parse_categories instead of parse_meta for OOTRS?!?!" << std::endl;
+    }
     std::string cats_txt(filebuffer.begin(), filebuffer.end());
 
     std::vector<std::string> categories = split_string(cats_txt, ",-");

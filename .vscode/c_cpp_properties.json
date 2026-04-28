@@ -67,16 +67,26 @@
             "name": "Lib_Mac_Only",
             "cppStandard": "c++23",
             "includePath": [
-                "${workspaceFolder}/include/shared/",
+                "${workspaceFolder}/include/mod/",
+                "${workspaceFolder}/include/mod/dummy_headers",
                 "${workspaceFolder}/include/extlib",
-                "${workspaceFolder}/offline_build"
+                "${workspaceFolder}/src/extlib",
+                "${workspaceFolder}/src/extlib/database",
+                "${workspaceFolder}/src/mod",
+                "${workspaceFolder}/tests/src/mod",
+                "${workspaceFolder}/tests/src/extlib",
+                "${workspaceFolder}/tests/lib",
+                "${workspaceFolder}/mm-decomp/include",
+                "${workspaceFolder}/mm-decomp/src",
+                "${workspaceFolder}/offline_build",
+                "${workspaceFolder}/assets_extracted",
+                "${workspaceFolder}/assets_extracted/assets"
             ]
         },
         {
             "name": "Lib_Linux_Only",
             "cppStandard": "c++23",
             "includePath": [
-                "${workspaceFolder}/include/shared/",
                 "${workspaceFolder}/include/extlib",
                 "${workspaceFolder}/offline_build"
             ]

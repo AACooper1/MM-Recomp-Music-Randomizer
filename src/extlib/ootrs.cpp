@@ -54,7 +54,12 @@ OoTAudioBin::OoTAudioBin(fs::path path)
                 if (!raw_files.contains(expected_files[i]))
                 {
                     logger.error << "Audiobin did not contain " << expected_files[i] << ", aborting!" << std::endl;                    
+                    successfully_parsed = false;
                     return;
+                }
+                else
+                {
+                    logger.debug << "Found file " << expected_files[i] << "!" << std::endl;
                 }
             }
 

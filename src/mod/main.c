@@ -59,6 +59,7 @@ RECOMP_HOOK_RETURN("ConsoleLogo_Init") void launch_on_rando_connect()
 
 RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_seed()
 {
+    prepare_oot_audiotables();
     unsigned char* savePath = recomp_get_save_file_path();
     logger.noheader.dev("Save path: %s\n", savePath);
 

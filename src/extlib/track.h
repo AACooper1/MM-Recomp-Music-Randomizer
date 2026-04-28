@@ -78,8 +78,8 @@ class Track
 
         void parse_categories(std::vector<char>& filebuffer);
         void parse_categories(const std::vector<int>& categories);
-
         
+        void parse_meta(std::vector<char>& filebuffer);        
         
         mz_zip_archive archive;
 };

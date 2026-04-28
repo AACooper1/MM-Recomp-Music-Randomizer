@@ -51,8 +51,8 @@ f32 maxChanVol;
 
 extern bool should_skip_song_title_display[0x7F];
 
-AudioTable* OoTSoundTable;
-AudioTable* OoTBankTable;
+extern AudioTable* OoTSoundTable;
+extern AudioTable* OoTBankTable;
 
 bool found_oot_audiobin;
 
