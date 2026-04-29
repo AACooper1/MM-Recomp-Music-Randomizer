@@ -5,6 +5,7 @@
 #include "database.h"
 #include "seed.h"
 #include "modtrackdefs.h"
+#include "ootrs.hpp"
 
 extern "C" {
     DLLEXPORT uint32_t recomp_api_version = 1;

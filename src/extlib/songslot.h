@@ -1,8 +1,13 @@
 #ifndef SONGSLOT_H
 #define SONGSLOT_H
 
-#include "seed.h"
+#include <string>
+#include <memory>
+
 #include "category.h"
+
+class Seed;
+class Track;
 
 class SongSlot
 {

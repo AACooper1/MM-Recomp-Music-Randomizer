@@ -282,7 +282,6 @@ int Seed::load_seed(fs::path savePath)
 }
 
 
-
 std::array<SongSlot, 0x80> Seed::songSlots
 (
     {

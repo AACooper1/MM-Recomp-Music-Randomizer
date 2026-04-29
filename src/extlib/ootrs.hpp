@@ -10,6 +10,7 @@
 #include "lib_recomp.hpp"
 
 #include "logging.hpp"
+#include "songslot.h"
 
 #define AUDIOTABLE_HEADER "Audiotable_index"
 #define AUDIOTABLE "Audiotable"

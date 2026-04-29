@@ -222,11 +222,12 @@ bool Track::read_from_ootrs()
         {
             parse_meta(*filebuffer);
         }
-
     }
+
+    return true;
 }
 
-void Track::parse_meta(std::vector<char>& filebuffer)
+bool Track::parse_meta(std::vector<char>& filebuffer)
 {
     if (type != TrackType::OOTRS)
     {
@@ -239,14 +240,76 @@ void Track::parse_meta(std::vector<char>& filebuffer)
     if (lines.size() < 2)
     {
         logger.error << ".meta file for track " << name << " has only " << lines.size() << " lines, skipping!" << std::endl;
-        return;
+        return false;
     }
     else
     {
         name = lines[0];
+        if (!lines[1].starts_with("0x"))
+        {
+            bankNo = 0x28;
+        }
+        else
+        {
+            try
+            {
+                bankNo = std::stoi(lines[1], 0, 16);
+            }
+            catch (const std::exception& e)
+            {
+                logger.error << "Could not parse int for bank \"" << lines[1] << "\" in OOTRS " << this->name << ". Song will be skipped." << std:: endl;
+                return false;
+            }
+        }
+        std::string metaCategories = "";
+        for (int i = 2; i < lines.size(); i++)
+        {
+            metaCategories += lines[i];
+        }
+        parse_oot_categories(metaCategories);
     }
 
+    return true;
+}
 
+void Track::parse_oot_categories(std::string metaCategories)
+{
+    _is_fanfare = metaCategories.contains("fanfare") || metaCategories.contains("Fanfare");
+
+    if (metaCategories.length() == 0 || metaCategories == "bgm")
+    {
+          (*this->categories)[FIELD]
+        = (*this->categories)[TOWN]
+        = (*this->categories)[DUNGEON]
+        = (*this->categories)[INDOORS]
+        = (*this->categories)[MINIGAME]
+        = true;
+        return;
+    }
+    else if (metaCategories == "fanfare")
+    {
+          (*this->categories)[FANFARE]
+        = (*this->categories)[GAME_OVER]
+        = (*this->categories)[AREA_CLEAR]
+        = true;
+        return;
+    }
+    else
+    {
+        std::vector<std::string> cats = split_string(metaCategories, ",");
+
+        for (int i = 0; i < cats.size(); i++)
+        {
+            if (OoTBGMGroupsToCategories.contains(cats[i]))
+            {
+                std::vector<SongSlotID>& this_category = OoTBGMGroupsToCategories.at(cats[i]);
+                for(int c = 0; c < this_category.size(); c++)
+                {
+                    (*this->categories)[c + 0x100] = true;
+                }
+            }
+        }
+    }
 }
 
 void Track::parse_categories(std::vector<char>& filebuffer)

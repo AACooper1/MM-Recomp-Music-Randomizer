@@ -7,11 +7,11 @@
 #include "audiofile.h"
 #include "formmask.hpp"
 #include "util.h"
-#include "ootrs.hpp"
 
 #include "miniz.h"
 
 #include "category.h"
+#include "ootrs.hpp"
 
 namespace fs = std::filesystem;
 
@@ -23,6 +23,9 @@ enum class TrackType
     OOTRS,
     STREAMED
 };
+
+extern std::unordered_map<std::string, std::vector<SongSlotID>> OoTBGMGroupsToCategories;
+extern std::unordered_map<std::string, std::vector<SongSlotID>> OoTFanfareGroupsToCategories;
 
 class Track
 {
@@ -47,7 +50,7 @@ class Track
 
         bool read_from_file();
         bool is_fanfare() 
-            {return ((*categories)[FANFARE] || (*categories)[AREA_CLEAR] || (*categories)[GAME_OVER]); }
+            {return ((*categories)[FANFARE] || (*categories)[AREA_CLEAR] || (*categories)[GAME_OVER] || _is_fanfare); }
         
         int id = 0;
         int databaseIndex = 0;
@@ -76,10 +79,13 @@ class Track
         bool read_from_ootrs();
         bool read_from_streamed() {return false;};
 
+        bool _is_fanfare;
+
         void parse_categories(std::vector<char>& filebuffer);
         void parse_categories(const std::vector<int>& categories);
         
-        void parse_meta(std::vector<char>& filebuffer);        
+        bool parse_meta(std::vector<char>& filebuffer);
+        void parse_oot_categories(std::string categories_raw);
         
         mz_zip_archive archive;
 };

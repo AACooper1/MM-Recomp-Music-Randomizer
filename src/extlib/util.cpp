@@ -17,6 +17,14 @@ std::vector<std::string> split_string(const std::string& s, const std::string& d
         pos = s.find_first_of(delims, lastPos);
     }
 
+    // I hate carriage return
+    for (int i = 0; i < tokens.size(); i++)
+    {
+        if (tokens[i].ends_with('\r'))
+        {
+            tokens[i].pop_back();
+        }
+    }
     return tokens;
 }
 
