@@ -18,7 +18,30 @@ bool prepare_oot_audiotables()
     }
 }
 
-void prepare_oot_track()
+// Pretty much just take the OoTR approach here.
+// For each sample in the OoT bank, scan the MM audiobanks to see if they point to a matching sample.
+// If so, just change the address to that.
+// Otherwise, add them to the sounds list
+void link_oot_bank_to_sounds(cTrack* track)
 {
-    
+    // If vanilla bank, check if this bank has already been added and just update it to that idx if so
+    if (!track->hasBank && track->bankNo)
+    {
+        if (OoTBanksAddedIdx[track->bankNo])
+        {
+            track->bankNo = OoTBanksAddedIdx[track->bankNo];
+        }
+    }
+    for (int mmBankNo = 0; mmBankNo < gSoundFontTable.header.numEntries; mmBankNo++)
+    {
+        SoundFont* mmFont = &gAudioCtx.soundFontList[mmBankNo];
+        for(int drumIdx = 0; drumIdx < mmFont->numDrums; drumIdx++)
+        {
+            Drum* mmDrum = mmFont->drums[drumIdx];
+            if (mmDrum && mmDrum->tunedSample.sample)
+            {
+                
+            }
+        }
+    }
 }
