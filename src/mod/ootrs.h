@@ -16,3 +16,5 @@ AudioTable* OoTSoundTable;
 void* OoTSoundData;
 AudioTable* OoTBankTable;
 void* OoTBankData;
+
+int OoTBanksAddedIdx[0x26];
