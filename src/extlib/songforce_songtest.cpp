@@ -48,7 +48,7 @@ void Seed::apply_songtest()
 {
     for (const auto & [ id, track ] : tracks)
     {
-        if (track->name.contains("songtest"))
+        if (track->path.filename().string().contains("songtest"))
         {
             logger.info << "SONGTEST:" << std::endl;
             logger.info.disable_header();

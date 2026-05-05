@@ -182,6 +182,13 @@ void prepare_custom_track(std::shared_ptr<Track> extlibTrack, cTrack* modTrack)
     modTrack->formmask.pad[0] = extlibTrack->formmask.cumulativeStates;
 }
 
+RECOMP_DLL_FUNC(reroll_slot)
+{
+    int slotIdx = RECOMP_ARG(int, 0);
+
+    seed->randomize_slot(slotIdx);
+}
+
 RECOMP_DLL_FUNC(read_oot_audiobin)
 {    
     if (fs::exists(db->get_db_dir() / "OOT.audiobin"))
@@ -238,7 +245,7 @@ RECOMP_DLL_FUNC(get_oot_sound_data)
 
     if (audiobinTest->successfully_parsed)
     {
-        std::memcpy(dest, audiobinTest->soundTable->data(), size);
+        std::memcpy(dest, audiobinTest->soundTable->data() + blob_index, size);
     }
 }
 
@@ -250,8 +257,13 @@ RECOMP_DLL_FUNC(get_oot_bank_data)
 
     if (audiobinTest->successfully_parsed)
     {
-        std::memcpy(dest, audiobinTest->bankTable->data(), size);
+        std::memcpy(dest, audiobinTest->bankTable->data() + blob_index, size);
     }
+}
+
+RECOMP_DLL_FUNC(disable_ootrs)
+{
+    can_use_ootrs = false;
 }
 
 RECOMP_DLL_FUNC(fetch_randomized_track)
