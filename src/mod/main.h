@@ -63,13 +63,15 @@ extern void create_startup_menu();
 void music_rando_update_db();
 
 extern bool prepare_oot_audiotables();
+extern bool prepare_oot_bank(cTrack* track);
 
 void prepare_tracks();
 void populate_custom_track(cTrack* track);
 void populate_vanilla_track(cTrack* track);
 
 void replace_tracks();
-void replace_custom(int i);
+void replace_mmrs(int i);
+void replace_ootrs(int i);
 void replace_vanilla(int i);
 
 extern void update_music_state(PlayState* play);

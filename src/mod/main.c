@@ -226,7 +226,7 @@ s32 create_bank_entry_from_track(cTrack* track)
     return bankNo;
 }
 
-void replace_custom(int i)
+void replace_mmrs(int i)
 {
     cTrack* track = &randomized[i];
     AudioTableEntry* mySeq = create_seq_entry_from_track(track);
@@ -237,6 +237,39 @@ void replace_custom(int i)
         track->bankNo = create_bank_entry_from_track(track);
     }
     AudioApi_ReplaceSequenceFont(i, 0, track->bankNo);
+}
+
+void replace_ootrs(int i)
+{
+    logger.debug("Preparing OoT track %s...\n", randomized[i].name);
+    cTrack* track = &randomized[i];
+    AudioTableEntry* mySeq = create_seq_entry_from_track(track);
+    AudioApi_ReplaceSequence(i, mySeq);
+
+    int rc = prepare_oot_bank(track);
+    if (!rc)
+    {
+        logger.error("Couldn't prepare OoT bank, yell at Asticky if this isn't handled in release version!\n");
+    }
+    else if (rc == 1)
+    {
+        logger.debug("Adding OoT bank %x...", track->bankNo);
+        char* bankHeader = &OoTBankTable->entries[track->bankNo] + 0x08;
+        s32 bankNo = AudioApi_ImportVanillaSoundFont(
+            &OoTBankTable->entries[track->bankNo].romAddr,  // romAddr
+            bankHeader[2],                                  // sampleBank0
+            bankHeader[3],                                  // sampleBank1
+            bankHeader[4],                                  // numInstruments
+            bankHeader[5],                                  // numDrums
+            bankHeader[6]                                   // numSfx
+        );
+        randomized[i].bankNo = bankNo;
+        logger.noheader.debug("Success!\n");
+    }
+    else
+    {
+        track->bankNo = rc;
+    }
 }
 
 void replace_vanilla(int i)
@@ -255,13 +288,20 @@ void replace_tracks()
 {
     for (int i = 2; i < 0x7F; i++)
     {
-        if (randomized[i].type != VANILLA)
+        switch(randomized[i].type)
         {
-            replace_custom(randomized[i].slotIdx);
-        }
-        else
-        {
-            replace_vanilla(randomized[i].slotIdx);
+            case MMRS:
+                replace_mmrs(randomized[i].slotIdx);
+                break;
+            case OOTRS:
+                replace_ootrs(randomized[i].slotIdx);
+                break;
+            case VANILLA:
+                replace_vanilla(randomized[i].slotIdx);
+                break;
+            default:
+                logger.critical("Unknown track type %x for track %s (slot %s)!!\n", randomized[i].type, randomized[i].name, randomized[i].slotName);
+                break;
         }
     }
 }

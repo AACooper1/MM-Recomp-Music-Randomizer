@@ -237,18 +237,6 @@ RECOMP_DLL_FUNC(get_oot_audiobin_entries)
     }
 }
 
-RECOMP_DLL_FUNC(get_oot_sound_data)
-{
-    void* dest = RECOMP_ARG(void*, 0);
-    int blob_index = RECOMP_ARG(int, 1);
-    int size = RECOMP_ARG(int, 2);
-
-    if (audiobinTest->successfully_parsed)
-    {
-        std::memcpy(dest, audiobinTest->soundTable->data() + blob_index, size);
-    }
-}
-
 RECOMP_DLL_FUNC(get_oot_bank_data)
 {
     void* dest = RECOMP_ARG(void*, 0);
@@ -257,8 +245,39 @@ RECOMP_DLL_FUNC(get_oot_bank_data)
 
     if (audiobinTest->successfully_parsed)
     {
-        std::memcpy(dest, audiobinTest->bankTable->data() + blob_index, size);
+        if (blob_index + size > audiobinTest->bankTable->size())
+        {
+            logger.error << "Got OoT bank data offset outside blob size!! Track will be rerolled." << std::endl;
+        }
+        else
+        {
+            std::memcpy(dest, audiobinTest->bankTable->data() + blob_index, size);
+            RECOMP_RETURN(bool, true);
+        }
     }
+    RECOMP_RETURN(bool, false);
+}
+
+
+RECOMP_DLL_FUNC(get_oot_sound_data)
+{
+    void* dest = RECOMP_ARG(void*, 0);
+    int blob_index = RECOMP_ARG(int, 1);
+    int size = RECOMP_ARG(int, 2);
+
+    if (audiobinTest->successfully_parsed)
+    {
+        if (blob_index + size > audiobinTest->soundTable->size())
+        {
+            logger.error << "Got OoT sound data offset outside blob size!! Track will be rerolled." << std::endl;
+        }
+        else
+        {
+            std::memcpy(dest, audiobinTest->soundTable->data() + blob_index, size);
+            RECOMP_RETURN(bool, true);
+        }
+    }
+    RECOMP_RETURN(bool, false);
 }
 
 RECOMP_DLL_FUNC(disable_ootrs)
