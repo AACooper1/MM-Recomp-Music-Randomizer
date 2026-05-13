@@ -41,6 +41,7 @@ class AudioFile
         int audioTableIndex = 0;
         std::shared_ptr<std::vector<char>> data;
         int size;
+        std::string filename;
 
         AudioFileType getType() { return type; }
     protected:
@@ -55,7 +56,6 @@ class AudioFile
         AudioFileType type;
         
         std::shared_ptr<std::vector<char>> _fb;
-        std::string filename;
 };
 
 class Sequence : public AudioFile
@@ -104,6 +104,7 @@ class Sound : public AudioFile
         void read_into_mod_memory(void* modAddr) override;
         
         u32 sampleAddr;
+        std::vector<std::string> oot_zsounds_to_find;
 };
 
 class Stream : public AudioFile

@@ -156,7 +156,6 @@ void populate_custom_track(cTrack* track)
     {
         track->seq.data = recomp_alloc(track->seq.size);
         fetch_seq(track->seq.id, track->seq.data, track->seq.size);
-        logger.noheader.dev("Track %s formmask 0: %x\n", track->name, track->formmask.states[0]);
     }
     else
     {
@@ -263,6 +262,7 @@ void replace_ootrs(int i)
             bankHeader[5],                                  // numDrums
             bankHeader[6]                                   // numSfx
         );
+        OoTBanksAddedIdx[track->bankNo] = bankNo;
         randomized[i].bankNo = bankNo;
         logger.noheader.debug("Success!\n");
     }

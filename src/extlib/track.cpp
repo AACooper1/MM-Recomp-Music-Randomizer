@@ -209,18 +209,39 @@ bool Track::read_from_ootrs()
         }
         else if (filename.ends_with(".zsound"))
         {
-            std::shared_ptr<Sound> sound = std::make_shared<Sound>(filebuffer, filename);
-            if (!sound->parse_foreignKey())
+            bool found = false;
+            for (int j = 0; j < sounds.size(); j++)
             {
-                logger.error << "Could not parse zsound " << filename << " in OOTRS " << this->name << ", skipping!" << std::endl;
-                return false;
+                if (sounds[j]->filename == filename)
+                {
+                    sounds[j]->data = filebuffer;
+                    found = true;
+                    break;
+                }
             }
-            sounds.push_back(sound);
+            if (!found)
+            {
+                std::shared_ptr<Sound> sound = std::make_shared<Sound>(filebuffer, filename);
+                sounds.push_back(sound);
+            }
 
         }
         else if(filename.ends_with(".meta"))
         {
             parse_meta(*filebuffer);
+        }
+    }
+
+    for (int i = 0; i < sounds.size(); i++)
+    {
+        if (!sounds[i]->sampleAddr)
+        {
+            logger.warning << "Zsound " << sounds[i]->filename << " in track " << name << " is missing sampleAddr, will not be found in game!" << std::endl;
+        }
+        else if (!sounds[i]->data)
+        {
+            logger.error << "Zsound " << sounds[i]->filename << " in track " << name << " has no data! Song will be skipped!" << std::endl;
+            return false;
         }
     }
 
@@ -267,6 +288,35 @@ bool Track::parse_meta(std::vector<char>& filebuffer)
             metaCategories += lines[i];
         }
         parse_oot_categories(metaCategories);
+
+        for (int i = 2; i < lines.size(); i++)
+        {
+            if (lines[i].starts_with("ZSOUND"))
+            {
+                std::vector<std::string> line = split_string(lines[i], ":");
+                std::string filename = line[1];
+                u32 sampleAddr = std::stoi(line[2], 0, 16);
+                bool found = false;
+                for (int j = 0; j < sounds.size(); j++)
+                {
+                    if (sounds[j]->filename == filename)
+                    {
+                        sounds[j]->sampleAddr = sampleAddr;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    std::shared_ptr<Sound> sound = std::make_shared<Sound>();
+                    sound->filename = filename;
+                    sound->sampleAddr = sampleAddr;
+
+                    sounds.push_back(sound);
+                }
+                
+            }
+        }
     }
 
     return true;

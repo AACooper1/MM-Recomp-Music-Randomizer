@@ -54,6 +54,7 @@ extern bool should_skip_song_title_display[0x7F];
 extern AudioTable* OoTSoundTable;
 extern AudioTable* OoTBankTable;
 
+extern int OoTBanksAddedIdx[0x26];
 bool found_oot_audiobin;
 
 AudioTableEntry* create_seq_entry_from_track(cTrack* track);
