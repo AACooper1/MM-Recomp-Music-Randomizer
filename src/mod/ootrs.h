@@ -12,8 +12,8 @@
 RECOMP_IMPORT(".", bool read_oot_audiobin());
 RECOMP_IMPORT(".", void get_oot_audiobin_headers(AudioTableHeader* soundTableHeader, AudioTableHeader* bankTableHeader));
 RECOMP_IMPORT(".", void get_oot_audiobin_entries(AudioTableEntry* soundTableEntries, AudioTableEntry* bankTableEntries));
-RECOMP_IMPORT(".", bool get_oot_bank_data(void* dest, int blob_index, int size));
-RECOMP_IMPORT(".", bool get_oot_sound_data(void* dest, int blob_index, int size));
+RECOMP_IMPORT(".", bool get_oot_bank_data(u8* dest, int blob_index, int size));
+RECOMP_IMPORT(".", bool get_oot_sound_data(u8* dest, int blob_index, int size));
 
 extern Logger logger;
 

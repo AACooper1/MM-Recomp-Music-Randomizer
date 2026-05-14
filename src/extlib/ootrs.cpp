@@ -42,7 +42,7 @@ OoTAudioBin::OoTAudioBin(fs::path path)
                     throw std::runtime_error("mz_zip_reader_extract_to_mem() failed");
                     break;
                 }
-                raw_files.insert(std::make_pair(filename, std::vector<char>(filesize)));
+                raw_files.insert(std::make_pair(filename, std::vector<u8>(filesize)));
                 for (int j = 0; j < filesize; j++)
                 {
                     raw_files[filename].data()[j] = filebuffer.data()[j ^ 3];

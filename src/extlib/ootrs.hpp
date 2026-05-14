@@ -52,11 +52,11 @@ class OoTAudioBin
 
         std::string expected_files[4] = { AUDIOTABLE_HEADER, AUDIOTABLE, BANKTABLE_HEADER, BANKTABLE};
 
-        std::vector<char>* soundTableHeader;
-        std::vector<char>* soundTable;
+        std::vector<u8>* soundTableHeader;
+        std::vector<u8>* soundTable;
 
-        std::vector<char>* bankTableHeader;
-        std::vector<char>* bankTable;
+        std::vector<u8>* bankTableHeader;
+        std::vector<u8>* bankTable;
 
         bool successfully_parsed = false;
 
@@ -64,7 +64,7 @@ class OoTAudioBin
         fs::path audiobinPath;
         mz_zip_archive archive;
 
-        std::unordered_map<std::string, std::vector<char>> raw_files;
+        std::unordered_map<std::string, std::vector<u8>> raw_files;
 };
 
 #endif

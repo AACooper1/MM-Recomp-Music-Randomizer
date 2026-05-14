@@ -239,7 +239,7 @@ RECOMP_DLL_FUNC(get_oot_audiobin_entries)
 
 RECOMP_DLL_FUNC(get_oot_bank_data)
 {
-    void* dest = RECOMP_ARG(void*, 0);
+    u8* dest = RECOMP_ARG(u8*, 0);
     int blob_index = RECOMP_ARG(int, 1);
     int size = RECOMP_ARG(int, 2);
 
@@ -261,7 +261,7 @@ RECOMP_DLL_FUNC(get_oot_bank_data)
 
 RECOMP_DLL_FUNC(get_oot_sound_data)
 {
-    void* dest = RECOMP_ARG(void*, 0);
+    u8* dest = RECOMP_ARG(u8*, 0);
     int blob_index = RECOMP_ARG(int, 1);
     int size = RECOMP_ARG(int, 2);
 

@@ -22,53 +22,64 @@ bool prepare_oot_audiotables()
         return false;
     }
 }
-
-uintptr_t sample_memcmp(Sample* mmSample, char* OoTSampleData, size_t sampleSize)
+bool should_stop;
+uintptr_t sample_memcmp(u8* mmSample, u8* OoTSampleData, size_t sampleSize)
 {
-    logger.noheader.dev("In sample_memcmp now\n");
-    if (mmSample->isRelocated && mmSample)
+    // logger.noheader.dev("\tmmSampleAddr : %p (begins %02x %02x %02x %02x)\n", mmSample, mmSample[0], mmSample[1], mmSample[2], mmSample[3]);
+    // logger.noheader.dev("\tOoTSampleAddr: %p (begins %02x %02x %02x %02x)\n", OoTSampleData, OoTSampleData[0], OoTSampleData[1], OoTSampleData[2], OoTSampleData[3]);
+
+    if (OoTSampleData[6] == 0x1C && OoTSampleData[7] == 0x4E)
     {
-        for (int i = 0; i < sampleSize; i++)
+        if (should_stop)
         {
-            if (OoTSampleData[i] != mmSample->sampleAddr[i])
-            {
-                return false;
-            }
+            print_bytes(&logger, OoTSampleData, 0x10);
+            print_bytes(&logger, mmSample, 0x10);
+            while (true) { }
         }
-        return (uintptr_t)mmSample->sampleAddr;
     }
-    return false;
+    for (int i = 0; i < sampleSize; i++)
+    {
+        if (OoTSampleData[i] != mmSample[i])
+        {
+            logger.noheader.dev("No match.\n");
+            return false;
+        }
+    }
+    logger.noheader.dev("Found match, returning!\n");
+    return (uintptr_t)mmSample;
 }
 
 extern void* AudioLoad_SyncLoadFont(u32 fontId);
+extern void AudioLoad_SyncDma(uintptr_t devAddr, u8* ramAddr, size_t size, s32 medium);
 
 // Potential issue, what if a bank uses sample at offset 0x00000000?
-uintptr_t find_sample_in_mm_banks(char* OoTSampleData, size_t sampleSize)
+uintptr_t find_sample_in_mm_banks(u8* OoTSampleData, size_t sampleSize)
 {
-    logger.dev("In find_sample_in_mm_banks\n");
     uintptr_t retval = 0;
     for (int mmBankNo = 3; mmBankNo < gSoundFontTable.header.numEntries; mmBankNo++)
     {
         SoundFont* mmFont = &gAudioCtx.soundFontList[mmBankNo];
         Sample* mmSample;
+        u8* sampleData;
         void* fontData = AudioLoad_SyncLoadFont(mmBankNo);
-        logger.dev("Loaded font %x.\n", mmBankNo);
-        print_bytes(&logger, fontData, 0x100);
+
+        logger.dev("Loaded font %x. \n", mmBankNo, fontData);
         for (int drumIdx = 0; drumIdx < mmFont->numDrums; drumIdx++)
         {
-            logger.noheader.dev("numDrums OK\n");
             if (mmFont->drums[drumIdx])
             {
-                logger.noheader.dev("mmFont drum OK\n");
+                logger.noheader.dev("Comparing OoT sample with MM bank %x drum %i of %i...", mmBankNo, drumIdx, mmFont->numDrums - 1);
                 mmSample = mmFont->drums[drumIdx]->tunedSample.sample;
-                logger.noheader.dev("mmSample OK\n");
-                print_bytes(&logger, mmSample, sizeof(Sample));
+
+                sampleData = recomp_alloc(mmSample->size);
+                AudioLoad_SyncDma((uintptr_t)mmSample->sampleAddr, sampleData, mmSample->size, mmSample->medium);
+                logger.noheader.dev(" Successfully loaded sample. Comparing... ");
+                
+                mmSample->isRelocated = true;
                 if (mmSample->isRelocated && mmSample)
                 {
-                    logger.noheader.dev("Drum %x is relocated.\n", drumIdx);
-                    if ((retval = sample_memcmp(mmSample, OoTSampleData, sampleSize)))
+                    if ((retval = sample_memcmp(sampleData, OoTSampleData, sampleSize)))
                     {
-                        logger.debug("Found sample at MM bank %x drum %x!\n", mmBankNo, drumIdx);
                         goto ret;
                     }
                 }
@@ -76,53 +87,110 @@ uintptr_t find_sample_in_mm_banks(char* OoTSampleData, size_t sampleSize)
                 {
                     logger.noheader.dev("Failure: mmSample = %p; isRelocated = %x\n", mmSample, mmSample->isRelocated);
                 }
+                recomp_free(sampleData);
             }
         }
-        for (int instIdx = 0; instIdx < mmFont->numInstruments; instIdx++)
+        for (int instrumentIdx = 0; instrumentIdx < mmFont->numInstruments; instrumentIdx++)
         {
-            if (mmFont->instruments[instIdx])
+            if (mmFont->instruments[instrumentIdx])
             {
-                mmSample = mmFont->instruments[instIdx]->lowPitchTunedSample.sample;
-                if (mmSample->isRelocated && mmSample)
+                logger.noheader.dev("Comparing OoT sample with MM bank %x instrument %i of %i...", mmBankNo, instrumentIdx, mmFont->numInstruments - 1);
+                mmSample = mmFont->instruments[instrumentIdx]->highPitchTunedSample.sample;
+                if (mmSample)
                 {
-                    if ((retval = sample_memcmp(mmSample, OoTSampleData, sampleSize)))
+                    sampleData = recomp_alloc(mmSample->size);
+                    AudioLoad_SyncDma((uintptr_t)mmSample->sampleAddr, sampleData, mmSample->size, mmSample->medium);
+                    logger.noheader.dev(" Successfully loaded high-pitch tuned sample. Comparing... ");
+                    
+                    mmSample->isRelocated = true;
+                    if (mmSample->isRelocated && mmSample)
                     {
-                        logger.dev("Found sample at MM bank %x inst %x!\n", mmBankNo, instIdx);
-                        goto ret;
+                        if ((retval = sample_memcmp(sampleData, OoTSampleData, sampleSize)))
+                        {
+                            goto ret;
+                        }
                     }
+                    else
+                    {
+                        logger.noheader.dev("Failure: mmSample = %p; isRelocated = %x\n", mmSample, mmSample->isRelocated);
+                    }
+                    recomp_free(sampleData);
                 }
-                mmSample = mmFont->instruments[instIdx]->normalPitchTunedSample.sample;
-                if (mmSample->isRelocated && mmSample)
+                mmSample = mmFont->instruments[instrumentIdx]->normalPitchTunedSample.sample;
+                if (mmSample)
                 {
-                    if ((retval = sample_memcmp(mmSample, OoTSampleData, sampleSize)))
+                    if (instrumentIdx == 7 && mmBankNo == 3) should_stop = true;
+                    sampleData = recomp_alloc(mmSample->size);
+                    AudioLoad_SyncDma((uintptr_t)mmSample->sampleAddr, sampleData, mmSample->size, mmSample->medium);
+                    logger.noheader.dev(" Successfully loaded normal-pitch tuned sample. Comparing... ");
+                    
+                    mmSample->isRelocated = true;
+                    if (mmSample->isRelocated && mmSample)
                     {
-                        logger.dev("Found sample at MM bank %x inst %x!\n", mmBankNo, instIdx);
-                        goto ret;
+                        if ((retval = sample_memcmp(sampleData, OoTSampleData, sampleSize)))
+                        {
+                            goto ret;
+                        }
                     }
+                    else
+                    {
+                        logger.noheader.dev("Failure: mmSample = %p; isRelocated = %x\n", mmSample, mmSample->isRelocated);
+                    }
+                    recomp_free(sampleData);
+                    should_stop = false;
                 }
-                mmSample = mmFont->instruments[instIdx]->highPitchTunedSample.sample;
-                if (mmSample->isRelocated && mmSample)
+                mmSample = mmFont->instruments[instrumentIdx]->lowPitchTunedSample.sample;
+                if (mmSample)
                 {
-                    if ((retval = sample_memcmp(mmSample, OoTSampleData, sampleSize)))
+                    sampleData = recomp_alloc(mmSample->size);
+                    AudioLoad_SyncDma((uintptr_t)mmSample->sampleAddr, sampleData, mmSample->size, mmSample->medium);
+                    logger.noheader.dev(" Successfully loaded low-pitch tuned sample. Comparing... ");
+                    
+                    mmSample->isRelocated = true;
+                    if (mmSample->isRelocated && mmSample)
                     {
-                        logger.dev("Found sample at MM bank %x inst %x!\n", mmBankNo, instIdx);
-                        goto ret;
+                        if ((retval = sample_memcmp(sampleData, OoTSampleData, sampleSize)))
+                        {
+                            goto ret;
+                        }
                     }
+                    else
+                    {
+                        logger.noheader.dev("Failure: mmSample = %p; isRelocated = %x\n", mmSample, mmSample->isRelocated);
+                    }
+                    recomp_free(sampleData);
                 }
             }
         }
         for (int sfxIdx = 0; sfxIdx < mmFont->numSfx; sfxIdx++)
         {
-            // SoundEffects isn't a pointer to pointers, for some reason
-            mmSample = mmFont->soundEffects[sfxIdx].tunedSample.sample;
-            if (mmSample->isRelocated && mmSample)
+            logger.noheader.dev("Comparing OoT sample with MM bank %x sound effect %i of %i...", mmBankNo, sfxIdx, mmFont->numSfx - 1);
+            mmSample = mmFont->drums[sfxIdx]->tunedSample.sample;
+
+            if (mmSample)
             {
-                if ((retval = sample_memcmp(mmSample, OoTSampleData, sampleSize)))
+                sampleData = recomp_alloc(mmSample->size);
+                AudioLoad_SyncDma((uintptr_t)mmSample->sampleAddr, sampleData, mmSample->size, mmSample->medium);
+            logger.noheader.dev(" Successfully loaded sample. Comparing... ");
+            }
+            else
+            {
+                continue;
+            }
+            
+            mmSample->isRelocated = true;
+            if (mmSample->isRelocated)
+            {
+                if ((retval = sample_memcmp(sampleData, OoTSampleData, sampleSize)))
                 {
-                    logger.dev("Found sample at MM bank %x sfx %x!\n", mmBankNo, sfxIdx);
                     goto ret;
                 }
             }
+            else
+            {
+                logger.noheader.dev("Failure: mmSample = %p; isRelocated = %x\n", mmSample, mmSample->isRelocated);
+            }
+            recomp_free(sampleData);
         }
     }
 
@@ -132,12 +200,18 @@ uintptr_t find_sample_in_mm_banks(char* OoTSampleData, size_t sampleSize)
         return retval;
 }
 
-bool handle_sample_search(Sample* sample, char* sampleData, SoundFont* bankData, cTrack* track)
+bool handle_sample_search(Sample* sample, u8* sampleData, SoundFont* bankData, cTrack* track)
 {
     logger.noheader.dev("(In handle_sample_search now)\n");
     uintptr_t mmSampleAddr;
 
     uintptr_t sampleDataOffset = (uintptr_t)sample->sampleAddr;
+    if (sampleDataOffset > AUDIO_RELOCATED_ADDRESS_START)
+    {
+        // Already handled
+        logger.noheader.dev("Sample is already loaded.\n");
+        return true;
+    }
     u32 sampleDataSize = sample->size;
     sampleData = recomp_alloc(sampleDataSize);
 
@@ -149,7 +223,7 @@ bool handle_sample_search(Sample* sample, char* sampleData, SoundFont* bankData,
     }
     else
     {
-        logger.noheader.debug("Pulled sample data from Audiotable file successfully. Begins %02x.\n", sampleData[0]);
+        logger.noheader.debug("Pulled sample data from Audiotable file successfully. Offset was %p, begins %02x %02x %02x %02x.\n", sampleDataOffset, sampleData[0], sampleData[1], sampleData[2], sampleData[3]);
     }
     // If found match in MM, update the sample (pointed to by the bank)
     if ((mmSampleAddr = find_sample_in_mm_banks(sampleData, sampleDataSize)))
@@ -185,8 +259,8 @@ bool handle_sample_search(Sample* sample, char* sampleData, SoundFont* bankData,
 //         > 1: Id of existing bank
 int prepare_oot_bank(cTrack* track)
 {
-    char* sampleData;
-    char* bankData;
+    u8* sampleData;
+    u8* bankData;
 
     SoundFont bankHeader;
     AudioTableEntry* bankEntry = &OoTBankTable->entries[track->bankNo];
@@ -220,11 +294,8 @@ int prepare_oot_bank(cTrack* track)
             else
             {
                 logger.noheader.dev("Got OoT bank %x from extlib (offset %p)!\n", track->bankNo, bankDataOffset);
-                print_bytes(&logger, bankData, bankDataSize);
-
                 bankHeader.drums = bankData + ((uintptr_t*)bankData)[0];
                 logger.noheader.dev("Drums are at offset %p.\n", ((uintptr_t*)bankData)[0]);
-                print_bytes(&logger,  bankData + ((uintptr_t*)bankData)[0], sizeof(Drum*) * bankHeader.numDrums);
 
                 bankHeader.instruments = bankData + ((uintptr_t*)bankData)[1];
                 logger.noheader.dev("Instruments are at offset %p.\n", ((uintptr_t*)bankData)[1]);
@@ -232,9 +303,6 @@ int prepare_oot_bank(cTrack* track)
                 bankHeader.soundEffects = bankData + ((uintptr_t*)bankData)[2];
                 logger.noheader.dev("Sfx are at offset %p.\n", ((uintptr_t*)bankData)[2]);
             }
-            // Update the address in the OoT bank table
-            OoTBankTable->entries[track->bankNo].romAddr = (uintptr_t)bankData;
-            OoTBanksAddedIdx[track->bankNo] = true;
         }
 
     }
@@ -254,15 +322,10 @@ int prepare_oot_bank(cTrack* track)
     for (int drumIdx = 0; drumIdx < bankHeader.numDrums; drumIdx++)
     {
         Drum* thisDrum = bankData + (uintptr_t)bankHeader.drums[drumIdx];
-        logger.noheader.dev("Drum address is %p (offset %p)\n", thisDrum, bankHeader.drums[drumIdx]);
         thisSample = bankData + (uintptr_t)thisDrum->tunedSample.sample;
         if (thisSample)
         {
-            logger.noheader.dev("Handling drum with idx %x in OoT bank %x...\n", drumIdx, track->bankNo);
-            print_bytes(&logger, thisDrum, sizeof(Drum));
-            logger.noheader.dev("Sample struct is at %p (offset %p)\n", thisSample, thisDrum->tunedSample.sample);
-            print_bytes(&logger, thisSample, sizeof(Sample));
-            logger.dev("Sample address is %p.\n", thisSample->sampleAddr);
+            logger.dev("Searching for OoT bank %x drum %x.\n", track->bankNo, drumIdx);
             handle_sample_search(thisSample, sampleData, bankData, track);
         }
         else
@@ -273,43 +336,43 @@ int prepare_oot_bank(cTrack* track)
     }
     for (int instIdx = 0; instIdx < bankHeader.numInstruments; instIdx++)
     {
-        bool found_a_sample = false;
-        logger.noheader.dev("Handling inst with idx %x in OoT bank %x...\n", instIdx, track->bankNo);
-        print_bytes(&logger, &bankHeader.instruments, sizeof(Instrument*) * bankHeader.numInstruments);
-        thisSample = bankHeader.instruments[instIdx]->lowPitchTunedSample.sample;
-        logger.noheader.dev("thisSample is at %p", thisSample);
+        bool found_sample = false;
+        Instrument* thisInst = bankData + (uintptr_t)bankHeader.instruments[instIdx];
+        thisSample = bankData + (uintptr_t)thisInst->highPitchTunedSample.sample;
         if (thisSample)
         {
+            logger.dev("Searching for OoT bank %x inst %x (high).\n", track->bankNo, instIdx);
             handle_sample_search(thisSample, sampleData, bankData, track);
-            found_a_sample = true;
+            found_sample = true;
         }
-
-        thisSample = bankHeader.instruments[instIdx]->normalPitchTunedSample.sample;
+        thisSample = bankData + (uintptr_t)thisInst->normalPitchTunedSample.sample;
         if (thisSample)
         {
+            logger.dev("Searching for OoT bank %x inst %x (normal).\n", track->bankNo, instIdx);
             handle_sample_search(thisSample, sampleData, bankData, track);
-            found_a_sample = true;
+            found_sample = true;
         }
-
-        thisSample = bankHeader.instruments[instIdx]->highPitchTunedSample.sample;
+        thisSample = bankData + (uintptr_t)thisInst->lowPitchTunedSample.sample;
         if (thisSample)
         {
+            logger.dev("Searching for OoT bank %x inst %x (low).\n", track->bankNo, instIdx);
             handle_sample_search(thisSample, sampleData, bankData, track);
-            found_a_sample = true;
+            found_sample = true;
         }
 
-        if (!found_a_sample)
+        if (!found_sample)
         {
-            logger.error("Instrument with index 0x%x had no samples!!\n", instIdx);
+            logger.error("Instrument with index 0x%x had no sampleAddrs!!\n", instIdx);
             return false;
         }
     }
     for (int sfxIdx = 0; sfxIdx < bankHeader.numSfx; sfxIdx++)
     {
-        thisSample = bankHeader.soundEffects[sfxIdx].tunedSample.sample;
-        logger.noheader.dev("Handling sfx with idx %x in OoT bank %x...\n", sfxIdx, track->bankNo);
+        SoundEffect* thisSfx = &bankHeader.soundEffects[sfxIdx];
+        thisSample = bankData + (uintptr_t)thisSfx->tunedSample.sample;
         if (thisSample)
         {
+            logger.dev("Searching for OoT bank %x sfx %x.\n", track->bankNo, sfxIdx);
             handle_sample_search(thisSample, sampleData, bankData, track);
         }
         else
@@ -319,6 +382,9 @@ int prepare_oot_bank(cTrack* track)
         }
     }
 
-    logger.debug("Successfully prepared bank for OoT track %s (bankNo %x = MM bank %x)!\n", track->name, track->bankNo, OoTBanksAddedIdx[track->bankNo]);
+    logger.debug("Successfully prepared bank for OoT track %s (bankNo %x)!\n", track->name, track->bankNo, OoTBanksAddedIdx[track->bankNo]);
+    // Mark as loaded in the OoT bank table. Index will be added in main.c
+    OoTBankTable->entries[track->bankNo].romAddr = (uintptr_t)bankData;
+    OoTBanksAddedIdx[track->bankNo] = true;
     return true;
 }
