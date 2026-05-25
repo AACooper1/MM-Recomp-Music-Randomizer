@@ -22,21 +22,11 @@ bool prepare_oot_audiotables()
         return false;
     }
 }
-bool should_stop;
 uintptr_t sample_memcmp(u8* mmSample, u8* OoTSampleData, size_t sampleSize)
 {
     // logger.noheader.dev("\tmmSampleAddr : %p (begins %02x %02x %02x %02x)\n", mmSample, mmSample[0], mmSample[1], mmSample[2], mmSample[3]);
     // logger.noheader.dev("\tOoTSampleAddr: %p (begins %02x %02x %02x %02x)\n", OoTSampleData, OoTSampleData[0], OoTSampleData[1], OoTSampleData[2], OoTSampleData[3]);
 
-    if (OoTSampleData[6] == 0x1C && OoTSampleData[7] == 0x4E)
-    {
-        if (should_stop)
-        {
-            print_bytes(&logger, OoTSampleData, 0x10);
-            print_bytes(&logger, mmSample, 0x10);
-            while (true) { }
-        }
-    }
     for (int i = 0; i < sampleSize; i++)
     {
         if (OoTSampleData[i] != mmSample[i])
@@ -119,7 +109,6 @@ uintptr_t find_sample_in_mm_banks(u8* OoTSampleData, size_t sampleSize)
                 mmSample = mmFont->instruments[instrumentIdx]->normalPitchTunedSample.sample;
                 if (mmSample)
                 {
-                    if (instrumentIdx == 7 && mmBankNo == 3) should_stop = true;
                     sampleData = recomp_alloc(mmSample->size);
                     AudioLoad_SyncDma((uintptr_t)mmSample->sampleAddr, sampleData, mmSample->size, mmSample->medium);
                     logger.noheader.dev(" Successfully loaded normal-pitch tuned sample. Comparing... ");
@@ -137,7 +126,7 @@ uintptr_t find_sample_in_mm_banks(u8* OoTSampleData, size_t sampleSize)
                         logger.noheader.dev("Failure: mmSample = %p; isRelocated = %x\n", mmSample, mmSample->isRelocated);
                     }
                     recomp_free(sampleData);
-                    should_stop = false;
+                    
                 }
                 mmSample = mmFont->instruments[instrumentIdx]->lowPitchTunedSample.sample;
                 if (mmSample)

@@ -10,6 +10,8 @@
     #include "stdbool.h"
 #endif
 
+#define MAX_SOUNDS 32
+
 typedef enum cTrackType_t
 {
     UNKNOWN,
@@ -74,7 +76,7 @@ typedef struct cTrack_t
     cFormMask formmask;
     cSequence seq;
     cBank bank;
-    cSound sounds[64];
+    cSound sounds[MAX_SOUNDS];
 } cTrack;
 
 #endif

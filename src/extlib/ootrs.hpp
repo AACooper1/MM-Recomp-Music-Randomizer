@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <vector>
 #include <unordered_map>
+#include <span>
 
 #include "miniz.h"
 
@@ -11,6 +12,7 @@
 
 #include "logging.hpp"
 #include "songslot.h"
+#include "sha1.hpp"
 
 #define AUDIOTABLE_HEADER "Audiotable_index"
 #define AUDIOTABLE "Audiotable"
@@ -45,26 +47,29 @@ typedef struct AudioTable {
     /* 0x10 */ AudioTableEntry *entries; // (dynamic size)
 } AudioTable; // size >= 0x20
 
-class OoTAudioBin
+class OoTAudioHandler
 {
     public:
-        OoTAudioBin(fs::path path);
+        OoTAudioHandler(fs::path path);
+        void just_testing_this_now();
 
-        std::string expected_files[4] = { AUDIOTABLE_HEADER, AUDIOTABLE, BANKTABLE_HEADER, BANKTABLE};
-
-        std::vector<u8>* soundTableHeader;
-        std::vector<u8>* soundTable;
-
-        std::vector<u8>* bankTableHeader;
-        std::vector<u8>* bankTable;
+        std::unordered_map<std::string, std::vector<u8>> ootFiles;
+        std::unordered_map<std::string, std::vector<u8>> mmFiles;
 
         bool successfully_parsed = false;
 
     private:
-        fs::path audiobinPath;
+        bool unzip_oot_audiobin();
+        bool copy_mm_rom();
+        std::vector<u8> decompress_rom(std::span<const uint8_t> compressed_rom);
+
         mz_zip_archive archive;
 
-        std::unordered_map<std::string, std::vector<u8>> raw_files;
+        fs::path audiobinPath;
+        std::string expected_files[4] = { AUDIOTABLE_HEADER, AUDIOTABLE, BANKTABLE_HEADER, BANKTABLE};
+
+        fs::path mmRomPath;
+        std::vector<u8> mmRom;
 };
 
 #endif

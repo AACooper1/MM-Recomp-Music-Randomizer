@@ -16,7 +16,7 @@ Log logger;
 std::shared_ptr<Database> db;
 std::shared_ptr<Seed> seed;
 
-OoTAudioBin* audiobinTest;
+OoTAudioHandler* ootAudioHandler;
 bool can_use_ootrs;
 
 RECOMP_DLL_FUNC(prepare_database) {
@@ -190,13 +190,16 @@ RECOMP_DLL_FUNC(reroll_slot)
 }
 
 RECOMP_DLL_FUNC(read_oot_audiobin)
-{    
-    if (fs::exists(db->get_db_dir() / "OOT.audiobin"))
+{
+    fs::path ootAudioBinPath = db->get_db_dir() / "OOT.audiobin";
+    if (fs::exists(ootAudioBinPath))
     {
         logger.info << "Found OoT audiobin, reading..." << std::endl;
-        audiobinTest = new OoTAudioBin(db->get_db_dir() / "OOT.audiobin");
+        ootAudioHandler = new OoTAudioHandler(ootAudioBinPath);
 
-        if (audiobinTest->successfully_parsed)
+        ootAudioHandler->just_testing_this_now();
+
+        if (ootAudioHandler->successfully_parsed)
         {
             logger.info.disable_header();
             logger.info << "Success!" << std::endl;
@@ -217,11 +220,11 @@ RECOMP_DLL_FUNC(get_oot_audiobin_headers)
     AudioTableHeader* bankTableHeader = RECOMP_ARG(AudioTableHeader*, 1);
     
 
-    if (audiobinTest->successfully_parsed)
+    if (ootAudioHandler->successfully_parsed)
     {
         can_use_ootrs = true;
-        std::memcpy(soundTableHeader, audiobinTest->soundTableHeader->data(), 0x10);
-        std::memcpy(bankTableHeader, audiobinTest->bankTableHeader->data(), 0x10);
+        std::memcpy(soundTableHeader, ootAudioHandler->ootFiles[AUDIOTABLE_HEADER].data(), 0x10);
+        std::memcpy(bankTableHeader, ootAudioHandler->ootFiles[BANKTABLE_HEADER].data(), 0x10);
     }
 }
 
@@ -230,10 +233,10 @@ RECOMP_DLL_FUNC(get_oot_audiobin_entries)
     AudioTableEntry* soundTableEntries = RECOMP_ARG(AudioTableEntry*, 0);
     AudioTableEntry* bankTableEntries = RECOMP_ARG(AudioTableEntry*, 1);
 
-    if (audiobinTest->successfully_parsed)
+    if (ootAudioHandler->successfully_parsed)
     {
-        std::memcpy(soundTableEntries, audiobinTest->soundTableHeader->data() + 0x10, audiobinTest->soundTableHeader->size() - 0x10);
-        std::memcpy(bankTableEntries, audiobinTest->bankTableHeader->data() + 0x10, audiobinTest->bankTableHeader->size() - 0x10);
+        std::memcpy(soundTableEntries, ootAudioHandler->ootFiles[AUDIOTABLE_HEADER].data() + 0x10, ootAudioHandler->ootFiles[AUDIOTABLE_HEADER].size() - 0x10);
+        std::memcpy(bankTableEntries, ootAudioHandler->ootFiles[BANKTABLE_HEADER].data() + 0x10, ootAudioHandler->ootFiles[BANKTABLE_HEADER].size() - 0x10);
     }
 }
 
@@ -243,15 +246,15 @@ RECOMP_DLL_FUNC(get_oot_bank_data)
     int blob_index = RECOMP_ARG(int, 1);
     int size = RECOMP_ARG(int, 2);
 
-    if (audiobinTest->successfully_parsed)
+    if (ootAudioHandler->successfully_parsed)
     {
-        if (blob_index + size > audiobinTest->bankTable->size())
+        if (blob_index + size > ootAudioHandler->ootFiles[BANKTABLE].size())
         {
             logger.error << "Got OoT bank data offset outside blob size!! Track will be rerolled." << std::endl;
         }
         else
         {
-            std::memcpy(dest, audiobinTest->bankTable->data() + blob_index, size);
+            std::memcpy(dest, ootAudioHandler->ootFiles[BANKTABLE].data() + blob_index, size);
             RECOMP_RETURN(bool, true);
         }
     }
@@ -265,15 +268,15 @@ RECOMP_DLL_FUNC(get_oot_sound_data)
     int blob_index = RECOMP_ARG(int, 1);
     int size = RECOMP_ARG(int, 2);
 
-    if (audiobinTest->successfully_parsed)
+    if (ootAudioHandler->successfully_parsed)
     {
-        if (blob_index + size > audiobinTest->soundTable->size())
+        if (blob_index + size > ootAudioHandler->ootFiles[AUDIOTABLE].size())
         {
             logger.error << "Got OoT sound data offset outside blob size!! Track will be rerolled." << std::endl;
         }
         else
         {
-            std::memcpy(dest, audiobinTest->soundTable->data() + blob_index, size);
+            std::memcpy(dest, ootAudioHandler->ootFiles[AUDIOTABLE].data() + blob_index, size);
             RECOMP_RETURN(bool, true);
         }
     }

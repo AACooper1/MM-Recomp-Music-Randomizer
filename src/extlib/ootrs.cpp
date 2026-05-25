@@ -1,13 +1,23 @@
 #include "ootrs.hpp"
 
-OoTAudioBin::OoTAudioBin(fs::path path)
+OoTAudioHandler::OoTAudioHandler(fs::path path)
 {
     this->audiobinPath = path;
+    this->mmRomPath = path.parent_path().parent_path()/"mm.n64.us.1.0.z64";
+}
 
+void OoTAudioHandler::just_testing_this_now()
+{
+    copy_mm_rom();
+    logger.dev << "Did the thing" << std::endl;
+}
+
+bool OoTAudioHandler::unzip_oot_audiobin()
+{
     memset(&this->archive, 0, sizeof(mz_zip_archive));
-    if (!mz_zip_reader_init_file(&archive, path.string().c_str(), 0))
+    if (!mz_zip_reader_init_file(&archive, audiobinPath.string().c_str(), 0))
     {
-        logger.error << "Error reading zip file " << path.string() << ": " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
+        logger.error << "Error reading zip file " << audiobinPath.string() << ": " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
     }
     else
     {
@@ -42,37 +52,68 @@ OoTAudioBin::OoTAudioBin(fs::path path)
                     throw std::runtime_error("mz_zip_reader_extract_to_mem() failed");
                     break;
                 }
-                raw_files.insert(std::make_pair(filename, std::vector<u8>(filesize)));
+                ootFiles.insert(std::make_pair(filename, std::vector<u8>(filesize)));
                 for (int j = 0; j < filesize; j++)
                 {
-                    raw_files[filename].data()[j] = filebuffer.data()[j ^ 3];
+                    ootFiles[filename].data()[j] = filebuffer.data()[j ^ 3];
                 }
 
             }
             for (int i = 0; i < 4; i++)
             {
-                if (!raw_files.contains(expected_files[i]))
+                if (!ootFiles.contains(expected_files[i]))
                 {
                     logger.error << "Audiobin did not contain " << expected_files[i] << ", aborting!" << std::endl;                    
                     successfully_parsed = false;
-                    return;
+                    return false;
                 }
                 else
                 {
                     logger.debug << "Found file " << expected_files[i] << "!" << std::endl;
                 }
             }
-
-            soundTableHeader = &raw_files[AUDIOTABLE_HEADER];
-            soundTable = &raw_files[AUDIOTABLE];
-            bankTableHeader = &raw_files[BANKTABLE_HEADER];
-            bankTable = &raw_files[BANKTABLE];
             
             successfully_parsed = true;
         }
     }
 
     mz_zip_reader_end(&archive);
+
+    return true;
+}
+
+bool OoTAudioHandler::copy_mm_rom()
+{
+    if (!fs::exists(mmRomPath))
+    {
+        logger.error << "Could not find MM ROM?!" << std::endl;
+        return false;
+    }
+    else
+    {
+        logger.debug << "Reading and decompressing MM ROM! This may take a second..." << std::endl;
+
+        // Allocates vector in advance. ihatethatiusedaitospeeditup:(
+        std::ifstream in(mmRomPath, std::ios::binary);
+        in.seekg(0, std::ios::end);
+        std::streamsize size = in.tellg();
+        in.seekg(0, std::ios::beg);
+
+        std::vector<u8> compressed_rom(size);
+        in.read(reinterpret_cast<char*>(compressed_rom.data()), size);
+
+        std::span<u8> compressed_rom_span(compressed_rom);
+
+        mmRom = decompress_rom(compressed_rom_span);
+        SHA1 checksum;
+        checksum.update(std::string(mmRom.begin(), mmRom.end()));
+        std::string checksum_final = checksum.final();
+        assert(checksum_final == "e5cecc349b49b6963cce200298e932daa641d1fc");
+        logger.debug << "Finished reading and decompressing MM ROM, CRC32s match!" << std::endl;
+
+        return true;
+    }
+
 }
 
 std::unordered_map<std::string, std::vector<SongSlotID>> OoTBGMGroupsToCategories
@@ -126,7 +167,7 @@ std::unordered_map<std::string, std::vector<SongSlotID>> OoTBGMGroupsToCategorie
 
     // High specificity
     {
-        "Fields", // == MMR's {FIELD} + WoM
+        "Fields", // == MMR's {FIELD} + Woods of Mystery
         {
             SongSlotID::TERMINA_FIELD, 
             SongSlotID::SOUTHERN_SWAMP, 
