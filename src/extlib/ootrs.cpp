@@ -8,7 +8,11 @@ OoTAudioHandler::OoTAudioHandler(fs::path path)
 
 void OoTAudioHandler::just_testing_this_now()
 {
+    unzip_oot_audiobin();
     copy_mm_rom();
+    get_mm_files();
+    get_all_banks();
+    match_all_oot_banks();
     logger.dev << "Did the thing" << std::endl;
 }
 
@@ -52,12 +56,14 @@ bool OoTAudioHandler::unzip_oot_audiobin()
                     throw std::runtime_error("mz_zip_reader_extract_to_mem() failed");
                     break;
                 }
-                ootFiles.insert(std::make_pair(filename, std::vector<u8>(filesize)));
+                std::vector<u8> this_file(filesize);
                 for (int j = 0; j < filesize; j++)
                 {
-                    ootFiles[filename].data()[j] = filebuffer.data()[j ^ 3];
+                    this_file[j] = filebuffer.data()[j];
                 }
 
+                ootFilesRaw.push_back(this_file);                
+                ootFiles.insert(std::make_pair(filename, ByteArray(ootFilesRaw[ootFilesRaw.size() - 1])));
             }
             for (int i = 0; i < 4; i++)
             {
@@ -93,7 +99,7 @@ bool OoTAudioHandler::copy_mm_rom()
     {
         logger.debug << "Reading and decompressing MM ROM! This may take a second..." << std::endl;
 
-        // Allocates vector in advance. ihatethatiusedaitospeeditup:(
+        // Allocates vector in advance. ihatethatiusedaitooptimizethisineedtostop:(
         std::ifstream in(mmRomPath, std::ios::binary);
         in.seekg(0, std::ios::end);
         std::streamsize size = in.tellg();
@@ -102,18 +108,90 @@ bool OoTAudioHandler::copy_mm_rom()
         std::vector<u8> compressed_rom(size);
         in.read(reinterpret_cast<char*>(compressed_rom.data()), size);
 
-        std::span<u8> compressed_rom_span(compressed_rom);
+        ByteArray compressed_rom_span(compressed_rom);
 
-        mmRom = decompress_rom(compressed_rom_span);
+        mmRomRaw = decompress_rom(compressed_rom_span);
         SHA1 checksum;
-        checksum.update(std::string(mmRom.begin(), mmRom.end()));
+        checksum.update(std::string(mmRomRaw.begin(), mmRomRaw.end()));
         std::string checksum_final = checksum.final();
         assert(checksum_final == "e5cecc349b49b6963cce200298e932daa641d1fc");
-        logger.debug << "Finished reading and decompressing MM ROM, CRC32s match!" << std::endl;
+        logger.debug << "Finished reading and decompressing MM ROM, SHA1s match!" << std::endl;
+        mmRom = mmRomRaw;
 
         return true;
     }
+}
 
+bool OoTAudioHandler::get_mm_files()
+{
+    mmFiles.insert(std::make_pair(AUDIOTABLE_HEADER, mmRom.subspan(MM_AUDIOTABLE_HEADER_OFFSET, MM_AUDIOTABLE_HEADER_LENGTH)));
+    mmFiles.insert(std::make_pair(BANKTABLE_HEADER, mmRom.subspan(MM_BANKTABLE_HEADER_OFFSET, MM_BANKTABLE_HEADER_LENGTH)));
+    mmFiles.insert(std::make_pair(AUDIOTABLE, mmRom.subspan(MM_AUDIOTABLE_OFFSET, MM_AUDIOTABLE_LENGTH)));
+    mmFiles.insert(std::make_pair(BANKTABLE, mmRom.subspan(MM_BANKTABLE_OFFSET, MM_BANKTABLE_LENGTH)));
+
+    return true;
+}
+
+bool OoTAudioHandler::get_all_banks()
+{
+    this->numOoTBanks = int16_from_bytes(this->ootFiles[BANKTABLE_HEADER], 0);
+    for (int i = 0; i < numOoTBanks; i++)
+    {
+        int offset = 0x10 + (0x10 * i);
+        std::span<u8> curr_entry = this->ootFiles[BANKTABLE_HEADER].subspan(offset, offset + 0x10);
+        AudioBank audiobank = AudioBank(i, curr_entry, this->ootFiles[BANKTABLE], this->ootFiles[AUDIOTABLE], this->ootFiles[AUDIOTABLE_HEADER]);
+        this->ootBanks.push_back(audiobank);
+    }
+
+    this->numMMBanks = int16_from_bytes(this->mmFiles[BANKTABLE_HEADER], 0);
+    for (int i = 0; i < numMMBanks; i++)
+    {
+        int offset = 0x10 + (0x10 * i);
+        std::span<u8> curr_entry = this->mmFiles[BANKTABLE_HEADER].subspan(offset, offset + 0x10);
+        AudioBank audiobank = AudioBank(i, curr_entry, this->mmFiles[BANKTABLE], this->mmFiles[AUDIOTABLE], this->mmFiles[AUDIOTABLE_HEADER]);
+        this->mmBanks.push_back(audiobank);
+    }
+
+    return true;
+}
+
+int OoTAudioHandler::find_sample_in_mm_banks(ByteArray sample_data)
+{
+    for (int bankIdx = 0; bankIdx < this->numMMBanks; bankIdx++)
+    {
+        AudioBank& bank = mmBanks[bankIdx];
+        std::vector<Sample*> allSamples = bank.get_all_samples();
+        for (int sampleIdx = 0; sampleIdx < allSamples.size(); sampleIdx++)
+        {
+            ByteArray sampleData = allSamples[sampleIdx]->data;
+            if (!std::memcmp(sample_data.data(), sampleData.data(), std::min(sample_data.size(), sampleData.size())))
+            {
+                return allSamples[sampleIdx]->sampleAddr;
+            }
+        }
+    }
+
+    return 0;
+}
+
+bool OoTAudioHandler::match_all_oot_banks()
+{
+    for (int bankIdx = 0; bankIdx < this->numOoTBanks; bankIdx++)
+    {
+        AudioBank& bank = ootBanks[bankIdx];
+        std::vector<Sample*> allSamples = bank.get_all_samples();
+        for (int sampleIdx = 0; sampleIdx < allSamples.size(); sampleIdx++)
+        {
+            ByteArray sampleData = allSamples[sampleIdx]->data;
+            int match = find_sample_in_mm_banks(sampleData);
+            if (match)
+            {
+                allSamples[sampleIdx]->sampleAddr = match;
+            }
+        }
+    }
+
+    return true;
 }
 
 std::unordered_map<std::string, std::vector<SongSlotID>> OoTBGMGroupsToCategories
