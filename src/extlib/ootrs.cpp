@@ -12,6 +12,7 @@ void OoTAudioHandler::just_testing_this_now()
     copy_mm_rom();
     get_mm_files();
     get_all_banks();
+    get_all_mm_samples();
     match_all_oot_banks();
     logger.dev << "Did the thing" << std::endl;
 }
@@ -138,7 +139,7 @@ bool OoTAudioHandler::get_all_banks()
     for (int i = 0; i < numOoTBanks; i++)
     {
         int offset = 0x10 + (0x10 * i);
-        std::span<u8> curr_entry = this->ootFiles[BANKTABLE_HEADER].subspan(offset, offset + 0x10);
+        std::span<u8> curr_entry = this->ootFiles[BANKTABLE_HEADER].subspan(offset, 0x10);
         AudioBank audiobank = AudioBank(i, curr_entry, this->ootFiles[BANKTABLE], this->ootFiles[AUDIOTABLE], this->ootFiles[AUDIOTABLE_HEADER]);
         this->ootBanks.push_back(audiobank);
     }
@@ -147,7 +148,7 @@ bool OoTAudioHandler::get_all_banks()
     for (int i = 0; i < numMMBanks; i++)
     {
         int offset = 0x10 + (0x10 * i);
-        std::span<u8> curr_entry = this->mmFiles[BANKTABLE_HEADER].subspan(offset, offset + 0x10);
+        std::span<u8> curr_entry = this->mmFiles[BANKTABLE_HEADER].subspan(offset, 0x10);
         AudioBank audiobank = AudioBank(i, curr_entry, this->mmFiles[BANKTABLE], this->mmFiles[AUDIOTABLE], this->mmFiles[AUDIOTABLE_HEADER]);
         this->mmBanks.push_back(audiobank);
     }
@@ -155,19 +156,24 @@ bool OoTAudioHandler::get_all_banks()
     return true;
 }
 
+void OoTAudioHandler::get_all_mm_samples()
+{
+    for (int i = 0; i < numMMBanks; i++)
+    {
+        AudioBank& bank = mmBanks[i];
+        std::vector<Sample*> bankSamples = bank.get_all_samples();
+        all_mm_samples.insert(all_mm_samples.end(), bankSamples.begin(), bankSamples.end());
+    }
+}
+
 int OoTAudioHandler::find_sample_in_mm_banks(ByteArray sample_data)
 {
-    for (int bankIdx = 0; bankIdx < this->numMMBanks; bankIdx++)
+    for (int sampleIdx = 0; sampleIdx < this->all_mm_samples.size(); sampleIdx++)
     {
-        AudioBank& bank = mmBanks[bankIdx];
-        std::vector<Sample*> allSamples = bank.get_all_samples();
-        for (int sampleIdx = 0; sampleIdx < allSamples.size(); sampleIdx++)
+        ByteArray sampleData = all_mm_samples[sampleIdx]->data;
+        if (!std::memcmp(sample_data.data(), sampleData.data(), std::min(sample_data.size(), sampleData.size())))
         {
-            ByteArray sampleData = allSamples[sampleIdx]->data;
-            if (!std::memcmp(sample_data.data(), sampleData.data(), std::min(sample_data.size(), sampleData.size())))
-            {
-                return allSamples[sampleIdx]->sampleAddr;
-            }
+            return all_mm_samples[sampleIdx]->sampleAddr;
         }
     }
 
@@ -187,6 +193,10 @@ bool OoTAudioHandler::match_all_oot_banks()
             if (match)
             {
                 allSamples[sampleIdx]->sampleAddr = match;
+            }
+            else
+            {
+                bank.zsounds_to_add.push_back(allSamples[sampleIdx]);
             }
         }
     }

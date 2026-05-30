@@ -172,16 +172,16 @@ struct Instrument
     Instrument(int inst_id, ByteArray bankdata, ByteArray audiotable, ByteArray audiotable_header, int inst_offset, int audiotable_id)
     {
         this->inst_id = inst_id;
-        this->normalRangeLo = bankdata[1];
-        this->normalrangeHi = bankdata[2];
-        this->releaseRate = bankdata[3];
-        this->AdsrEnvelopePointOffset = int32_from_bytes(bankdata, 4);
-        this->lowNoteSampleOffset = int32_from_bytes(bankdata, 8);
-        this->lowNoteTuning = int32_from_bytes(bankdata, 12);
-        this->normalNoteSampleOffset = int32_from_bytes(bankdata, 16);
-        this->normalNoteTuning = int32_from_bytes(bankdata, 20);
-        this->highNoteSampleOffset = int32_from_bytes(bankdata, 24);
-        this->highNoteTuning = int32_from_bytes(bankdata, 28);
+        this->normalRangeLo = bankdata[inst_offset + 1];
+        this->normalrangeHi = bankdata[inst_offset + 2];
+        this->releaseRate = bankdata[inst_offset + 3];
+        this->AdsrEnvelopePointOffset = int32_from_bytes(bankdata, inst_offset + 4);
+        this->lowNoteSampleOffset = int32_from_bytes(bankdata, inst_offset + 8);
+        this->lowNoteTuning = int32_from_bytes(bankdata, inst_offset + 12);
+        this->normalNoteSampleOffset = int32_from_bytes(bankdata, inst_offset + 16);
+        this->normalNoteTuning = int32_from_bytes(bankdata, inst_offset + 20);
+        this->highNoteSampleOffset = int32_from_bytes(bankdata, inst_offset + 24);
+        this->highNoteTuning = int32_from_bytes(bankdata, inst_offset + 28);
 
         this->lowNoteSample = lowNoteSampleOffset ? Sample(bankdata, audiotable, audiotable_header, this->lowNoteSampleOffset, audiotable_id) : Sample();
         this->normalNoteSample = normalNoteSampleOffset ? Sample(bankdata, audiotable, audiotable_header, this->normalNoteSampleOffset, audiotable_id) : Sample();
@@ -214,6 +214,8 @@ struct AudioBank
     int inst_offset;
     std::vector<Instrument> instruments;
 
+    std::vector<Sample*> zsounds_to_add;
+
     AudioBank(int bankNo, ByteArray table_entry, ByteArray audiobank, ByteArray audiotable, ByteArray audiotable_header)
     {
         this->bankNo = bankNo;
@@ -238,6 +240,7 @@ struct AudioBank
         {
             int offset = drum_offset + 4 * i;
             offset = int32_from_bytes(this->bank_data, offset);
+            if (!offset) { continue; }
             Drum drum = Drum(i, this->bank_data, audiotable, audiotable_header, offset, this->audiotable_id);
             this->drums.push_back(drum);
         }
@@ -247,17 +250,17 @@ struct AudioBank
         for (int i = 0; i < this->num_sfx; i++)
         {
             int offset = sfx_offset + 8 * i;
-            offset = int32_from_bytes(this->bank_data, offset);
+            // offset = int32_from_bytes(this->bank_data, offset);
             SFX sfx = SFX(i, this->bank_data, audiotable, audiotable_header, offset, this->audiotable_id);
             this->sfx.push_back(sfx);
         }
 
         // Read instruments
-        this->inst_offset = int32_from_bytes(this->bank_data, 8);
+        this->inst_offset = 8;
         for (int i = 0; i < this->num_instruments; i++)
         {
             int offset = inst_offset + 4 * i;
-            offset = int32_from_bytes(this->bank_data, offset);
+            offset = int32_from_bytes(this->bank_data, offset); // Why is this not a pointer to pointers like drums are?? This doesn't make any sense
             Instrument instrument = Instrument(i, this->bank_data, audiotable, audiotable_header, offset, this->audiotable_id);
             this->instruments.push_back(instrument);
         }
@@ -275,23 +278,24 @@ struct AudioBank
 
     std::vector<Sample*> get_all_samples()
     {
+
         std::vector<Sample*> all_samples;
 
-        for (int i = 0; i < this->num_drums; i++)
+        for (int i = 0; i < this->drums.size(); i++)
         {
             if(drums[i].sampleOffset != -1)
             {
                 all_samples.push_back(&drums[i].sample);
             }
         }
-        for (int i = 0; i < this->num_sfx; i++)
+        for (int i = 0; i < this->sfx.size(); i++)
         {
             if(sfx[i].sampleOffset != -1)
             {
                 all_samples.push_back(&sfx[i].sample);
             }
         }
-        for (int i = 0; i < this->num_instruments; i++)
+        for (int i = 0; i < this->instruments.size(); i++)
         {
             if(instruments[i].lowNoteSampleOffset > 0)
             {
@@ -340,6 +344,7 @@ class OoTAudioHandler
         std::vector<u8> decompress_rom(std::span<const uint8_t> compressed_rom);
         bool get_mm_files();
         bool get_all_banks();
+        void get_all_mm_samples();
 
         int find_sample_in_mm_banks(ByteArray sample_data);
         bool match_all_oot_banks();
@@ -354,6 +359,8 @@ class OoTAudioHandler
         std::vector<std::vector<u8>> ootFilesRaw;
         int numOoTBanks = 0;
         std::vector<AudioBank> ootBanks;
+
+        std::vector<Sample*> all_mm_samples;
 
         fs::path mmRomPath;
         std::vector<u8> mmRomRaw;
