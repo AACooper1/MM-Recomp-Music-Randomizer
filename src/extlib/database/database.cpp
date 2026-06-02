@@ -120,6 +120,9 @@ void Database::init_tables()
     tables->relation.track_to_seq = std::make_unique<TrackToSequenceTable>(shared_from_this(), "track_to_seq");
     tables->relation.track_to_bank = std::make_unique<TrackToBankTable>(shared_from_this(), "track_to_bank");
     tables->relation.track_to_sound = std::make_unique<TrackToSoundTable>(shared_from_this(), "track_to_sound");
+
+    // tables->ootbank = std::make_unique<BankTable>(shared_from_this(), true);
+    tables->ootsound = std::make_unique<SoundTable>(shared_from_this(), true);
 }
 
 int Database::update_from_music_dir()

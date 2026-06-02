@@ -20,7 +20,7 @@ template <> int BankTable::insert(std::shared_ptr<Bank> entry)
     Statement statement(get_sqlite());
 
     std::string query = 
-        "INSERT INTO bank (             \
+        "INSERT INTO" +  name + "(      \
             headerSize,                 \
             header,                     \
             dataSize,                   \
@@ -60,7 +60,7 @@ template <> int BankTable::update(int id, std::shared_ptr<Bank> entry)
     Statement statement(get_sqlite());
 
     std::string query = 
-        "UPDATE bank                        \
+        "UPDATE " +  name + "               \
          SET                                \
             headerSize = ?, headerData = ?, \
             dataSize = ?, data = ?          \

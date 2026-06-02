@@ -130,6 +130,7 @@ class Database : public std::enable_shared_from_this<Database>
 
         void add_if_not_in_db();
         void remove_if_not_in_music_dir();
+        void add_oot_tables();
 
         bool check_if_in_db(fs::directory_entry entry);
 
@@ -153,6 +154,9 @@ struct dbTables
     std::unique_ptr<SoundTable> sound;
 
     RelationTables relation;
+
+    std::unique_ptr<BankTable> ootbank;
+    std::unique_ptr<SoundTable> ootsound;
 };
 
 #endif

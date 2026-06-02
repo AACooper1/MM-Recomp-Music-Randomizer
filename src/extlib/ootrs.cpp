@@ -6,7 +6,7 @@ OoTAudioHandler::OoTAudioHandler(fs::path path)
     this->mmRomPath = path.parent_path().parent_path()/"mm.n64.us.1.0.z64";
 }
 
-void OoTAudioHandler::just_testing_this_now()
+void OoTAudioHandler::prepare_oot_audio()
 {
     unzip_oot_audiobin();
     copy_mm_rom();
@@ -14,7 +14,7 @@ void OoTAudioHandler::just_testing_this_now()
     get_all_banks();
     get_all_mm_samples();
     match_all_oot_banks();
-    logger.dev << "Did the thing" << std::endl;
+    logger.debug << "Matched OoT audio!" << std::endl;
 }
 
 bool OoTAudioHandler::unzip_oot_audiobin()
@@ -168,16 +168,24 @@ void OoTAudioHandler::get_all_mm_samples()
 
 int OoTAudioHandler::find_sample_in_mm_banks(ByteArray sample_data)
 {
+    if (sample_data.size() <= 0)
+    {
+        return -1;
+    }
     for (int sampleIdx = 0; sampleIdx < this->all_mm_samples.size(); sampleIdx++)
     {
         ByteArray sampleData = all_mm_samples[sampleIdx]->data;
+        if (sampleData.size() <= 0)
+        {
+            continue;
+        }
         if (!std::memcmp(sample_data.data(), sampleData.data(), std::min(sample_data.size(), sampleData.size())))
         {
             return all_mm_samples[sampleIdx]->sampleAddr;
         }
     }
 
-    return 0;
+    return -1;
 }
 
 bool OoTAudioHandler::match_all_oot_banks()
@@ -190,7 +198,7 @@ bool OoTAudioHandler::match_all_oot_banks()
         {
             ByteArray sampleData = allSamples[sampleIdx]->data;
             int match = find_sample_in_mm_banks(sampleData);
-            if (match)
+            if (match >= 0)
             {
                 allSamples[sampleIdx]->sampleAddr = match;
             }

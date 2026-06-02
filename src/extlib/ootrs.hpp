@@ -251,6 +251,7 @@ struct AudioBank
         {
             int offset = sfx_offset + 8 * i;
             // offset = int32_from_bytes(this->bank_data, offset);
+            if (!offset) { continue; }
             SFX sfx = SFX(i, this->bank_data, audiotable, audiotable_header, offset, this->audiotable_id);
             this->sfx.push_back(sfx);
         }
@@ -261,6 +262,7 @@ struct AudioBank
         {
             int offset = inst_offset + 4 * i;
             offset = int32_from_bytes(this->bank_data, offset); // Why is this not a pointer to pointers like drums are?? This doesn't make any sense
+            if (!offset) { continue; }
             Instrument instrument = Instrument(i, this->bank_data, audiotable, audiotable_header, offset, this->audiotable_id);
             this->instruments.push_back(instrument);
         }
@@ -283,29 +285,29 @@ struct AudioBank
 
         for (int i = 0; i < this->drums.size(); i++)
         {
-            if(drums[i].sampleOffset != -1)
+            if(drums[i].sample.sampleAddr != -1)
             {
                 all_samples.push_back(&drums[i].sample);
             }
         }
         for (int i = 0; i < this->sfx.size(); i++)
         {
-            if(sfx[i].sampleOffset != -1)
+            if(sfx[i].sample.sampleAddr != -1)
             {
                 all_samples.push_back(&sfx[i].sample);
             }
         }
         for (int i = 0; i < this->instruments.size(); i++)
         {
-            if(instruments[i].lowNoteSampleOffset > 0)
+            if(instruments[i].lowNoteSample.sampleAddr > 0)
             {
                 all_samples.push_back(&instruments[i].lowNoteSample);
             }
-            if(instruments[i].normalNoteSampleOffset > 0)
+            if(instruments[i].normalNoteSample.sampleAddr > 0)
             {
                 all_samples.push_back(&instruments[i].normalNoteSample);
             }
-            if(instruments[i].highNoteSampleOffset > 0)
+            if(instruments[i].highNoteSample.sampleAddr > 0)
             {
                 all_samples.push_back(&instruments[i].highNoteSample);
             }
@@ -331,7 +333,7 @@ class OoTAudioHandler
 {
     public:
         OoTAudioHandler(fs::path path);
-        void just_testing_this_now();
+        void prepare_oot_audio();
 
         std::vector<AudioBank> ootBanksMatched;
         std::vector<std::vector<u8>> ootZsounds;

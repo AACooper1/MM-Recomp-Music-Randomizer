@@ -3,6 +3,7 @@
 
 #include "sqlite3.h"
 #include <map>
+#include <type_traits>
 
 #include "track.h"
 
@@ -14,6 +15,8 @@ class Table
 {
     public:
         Table<T>(std::shared_ptr<Database> db) {this->db = db;}
+        Table<T>(std::shared_ptr<Database> db, bool is_oot) requires(std::is_same_v<T, Bank>);
+        Table<T>(std::shared_ptr<Database> db, bool is_oot) requires(std::is_same_v<T, Sound>);
 
         virtual std::shared_ptr<T> select(std::string query);
         virtual std::shared_ptr<T> select(std::string query, std::string cols[], int ncol);
@@ -64,6 +67,7 @@ template<> int SequenceTable::insert(std::shared_ptr<Sequence> entry);
 
 using BankTable = Table<Bank>;
 template<> BankTable::Table(std::shared_ptr<Database> db);
+template<> BankTable::Table(std::shared_ptr<Database> db, bool is_oot);
 template<> int BankTable::insert(std::shared_ptr<Bank> entry);
 
 using SoundTable = Table<Sound>;

@@ -197,7 +197,7 @@ RECOMP_DLL_FUNC(read_oot_audiobin)
         logger.info << "Found OoT audiobin, reading..." << std::endl;
         ootAudioHandler = new OoTAudioHandler(ootAudioBinPath);
 
-        ootAudioHandler->just_testing_this_now();
+        ootAudioHandler->prepare_oot_audio();
 
         if (ootAudioHandler->successfully_parsed)
         {
