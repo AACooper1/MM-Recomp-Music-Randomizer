@@ -218,24 +218,8 @@ struct AudioBank
 
     std::vector<Sample*> zsounds_to_add;
 
-    AudioBank(int bankNo, ByteArray table_entry, ByteArray audiobank, ByteArray audiotable, ByteArray audiotable_header)
+    void read_stuff(ByteArray audiotable, ByteArray audiotable_header)
     {
-        this->bankNo = bankNo;
-        this->bank_offset = int32_from_bytes(table_entry, 0);
-        this->size = int32_from_bytes(table_entry, 4);
-        this->medium = table_entry[8];
-        this->type = table_entry[9];
-        this->audiotable_id = table_entry[10];
-        this->unk = table_entry[11];
-        this->num_instruments = table_entry[12];
-        this->num_drums = table_entry[13];
-        this->num_sfx = int16_from_bytes(table_entry, 14);
-        
-        this->bank_data = audiobank.subspan(this->bank_offset, size);
-        this->original_data.assign(this->bank_data.begin(), this->bank_data.end());
-        this->table_entry = table_entry;
-        this->duplicate_banks = std::vector<int>(); // Not necessary but it's there for the sake of completeness
-
         // Read drums
         this->drum_offset = int32_from_bytes(this->bank_data, 0);
         for (int i = 0; i < this->num_drums; i++)
@@ -268,6 +252,48 @@ struct AudioBank
             Instrument instrument = Instrument(i, this->bank_data, audiotable, audiotable_header, offset, this->audiotable_id);
             this->instruments.push_back(instrument);
         }
+    }
+
+    AudioBank(int bankNo, ByteArray table_entry, ByteArray audiobank, ByteArray audiotable, ByteArray audiotable_header)
+    {
+        this->bankNo = bankNo;
+        this->bank_offset = int32_from_bytes(table_entry, 0);
+        this->size = int32_from_bytes(table_entry, 4);
+        this->medium = table_entry[8];
+        this->type = table_entry[9];
+        this->audiotable_id = table_entry[10];
+        this->unk = table_entry[11];
+        this->num_instruments = table_entry[12];
+        this->num_drums = table_entry[13];
+        this->num_sfx = int16_from_bytes(table_entry, 14);
+        
+        this->bank_data = audiobank.subspan(this->bank_offset, size);
+        this->original_data.assign(this->bank_data.begin(), this->bank_data.end());
+        this->table_entry = table_entry;
+        this->duplicate_banks = std::vector<int>(); // Not necessary but it's there for the sake of completeness
+
+        read_stuff(audiotable, audiotable_header);
+    }
+
+    AudioBank(int bankNo, int size, ByteArray table_entry, ByteArray audiobank, ByteArray audiotable, ByteArray audiotable_header)
+    {
+        this->bankNo = bankNo;
+        this->bank_offset = 0;
+        this->size = size;
+        this->medium = table_entry[0];
+        this->type = table_entry[1];
+        this->audiotable_id = table_entry[2];
+        this->unk = table_entry[3];
+        this->num_instruments = table_entry[4];
+        this->num_drums = table_entry[5];
+        this->num_sfx = int16_from_bytes(table_entry, 6);
+        
+        this->bank_data = audiobank.subspan(this->bank_offset, size);
+        this->original_data.assign(this->bank_data.begin(), this->bank_data.end());
+        this->table_entry = table_entry;
+        this->duplicate_banks = std::vector<int>(); // Not necessary but it's there for the sake of completeness
+
+        read_stuff(audiotable, audiotable_header);
     }
 
     std::string str_info()
@@ -336,7 +362,7 @@ class OoTAudioHandler
     public:
         OoTAudioHandler(fs::path path);
         void prepare_oot_audio();
-
+        AudioBank match_custom_oot_bank(std::shared_ptr<std::vector<u8>> header, std::shared_ptr<std::vector<u8>> data);
         std::vector<std::vector<u8>> ootZsounds;
 
         int numOoTBanks = 0;

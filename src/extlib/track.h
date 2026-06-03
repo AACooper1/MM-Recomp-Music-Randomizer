@@ -52,6 +52,8 @@ class Track
         bool is_fanfare() 
             {return ((*categories)[FANFARE] || (*categories)[AREA_CLEAR] || (*categories)[GAME_OVER] || _is_fanfare); }
         
+        bool fix_oot_custom_bank(OoTAudioHandler* ootAudioHandler);
+
         int id = 0;
         int databaseIndex = 0;
         int seedIdx = 0;

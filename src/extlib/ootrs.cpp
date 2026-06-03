@@ -188,6 +188,34 @@ int OoTAudioHandler::find_sample_in_mm_banks(ByteArray sample_data)
     return -1;
 }
 
+AudioBank OoTAudioHandler::match_custom_oot_bank(std::shared_ptr<std::vector<u8>> header, std::shared_ptr<std::vector<u8>> data)
+{    
+    ByteArray headerArray{*header};
+    ByteArray dataArray{*data};
+
+    AudioBank bank(0x28, data->size(), headerArray, dataArray, ootFiles[AUDIOTABLE], ootFiles[AUDIOTABLE_HEADER]);
+
+    std::vector<Sample*> allSamples = bank.get_all_samples();
+    for (int sampleIdx = 0; sampleIdx < allSamples.size(); sampleIdx++)
+    {
+        ByteArray sampleData = allSamples[sampleIdx]->data;
+        int match = find_sample_in_mm_banks(sampleData);
+        if (match >= 0)
+        {
+            allSamples[sampleIdx]->sampleAddr = match;
+            int reverse_match = std::byteswap(match);
+            u8* addr = &bank.bank_data[allSamples[sampleIdx]->sample_offset + 4];
+            std::memcpy(addr, &reverse_match, sizeof(int));
+        }
+        else
+        {
+            bank.zsounds_to_add.push_back(allSamples[sampleIdx]);
+        }
+    }
+
+    return bank;
+}
+
 bool OoTAudioHandler::match_all_oot_banks()
 {
     for (int bankIdx = 0; bankIdx < this->numOoTBanks; bankIdx++)

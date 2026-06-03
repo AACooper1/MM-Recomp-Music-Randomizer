@@ -18,7 +18,7 @@ std::shared_ptr<Seed> seed;
 
 OoTAudioHandler* ootAudioHandler;
 bool can_use_ootrs;
-bool read_oot_audiobin();
+int read_oot_audiobin();
 
 RECOMP_DLL_FUNC(prepare_database) {
     std::string modPath = RECOMP_ARG_STR(0);
@@ -45,9 +45,17 @@ RECOMP_DLL_FUNC(prepare_database) {
     try
     {
         can_use_ootrs = read_oot_audiobin();
-        if (can_use_ootrs)
+        if (can_use_ootrs == 1)
         {
-            db->allow_ootrs = true;
+            db->allow_use_ootrs = true;
+            db->allow_add_ootrs = true;
+            db->ootAudioHandler = ootAudioHandler;
+        }
+        else if (can_use_ootrs == 2)
+        {
+            db->allow_use_ootrs = true;
+            db->allow_add_ootrs = false;
+            db->ootAudioHandler = ootAudioHandler;
         }
         rc = db->update_from_music_dir();
         rc = db->load_all_tracks();
@@ -195,13 +203,13 @@ RECOMP_DLL_FUNC(reroll_slot)
     seed->randomize_slot(slotIdx);
 }
 
-bool read_oot_audiobin()
+int read_oot_audiobin()
 {
     Statement statement = db->tables->relation.oot_bank_to_bank->select_iter(0);
     if (statement.step() == SQLITE_ROW)
     {
         logger.info << "OoT audiobin already parsed, ootrs available!" << std::endl;
-        return true;
+        return 2;
     }
     fs::path ootAudioBinPath = db->get_db_dir() / "OOT.audiobin";
     if (fs::exists(ootAudioBinPath))
@@ -212,8 +220,8 @@ bool read_oot_audiobin()
         ootAudioHandler->prepare_oot_audio();
         if (db->add_oot_banks(ootAudioHandler))
         {
-            logger.info << "Failed to add to database!" << std::endl;
-            return false;
+            logger.info << "Failed to add OoT banks to database!" << std::endl;
+            return 0;
         }
 
         if (ootAudioHandler->successfully_parsed)
@@ -221,14 +229,14 @@ bool read_oot_audiobin()
             logger.info.disable_header();
             logger.info << "OoT banks added to database!" << std::endl;
             logger.info.enable_header();
-            return true;
+            return 1;
         }
     }
     else
     {
         logger.info << "No OoT audiobin found, will not use OOTRS files." << std::endl;
     }
-    return false;
+    return 0;
 }
 
 RECOMP_DLL_FUNC(disable_ootrs)
@@ -255,6 +263,7 @@ RECOMP_DLL_FUNC(fetch_randomized_track)
         modTrack->slotName[i ^ 3] = slotName[i];
     }
 
+    modTrack->type = (cTrackType)extlibTrack->type;
     modTrack->bankNo = extlibTrack->bankNo;
     modTrack->slotIdx = slotIdx;
 

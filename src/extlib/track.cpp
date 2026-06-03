@@ -322,6 +322,25 @@ bool Track::parse_meta(std::vector<char>& filebuffer)
     return true;
 }
 
+bool Track::fix_oot_custom_bank(OoTAudioHandler* ootAudioHandler)
+{
+    if (type == TrackType::OOTRS && bank)
+    {
+        std::shared_ptr<std::vector<u8>> header = std::make_shared<std::vector<u8>>((*bank->header).begin(), (*bank->header).end());
+        std::shared_ptr<std::vector<u8>> data = std::make_shared<std::vector<u8>>((*bank->data).begin(), (*bank->data).end());
+        AudioBank parsed_bank = ootAudioHandler->match_custom_oot_bank(header, data);
+
+        bank = std::make_shared<Bank>(parsed_bank);
+        for (int i = 0; i < parsed_bank.zsounds_to_add.size(); i++)
+        {
+            std::shared_ptr<Sound> sound = std::make_shared<Sound>(parsed_bank.zsounds_to_add[i]);
+            sounds.push_back(sound);
+        }
+    }
+
+    return true;
+}
+
 void Track::parse_oot_categories(std::string metaCategories)
 {
     _is_fanfare = metaCategories.contains("fanfare") || metaCategories.contains("Fanfare");

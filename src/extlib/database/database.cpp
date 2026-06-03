@@ -159,7 +159,7 @@ void Database::add_if_not_in_db()
             logger.error << "Got unknown track type " << (int)track->type << "for song " << track->name << "! Song will be skipped." << std::endl;
             continue;
         }
-        if (track->type == TrackType::OOTRS && !allow_ootrs)
+        if (track->type == TrackType::OOTRS && !allow_add_ootrs)
         {
             logger.warning << "Skipping OoTRS song " << track->name << ", as OoT audiobin is not present." << std::endl;
             continue;
@@ -242,6 +242,23 @@ bool Database::add_song(std::shared_ptr<Track>& track)
         }
     }
 
+    if (track->type == TrackType::OOTRS && track->bank)
+    {
+        if (!ootAudioHandler)
+        {
+            logger.dev << "New OoTRS detected. Reading OoT audiobin..." << std::endl;
+            ootAudioHandler = new OoTAudioHandler(get_db_dir() / "OOT.audiobin");
+            ootAudioHandler->prepare_oot_audio();
+            if (add_oot_banks(ootAudioHandler))
+            {
+                logger.info << "Failed to add OoT banks to database, song will be skipped!" << std::endl;
+                return false;
+            }
+        }
+        track->fix_oot_custom_bank(ootAudioHandler);
+        tables->bank->update(track->bankId, track->bank);
+    }
+
     int soundNo = 0;
     Statement statement = tables->relation.track_to_sound->select_iter(trackNo);
     for (int i = 0; (soundNo = statement.exec_and_return_id()) > 0; i++)
@@ -265,7 +282,7 @@ bool Database::add_song(std::shared_ptr<Track>& track)
             else return false;
         }
     }
-    
+
     return true;
 }
 
@@ -311,6 +328,17 @@ bool Database::remove_song(int id)
 int Database::load_all_tracks()
 {
     tables->track->load_entries();
+
+    // I don't think this should ever have to run or even be reachable
+    // But I used "Jump to Cursor" for the first time and can confirm it works
+    // Eat your heart out, Edsger "Goto Considered Harmful" Dijkstra
+    if (!allow_use_ootrs)
+    {
+        std::erase_if(tables->track->entries, [](const auto& pair) {
+            return pair.second->type == TrackType::OOTRS;
+        });
+    }
+
     for (const auto & [id, track] : tables->track->entries)
     {
         if (track->type == TrackType::OOTRS && track->bankNo < 0x26)
@@ -323,9 +351,12 @@ int Database::load_all_tracks()
             
             track->bankId = tables->relation.oot_bank_to_bank->select(track->bankNo);
         }
+        else
+        {
+            track->bankId = tables->relation.track_to_bank->select(id);
+        }
 
         track->seqId = tables->relation.track_to_seq->select(id);
-        track->bankId = tables->relation.track_to_bank->select(id);
         
         Statement statement = tables->relation.track_to_sound->select_iter(id);
         while (statement.step() == SQLITE_ROW)

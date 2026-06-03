@@ -62,13 +62,14 @@ template <> int BankTable::update(int id, std::shared_ptr<Bank> entry)
     std::string query = 
         "UPDATE bank                        \
          SET                                \
-            headerSize = ?, headerData = ?, \
+            headerSize = ?, header = ?,     \
             dataSize = ?, data = ?          \
          WHERE (id = ?);                    \
         ";
 
     if (statement.prepare(query))
     {
+        logger.dev << sqlite3_errmsg(statement.db.get()) << std::endl;
         return -2;
     }
 

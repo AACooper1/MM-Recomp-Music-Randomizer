@@ -115,7 +115,9 @@ class Database : public std::enable_shared_from_this<Database>
         void set_last_rc(int rc);
         int get_last_rc() { return lastRC; };
 
-        bool allow_ootrs = false;
+        OoTAudioHandler* ootAudioHandler;
+        bool allow_use_ootrs = false;
+        bool allow_add_ootrs = false;
         
         char* lastErrMsg;
         
