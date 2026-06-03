@@ -120,9 +120,8 @@ void Database::init_tables()
     tables->relation.track_to_seq = std::make_unique<TrackToSequenceTable>(shared_from_this(), "track_to_seq");
     tables->relation.track_to_bank = std::make_unique<TrackToBankTable>(shared_from_this(), "track_to_bank");
     tables->relation.track_to_sound = std::make_unique<TrackToSoundTable>(shared_from_this(), "track_to_sound");
-
-    // tables->ootbank = std::make_unique<BankTable>(shared_from_this(), true);
-    tables->ootsound = std::make_unique<SoundTable>(shared_from_this(), true);
+    tables->relation.oot_bank_to_bank = std::make_unique<OoTBankToBankTable>(shared_from_this(), "oot_bank_to_bank");
+    tables->relation.oot_bank_to_sound = std::make_unique<OoTBankToSoundTable>(shared_from_this(), "oot_bank_to_sound");
 }
 
 int Database::update_from_music_dir()
@@ -157,6 +156,12 @@ void Database::add_if_not_in_db()
         std::shared_ptr<Track> track = std::make_shared<Track>(entry.path());
         if (track->type == TrackType::UNKNOWN)
         {
+            logger.error << "Got unknown track type " << (int)track->type << "for song " << track->name << "! Song will be skipped." << std::endl;
+            continue;
+        }
+        if (track->type == TrackType::OOTRS && !allow_ootrs)
+        {
+            logger.warning << "Skipping OoTRS song " << track->name << ", as OoT audiobin is not present." << std::endl;
             continue;
         }
 
@@ -308,6 +313,17 @@ int Database::load_all_tracks()
     tables->track->load_entries();
     for (const auto & [id, track] : tables->track->entries)
     {
+        if (track->type == TrackType::OOTRS && track->bankNo < 0x26)
+        {            
+            Statement statement = tables->relation.oot_bank_to_sound->select_iter(track->bankNo);
+            while (statement.step() == SQLITE_ROW)
+            {
+                track->soundIds.push_back(statement.column_int(1));
+            }
+            
+            track->bankId = tables->relation.oot_bank_to_bank->select(track->bankNo);
+        }
+
         track->seqId = tables->relation.track_to_seq->select(id);
         track->bankId = tables->relation.track_to_bank->select(id);
         
@@ -362,4 +378,33 @@ int Database::prepare_track(int id)
         logger.error << "Could not prepare track, returned NULL." << std::endl;
         return false;
     }
+}
+
+int Database::add_oot_banks(OoTAudioHandler* audioHandler)
+{
+    if (audioHandler->ootBanks.size() != 0x26)
+    {
+        logger.error << "OoTBanks should have 38 entries, but had " << audioHandler->ootBanks.size() << "!" << std::endl;
+        return 1;
+    }
+    for (int bankNo = 0; bankNo < audioHandler->ootBanks.size(); bankNo++)
+    {
+        AudioBank& parsed_bank = audioHandler->ootBanks[bankNo];
+
+        std::shared_ptr<Bank> bank = std::make_shared<Bank>(parsed_bank);
+
+        int bankId = this->tables->bank->insert(bank);
+        this->tables->relation.oot_bank_to_bank->insert(bankNo, bankId);
+
+        for (int soundNo = 0; soundNo < parsed_bank.zsounds_to_add.size(); soundNo++)
+        {
+            Sample* parsed_sample = parsed_bank.zsounds_to_add[soundNo];
+            std::shared_ptr<Sound> sound = std::make_shared<Sound>(parsed_sample);
+
+            int soundId = this->tables->sound->insert(sound);
+            this->tables->relation.oot_bank_to_sound->insert(bankNo, soundId);
+        }
+    }
+
+    return 0;
 }

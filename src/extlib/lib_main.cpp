@@ -18,6 +18,7 @@ std::shared_ptr<Seed> seed;
 
 OoTAudioHandler* ootAudioHandler;
 bool can_use_ootrs;
+bool read_oot_audiobin();
 
 RECOMP_DLL_FUNC(prepare_database) {
     std::string modPath = RECOMP_ARG_STR(0);
@@ -43,6 +44,11 @@ RECOMP_DLL_FUNC(prepare_database) {
     
     try
     {
+        can_use_ootrs = read_oot_audiobin();
+        if (can_use_ootrs)
+        {
+            db->allow_ootrs = true;
+        }
         rc = db->update_from_music_dir();
         rc = db->load_all_tracks();
         logger.dev << "Successfully loaded tracks!" << std::endl;
@@ -189,8 +195,14 @@ RECOMP_DLL_FUNC(reroll_slot)
     seed->randomize_slot(slotIdx);
 }
 
-RECOMP_DLL_FUNC(read_oot_audiobin)
+bool read_oot_audiobin()
 {
+    Statement statement = db->tables->relation.oot_bank_to_bank->select_iter(0);
+    if (statement.step() == SQLITE_ROW)
+    {
+        logger.info << "OoT audiobin already parsed, ootrs available!" << std::endl;
+        return true;
+    }
     fs::path ootAudioBinPath = db->get_db_dir() / "OOT.audiobin";
     if (fs::exists(ootAudioBinPath))
     {
@@ -198,20 +210,25 @@ RECOMP_DLL_FUNC(read_oot_audiobin)
         ootAudioHandler = new OoTAudioHandler(ootAudioBinPath);
 
         ootAudioHandler->prepare_oot_audio();
+        if (db->add_oot_banks(ootAudioHandler))
+        {
+            logger.info << "Failed to add to database!" << std::endl;
+            return false;
+        }
 
         if (ootAudioHandler->successfully_parsed)
         {
             logger.info.disable_header();
-            logger.info << "Success!" << std::endl;
+            logger.info << "OoT banks added to database!" << std::endl;
             logger.info.enable_header();
-            RECOMP_RETURN(bool, true);
+            return true;
         }
     }
     else
     {
         logger.info << "No OoT audiobin found, will not use OOTRS files." << std::endl;
     }
-    RECOMP_RETURN(bool, false);
+    return false;
 }
 
 RECOMP_DLL_FUNC(disable_ootrs)
@@ -223,7 +240,6 @@ RECOMP_DLL_FUNC(fetch_randomized_track)
 {
     int slotIdx = RECOMP_ARG(int, 0);
     cTrack* modTrack = RECOMP_ARG(cTrack*, 1);
-    cTrack tempTrack;
 
     std::shared_ptr<Track> extlibTrack = seed->randomized[slotIdx];
 

@@ -59,7 +59,6 @@ RECOMP_HOOK_RETURN("ConsoleLogo_Init") void launch_on_rando_connect()
 
 RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_seed()
 {
-    prepare_oot_audiotables();
     unsigned char* savePath = recomp_get_save_file_path();
     logger.noheader.dev("Save path: %s\n", savePath);
 
@@ -241,35 +240,8 @@ void replace_mmrs(int i)
 void replace_ootrs(int i)
 {
     logger.debug("Preparing OoT track %s...\n", randomized[i].name);
-    cTrack* track = &randomized[i];
-    AudioTableEntry* mySeq = create_seq_entry_from_track(track);
-    AudioApi_ReplaceSequence(i, mySeq);
-
-    int rc = prepare_oot_bank(track);
-    if (!rc)
-    {
-        logger.error("Couldn't prepare OoT bank, yell at Asticky if this isn't handled in release version!\n");
-    }
-    else if (rc == 1)
-    {
-        logger.debug("Adding OoT bank %x...", track->bankNo);
-        char* bankHeader = &OoTBankTable->entries[track->bankNo] + 0x08;
-        s32 bankNo = AudioApi_ImportVanillaSoundFont(
-            &OoTBankTable->entries[track->bankNo].romAddr,  // romAddr
-            bankHeader[2],                                  // sampleBank0
-            bankHeader[3],                                  // sampleBank1
-            bankHeader[4],                                  // numInstruments
-            bankHeader[5],                                  // numDrums
-            bankHeader[6]                                   // numSfx
-        );
-        OoTBanksAddedIdx[track->bankNo] = bankNo;
-        randomized[i].bankNo = bankNo;
-        logger.noheader.debug("Success!\n");
-    }
-    else
-    {
-        track->bankNo = rc;
-    }
+    replace_mmrs(i);
+    logger.debug("Prepared successfully!");
 }
 
 void replace_vanilla(int i)

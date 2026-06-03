@@ -83,11 +83,13 @@ struct Sample
     int size = 0;
     int sampleAddr = 0;
     int audiotableAddr = 0;
+    int sample_offset;
     ByteArray data;
     
     Sample(ByteArray bankdata, ByteArray audiotable, ByteArray audiotable_header, int sample_offset, int audiotable_id)
     {
         this->sample_header = bankdata.subspan(sample_offset, 0x10);
+        this->sample_offset = sample_offset;
         int bitfield = std::byteswap(*(int*)sample_header.data());
         this->size = bitfield & 0xFFFFFF;
         this->sampleAddr = int32_from_bytes(sample_header, 4);
@@ -335,8 +337,10 @@ class OoTAudioHandler
         OoTAudioHandler(fs::path path);
         void prepare_oot_audio();
 
-        std::vector<AudioBank> ootBanksMatched;
         std::vector<std::vector<u8>> ootZsounds;
+
+        int numOoTBanks = 0;
+        std::vector<AudioBank> ootBanks;
 
         bool successfully_parsed = false;
 
@@ -359,8 +363,6 @@ class OoTAudioHandler
         fs::path audiobinPath;
         std::string expected_files[4] = { AUDIOTABLE_HEADER, AUDIOTABLE, BANKTABLE_HEADER, BANKTABLE};
         std::vector<std::vector<u8>> ootFilesRaw;
-        int numOoTBanks = 0;
-        std::vector<AudioBank> ootBanks;
 
         std::vector<Sample*> all_mm_samples;
 

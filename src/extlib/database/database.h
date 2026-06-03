@@ -104,6 +104,7 @@ class Database : public std::enable_shared_from_this<Database>
 
         int load_all_tracks();
         int load_all_songs();
+        int add_oot_banks(OoTAudioHandler* audioHandler);
 
         int prepare_track(int id);
 
@@ -113,6 +114,8 @@ class Database : public std::enable_shared_from_this<Database>
 
         void set_last_rc(int rc);
         int get_last_rc() { return lastRC; };
+
+        bool allow_ootrs = false;
         
         char* lastErrMsg;
         
@@ -130,7 +133,6 @@ class Database : public std::enable_shared_from_this<Database>
 
         void add_if_not_in_db();
         void remove_if_not_in_music_dir();
-        void add_oot_tables();
 
         bool check_if_in_db(fs::directory_entry entry);
 
@@ -144,6 +146,8 @@ struct RelationTables
     std::unique_ptr<TrackToSequenceTable> track_to_seq;
     std::unique_ptr<TrackToBankTable> track_to_bank;
     std::unique_ptr<TrackToSoundTable> track_to_sound;
+    std::unique_ptr<OoTBankToBankTable> oot_bank_to_bank;
+    std::unique_ptr<OoTBankToSoundTable> oot_bank_to_sound;
 };
 
 struct dbTables

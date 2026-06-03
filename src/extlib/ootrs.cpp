@@ -201,6 +201,9 @@ bool OoTAudioHandler::match_all_oot_banks()
             if (match >= 0)
             {
                 allSamples[sampleIdx]->sampleAddr = match;
+                int reverse_match = std::byteswap(match);
+                u8* addr = &bank.bank_data[allSamples[sampleIdx]->sample_offset + 4];
+                std::memcpy(addr, &reverse_match, sizeof(int));
             }
             else
             {

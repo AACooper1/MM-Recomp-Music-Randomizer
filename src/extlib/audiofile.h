@@ -8,6 +8,7 @@
 
 #include "miniz.h"
 #include "logging.hpp"
+#include "ootrs.hpp"
 
 #define MAX_ZSEQ_SIZE 32768     // 32 KiB
 #define MAX_ZBANK_SIZE 32768    // 32 KiB
@@ -81,6 +82,7 @@ class Bank : public AudioFile
             { if (is_bankmeta) { header = std::make_shared<std::vector<char>>(data); } type = AudioFileType::ZBANK; size = data.size();}
         Bank()
             { type = AudioFileType::ZBANK; header = std::make_shared<std::vector<char>>(); }
+        Bank(AudioBank& bank);
         void read_header(std::shared_ptr<std::vector<char>> filebuffer) { header = filebuffer; };
         void read_from_database(int id) override;
 
@@ -98,13 +100,13 @@ class Sound : public AudioFile
             { type = AudioFileType::ZSOUND; this->sampleAddr = sampleAddr; }
         Sound() 
             { type= AudioFileType::ZSOUND; sampleAddr = 0x00000000;}
+        Sound(Sample* sample);
         bool parse_foreignKey();
         void read_from_database(int id) override;
 
         void read_into_mod_memory(void* modAddr) override;
         
         u32 sampleAddr;
-        std::vector<std::string> oot_zsounds_to_find;
 };
 
 class Stream : public AudioFile
