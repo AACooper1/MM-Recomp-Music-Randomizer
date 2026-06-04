@@ -16,6 +16,10 @@ Track::Track(fs::path path)
     {
         type = TrackType::OOTRS;
     }
+    else if (path.extension() == ".zseq")
+    {
+        type = TrackType::ZSEQ;
+    }
     else
     {
         type = TrackType::UNKNOWN;
@@ -46,6 +50,14 @@ bool Track::read_from_file()
     {
         logger.error << "Error: " << path.string() << "does not exist!" << std::endl;
     }
+    
+    const auto time = fs::last_write_time(path).time_since_epoch();
+    this->timestamp = std::chrono::duration_cast<std::chrono::seconds>(time).count();
+    
+    if (type == TrackType::ZSEQ)
+    {
+        return read_from_zseq();
+    }
 
     memset(&archive, 0, sizeof(mz_zip_archive)); // Gotta do this because it's still 1991    
     if (!mz_zip_reader_init_file(&archive, path.string().c_str(), 0))
@@ -54,9 +66,6 @@ bool Track::read_from_file()
         mz_zip_reader_end(&archive);
         return false;
     }
-
-    const auto time = fs::last_write_time(path).time_since_epoch();
-    this->timestamp = std::chrono::duration_cast<std::chrono::seconds>(time).count();
 
     switch (type)
     {
@@ -77,9 +86,57 @@ bool Track::read_from_file()
     return true;
 }
 
+bool Track::read_from_zseq()
+{
+    logger.debug << "Detected file type zseq." << std::endl;
+    std::string filename = path.stem().string();
+    std::vector<std::string> split_filename = split_string(filename, "_");
+    
+    if (split_filename.size() != 3)
+    {
+        logger.error << "Zseq " << name << " had " << split_filename.size() << " fields, expected 3!" << std::endl;
+        return false;
+    }
+
+    this->name = split_filename[0];
+    try
+    {
+        this->bankNo = std::stoi(split_filename[1]);
+    }
+    catch (std::exception& e)
+    {
+        logger.error << "Could not parse int for seq " << filename << " in zseq " << this->name << ". Song will be skipped." << std:: endl;
+        return false;
+    }
+
+    std::vector<char> _categories;
+    _categories.assign(split_filename[2].begin(), split_filename[2].end());
+    parse_categories(_categories);
+
+    std::ifstream zseq_file(path, std::ios::binary);
+    if (!zseq_file.is_open())
+    {
+        logger.error << "Could not open zseq " << name << ". Song will be skipped." << std::endl;
+        return false;
+    }
+
+    zseq_file.unsetf(std::ios::skipws);
+    std::streampos filesize;
+    zseq_file.seekg(0, std::ios::end);
+    filesize = zseq_file.tellg();
+    zseq_file.seekg(0, std::ios::beg);
+
+    std::shared_ptr<std::vector<char>> filebuffer = std::make_shared<std::vector<char>>(filesize);
+    zseq_file.read(filebuffer->data(), filesize);
+
+    this->sequence = std::make_shared<Sequence>(filebuffer, filename);
+
+    return true;
+}
+
 bool Track::read_from_mmrs()
 {
-    logger.dev << "Detected file type MMRS." << std::endl;
+    logger.debug << "Detected file type MMRS." << std::endl;
 
     int num_files = (int)mz_zip_reader_get_num_files(&archive);
     
@@ -166,7 +223,7 @@ bool Track::read_from_mmrs()
 
 bool Track::read_from_ootrs()
 {
-    logger.dev << "Detected file type OOTRS." << std::endl;
+    logger.debug << "Detected file type OOTRS." << std::endl;
 
     int num_files = (int)mz_zip_reader_get_num_files(&archive);
 
@@ -236,11 +293,11 @@ bool Track::read_from_ootrs()
     {
         if (!sounds[i]->sampleAddr)
         {
-            logger.warning << "Zsound " << sounds[i]->filename << " in track " << name << " is missing sampleAddr, will not be found in game!" << std::endl;
+            logger.warning << "Zsound " << sounds[i]->filename << " in OOTRS " << name << " is missing sampleAddr, will not be found in game!" << std::endl;
         }
         else if (!sounds[i]->data)
         {
-            logger.error << "Zsound " << sounds[i]->filename << " in track " << name << " has no data! Song will be skipped!" << std::endl;
+            logger.error << "Zsound " << sounds[i]->filename << " in OOTRS " << name << " has no data! Song will be skipped!" << std::endl;
             return false;
         }
     }

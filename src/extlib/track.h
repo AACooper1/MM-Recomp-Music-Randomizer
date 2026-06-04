@@ -21,6 +21,7 @@ enum class TrackType
     VANILLA,
     MMRS,
     OOTRS,
+    ZSEQ,
     STREAMED
 };
 
@@ -77,6 +78,7 @@ class Track
         std::vector<std::shared_ptr<Sound>> sounds;
 
     private:
+    bool read_from_zseq();
         bool read_from_mmrs();
         bool read_from_ootrs();
         bool read_from_streamed() {return false;};

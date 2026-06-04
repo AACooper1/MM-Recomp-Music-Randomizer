@@ -224,7 +224,7 @@ s32 create_bank_entry_from_track(cTrack* track)
     return bankNo;
 }
 
-void replace_mmrs(int i)
+void replace_custom(int i)
 {
     cTrack* track = &randomized[i];
     AudioTableEntry* mySeq = create_seq_entry_from_track(track);
@@ -235,13 +235,6 @@ void replace_mmrs(int i)
         track->bankNo = create_bank_entry_from_track(track);
     }
     AudioApi_ReplaceSequenceFont(i, 0, track->bankNo);
-}
-
-void replace_ootrs(int i)
-{
-    logger.debug("Preparing OoT track %s...\n", randomized[i].name);
-    replace_mmrs(i);
-    logger.debug("Prepared successfully!");
 }
 
 void replace_vanilla(int i)
@@ -262,11 +255,10 @@ void replace_tracks()
     {
         switch(randomized[i].type)
         {
-            case MMRS:
-                replace_mmrs(randomized[i].slotIdx);
-                break;
             case OOTRS:
-                replace_ootrs(randomized[i].slotIdx);
+            case ZSEQ:
+            case MMRS:
+                replace_custom(randomized[i].slotIdx);
                 break;
             case VANILLA:
                 replace_vanilla(randomized[i].slotIdx);

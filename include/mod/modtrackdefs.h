@@ -18,6 +18,7 @@ typedef enum cTrackType_t
     VANILLA,
     MMRS,
     OOTRS,
+    ZSEQ,
     STREAMED
 } cTrackType;
 
