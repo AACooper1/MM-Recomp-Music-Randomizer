@@ -153,10 +153,14 @@ void Database::add_if_not_in_db()
             continue;
         }
         logger.debug.enable_header();
+        if (fs::is_directory(entry.path()))
+        {
+            logger.dev << "Entry " << entry.path() << " is a directory, continuing..." << std::endl;
+        }
         std::shared_ptr<Track> track = std::make_shared<Track>(entry.path());
         if (track->type == TrackType::UNKNOWN)
         {
-            logger.error << "Got unknown track type " << (int)track->type << " for song " << track->name << "! Song will be skipped." << std::endl;
+            logger.error << "Got unknown track type " << (int)track->type << " for file " << entry.path().string() << "! File will be skipped." << std::endl;
             continue;
         }
         if (track->type == TrackType::OOTRS && !allow_add_ootrs)

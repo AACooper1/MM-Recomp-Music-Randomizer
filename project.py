@@ -253,53 +253,53 @@ cmake_build_groups["Debug"] = {
     "Windows": CMakeBuildJob.from_preset_pair(extlib, {
         # Unlike with ModTomlJobs, CMakeBuildJobs cannot automatically determine what mod_output_files they produce, so they need to be specified 
         # manually in this dict. The format is the same as the `add_mod_output_files` method.
-            Path(f"{extlib_name}.dll"): get_preset_lib_path("zig-windows-x64-Debug").joinpath(f"lib{extlib_name}.dll"),
+            Path(f"{extlib_name}.dll"): get_preset_lib_path("zig-windows-x64-Debug").joinpath(f"{extlib_name}.dll"),
             # Including the Windows debug symbols file...
-            Path(f"{extlib_name}.pdb"): get_preset_lib_path("zig-windows-x64-Debug").joinpath(f"lib{extlib_name}.pdb")
+            Path(f"{extlib_name}.pdb"): get_preset_lib_path("zig-windows-x64-Debug").joinpath(f"{extlib_name}.pdb")
         }, "zig-windows-x64-Debug"),
     "Darwin": CMakeBuildJob.from_preset_pair(extlib, {
-            Path(f"{extlib_name}.dylib"): get_preset_lib_path("zig-macos-aarch64-Debug").joinpath(f"lib{extlib_name}.dylib")
+            Path(f"{extlib_name}.dylib"): get_preset_lib_path("zig-macos-aarch64-Debug").joinpath(f"{extlib_name}.dylib")
         }, "zig-macos-aarch64-Debug"),
     "Linux": CMakeBuildJob.from_preset_pair(extlib, {
-            Path(f"{extlib_name}.so"): get_preset_lib_path("zig-linux-x64-Debug").joinpath(f"lib{extlib_name}.so")
+            Path(f"{extlib_name}.so"): get_preset_lib_path("zig-linux-x64-Debug").joinpath(f"{extlib_name}.so")
         }, "zig-linux-x64-Debug"),
 }
 
 # Admittely, this part of this file could probably be DRYer.
 cmake_build_groups["Release"] =  {
     "Windows": CMakeBuildJob.from_preset_pair(extlib, {
-            Path(f"{extlib_name}.dll"): get_preset_lib_path("zig-windows-x64-Release").joinpath(f"lib{extlib_name}.dll")
+            Path(f"{extlib_name}.dll"): get_preset_lib_path("zig-windows-x64-Release").joinpath(f"{extlib_name}.dll")
         }, "zig-windows-x64-Release"),
     "Darwin": CMakeBuildJob.from_preset_pair(extlib, {
-            Path(f"{extlib_name}.dylib"): get_preset_lib_path("zig-macos-aarch64-Release").joinpath(f"lib{extlib_name}.dylib")
+            Path(f"{extlib_name}.dylib"): get_preset_lib_path("zig-macos-aarch64-Release").joinpath(f"{extlib_name}.dylib")
         }, "zig-macos-aarch64-Release"),
     "Linux": CMakeBuildJob.from_preset_pair(extlib, {
-            Path(f"{extlib_name}.so"): get_preset_lib_path("zig-linux-x64-Release").joinpath(f"lib{extlib_name}.so")
+            Path(f"{extlib_name}.so"): get_preset_lib_path("zig-linux-x64-Release").joinpath(f"{extlib_name}.so")
         }, "zig-linux-x64-Release"),
 }
 
 cmake_build_groups["RelWithDebInfo"] = {
     "Windows": CMakeBuildJob.from_preset_pair(extlib, {
-            Path(f"{extlib_name}.dll"): get_preset_lib_path("zig-windows-x64-RelWithDebInfo").joinpath(f"lib{extlib_name}.dll"),
-            Path(f"{extlib_name}.pdb"): get_preset_lib_path("zig-windows-x64-RelWithDebInfo").joinpath(f"lib{extlib_name}.pdb")
+            Path(f"{extlib_name}.dll"): get_preset_lib_path("zig-windows-x64-RelWithDebInfo").joinpath(f"{extlib_name}.dll"),
+            Path(f"{extlib_name}.pdb"): get_preset_lib_path("zig-windows-x64-RelWithDebInfo").joinpath(f"{extlib_name}.pdb")
         }, "zig-windows-x64-RelWithDebInfo"),
     "Darwin": CMakeBuildJob.from_preset_pair(extlib, {
-            Path(f"{extlib_name}.dylib"): get_preset_lib_path("zig-macos-aarch64-RelWithDebInfo").joinpath(f"lib{extlib_name}.dylib")
+            Path(f"{extlib_name}.dylib"): get_preset_lib_path("zig-macos-aarch64-RelWithDebInfo").joinpath(f"{extlib_name}.dylib")
         }, "zig-macos-aarch64-RelWithDebInfo"),
     "Linux": CMakeBuildJob.from_preset_pair(extlib, {
-            Path(f"{extlib_name}.so"): get_preset_lib_path("zig-linux-x64-RelWithDebInfo").joinpath(f"lib{extlib_name}.so")
+            Path(f"{extlib_name}.so"): get_preset_lib_path("zig-linux-x64-RelWithDebInfo").joinpath(f"{extlib_name}.so")
         }, "zig-linux-x64-RelWithDebInfo"),
 }
 
 cmake_build_groups["MinSizeRel"] = {
     "Windows": CMakeBuildJob.from_preset_pair(extlib, {
-            Path(f"{extlib_name}.dll"): get_preset_lib_path("zig-windows-x64-MinSizeRel").joinpath(f"lib{extlib_name}.dll")
+            Path(f"{extlib_name}.dll"): get_preset_lib_path("zig-windows-x64-MinSizeRel").joinpath(f"{extlib_name}.dll")
         }, "zig-windows-x64-MinSizeRel"),
     "Darwin": CMakeBuildJob.from_preset_pair(extlib, {
-            Path(f"{extlib_name}.dylib"): get_preset_lib_path("zig-macos-aarch64-MinSizeRel").joinpath(f"lib{extlib_name}.dylib")
+            Path(f"{extlib_name}.dylib"): get_preset_lib_path("zig-macos-aarch64-MinSizeRel").joinpath(f"{extlib_name}.dylib")
         }, "zig-macos-aarch64-MinSizeRel"),
     "Linux": CMakeBuildJob.from_preset_pair(extlib, {
-            Path(f"{extlib_name}.so"): get_preset_lib_path("zig-linux-x64-MinSizeRel").joinpath(f"lib{extlib_name}.so")
+            Path(f"{extlib_name}.so"): get_preset_lib_path("zig-linux-x64-MinSizeRel").joinpath(f"{extlib_name}.so")
         }, "zig-linux-x64-MinSizeRel"),
 }
 
@@ -338,7 +338,7 @@ def native_output_files(build_type: str) -> dict[Path, Path]:
         }
     if platform.system() == "Linux":
         return {
-            Path(f"{extlib_name}.so"): get_preset_lib_path(preset_name).joinpath(f"lib{extlib_name}.so")
+            Path(f"{extlib_name}.so"): get_preset_lib_path(preset_name).joinpath(f"{extlib_name}.so")
         }
 
 

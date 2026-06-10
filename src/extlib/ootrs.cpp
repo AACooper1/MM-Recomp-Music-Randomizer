@@ -432,7 +432,7 @@ std::unordered_map<std::string, std::vector<SongSlotID>> OoTBGMGroupsToCategorie
             SongSlotID::ROMANI_RANCH,
             SongSlotID::GORMAN_TRACK,
             SongSlotID::GORON_VILLAGE, // Zora's Domain and Goron City are underground
-            SongSlotID::ZORA_HALL, // Are they stupid??
+            SongSlotID::ZORA_HALL,     // Are they stupid??
             SongSlotID::DEKU_PALACE,
             SongSlotID::HORSE_RACE,
             SongSlotID::GORON_RACE,

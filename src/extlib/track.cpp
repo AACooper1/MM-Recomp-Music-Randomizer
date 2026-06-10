@@ -59,8 +59,9 @@ bool Track::read_from_file()
         return read_from_zseq();
     }
 
-    memset(&archive, 0, sizeof(mz_zip_archive)); // Gotta do this because it's still 1991    
-    if (!mz_zip_reader_init_file(&archive, path.string().c_str(), 0))
+    memset(&archive, 0, sizeof(mz_zip_archive)); // Gotta do this because it's still 1991
+    std::u8string u8path = path.u8string();
+    if (!mz_zip_reader_init_file(&archive, reinterpret_cast<const char*>(u8path.c_str()), 0))
     {
         logger.error << "Error reading zip file " << path.string() << ": " << mz_zip_get_error_string(mz_zip_get_last_error(&archive)) << std::endl;
         mz_zip_reader_end(&archive);
@@ -342,7 +343,7 @@ bool Track::parse_meta(std::vector<char>& filebuffer)
         std::string metaCategories = "";
         for (int i = 2; i < lines.size(); i++)
         {
-            metaCategories += lines[i];
+            metaCategories += lines[i] + '\n';
         }
         parse_oot_categories(metaCategories);
 
@@ -352,7 +353,7 @@ bool Track::parse_meta(std::vector<char>& filebuffer)
             {
                 std::vector<std::string> line = split_string(lines[i], ":");
                 std::string filename = line[1];
-                u32 sampleAddr = std::stoi(line[2], 0, 16);
+                u32 sampleAddr = std::stoll(line[2], 0, 16);
                 bool found = false;
                 for (int j = 0; j < sounds.size(); j++)
                 {
@@ -402,7 +403,7 @@ void Track::parse_oot_categories(std::string metaCategories)
 {
     _is_fanfare = metaCategories.contains("fanfare") || metaCategories.contains("Fanfare");
 
-    if (metaCategories.length() == 0 || metaCategories == "bgm")
+    if (metaCategories.length() == 0 || metaCategories == "bgm" || metaCategories == "bgm\n")
     {
           (*this->categories)[FIELD]
         = (*this->categories)[TOWN]
@@ -412,7 +413,7 @@ void Track::parse_oot_categories(std::string metaCategories)
         = true;
         return;
     }
-    else if (metaCategories == "fanfare")
+    else if (metaCategories == "fanfare" || metaCategories == "fanfare\n")
     {
           (*this->categories)[FANFARE]
         = (*this->categories)[GAME_OVER]
@@ -422,7 +423,7 @@ void Track::parse_oot_categories(std::string metaCategories)
     }
     else
     {
-        std::vector<std::string> cats = split_string(metaCategories, ",");
+        std::vector<std::string> cats = split_string(metaCategories, ",\n");
 
         for (int i = 0; i < cats.size(); i++)
         {
@@ -431,7 +432,7 @@ void Track::parse_oot_categories(std::string metaCategories)
                 std::vector<SongSlotID>& this_category = OoTBGMGroupsToCategories.at(cats[i]);
                 for(int c = 0; c < this_category.size(); c++)
                 {
-                    (*this->categories)[c + 0x100] = true;
+                    (*this->categories)[(int)this_category[c]] = true;
                 }
             }
         }
