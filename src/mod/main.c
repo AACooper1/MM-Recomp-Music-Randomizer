@@ -191,18 +191,27 @@ void link_custom_sound(cTrack* track, int soundIdx, u32* bank)
 {
     bool found_sound_addr = false;
     u32 sampleAddr = track->sounds[soundIdx].sampleAddr;
+    bool found = false;
     for (int i = 0; i < track->bank.size / sizeof(u32); i++)
     {
         if (bank[i] == sampleAddr)
         {
             found_sound_addr = true;
-            logger.debug("Sound %x for track %s found at index %p.\n", soundIdx, track->name, i * 4);
+            logger.debug("Sound %x for track (sampleAddr: %p) %s found at index %p.\n", soundIdx, sampleAddr, track->name, i * 4);
             bank[i] = (u32)track->sounds[soundIdx].data;
-            return;
+            // Originally returned here, but for OoT vanilla bank drums, the sampleAddr is usually repeated.
+            found = true;
         }
     }
-    logger.warning("Could not find sound %x (sampleAddr: %p) for track %s!\n", soundIdx, track->sounds[soundIdx].sampleAddr, track->name);
-    print_bytes(&logger, track->bank.data, track->bank.size);
+    if (!found)
+    {
+        logger.warning("Could not find sound %x (sampleAddr: %p) for track %s!\n", soundIdx, track->sounds[soundIdx].sampleAddr, track->name);
+        print_bytes(&logger, track->bank.data, track->bank.size);
+    }
+    else
+    {
+        print_bytes(&logger, track->bank.data, track->bank.size);
+    }
 }
 
 s32 create_bank_entry_from_track(cTrack* track)

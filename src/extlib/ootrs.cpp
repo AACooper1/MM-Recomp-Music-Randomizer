@@ -166,7 +166,7 @@ void OoTAudioHandler::get_all_mm_samples()
     }
 }
 
-int OoTAudioHandler::find_sample_in_mm_banks(ByteArray sample_data)
+int OoTAudioHandler::find_sample_in_mm_banks(ByteArray sample_data, int audioTableId)
 {
     if (sample_data.size() <= 0)
     {
@@ -181,6 +181,7 @@ int OoTAudioHandler::find_sample_in_mm_banks(ByteArray sample_data)
         }
         if (!std::memcmp(sample_data.data(), sampleData.data(), std::min(sample_data.size(), sampleData.size())))
         {
+            if (audioTableId == all_mm_samples[sampleIdx]->audiotableId)
             return all_mm_samples[sampleIdx]->sampleAddr;
         }
     }
@@ -199,7 +200,7 @@ AudioBank OoTAudioHandler::match_custom_oot_bank(std::shared_ptr<std::vector<u8>
     for (int sampleIdx = 0; sampleIdx < allSamples.size(); sampleIdx++)
     {
         ByteArray sampleData = allSamples[sampleIdx]->data;
-        int match = find_sample_in_mm_banks(sampleData);
+        int match = find_sample_in_mm_banks(sampleData, allSamples[sampleIdx]->audiotableId);
         if (match >= 0)
         {
             allSamples[sampleIdx]->sampleAddr = match;
@@ -225,7 +226,7 @@ bool OoTAudioHandler::match_all_oot_banks()
         for (int sampleIdx = 0; sampleIdx < allSamples.size(); sampleIdx++)
         {
             ByteArray sampleData = allSamples[sampleIdx]->data;
-            int match = find_sample_in_mm_banks(sampleData);
+            int match = find_sample_in_mm_banks(sampleData, allSamples[sampleIdx]->audiotableId);
             if (match >= 0)
             {
                 allSamples[sampleIdx]->sampleAddr = match;
@@ -235,7 +236,19 @@ bool OoTAudioHandler::match_all_oot_banks()
             }
             else
             {
-                bank.zsounds_to_add.push_back(allSamples[sampleIdx]);
+                bool exists = false;
+                for (int i = 0; i < bank.zsounds_to_add.size(); i++)
+                {
+                    if (allSamples[sampleIdx]->sampleAddr == bank.zsounds_to_add[i]->sampleAddr)
+                    {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists)
+                {
+                    bank.zsounds_to_add.push_back(allSamples[sampleIdx]);
+                }
             }
         }
     }

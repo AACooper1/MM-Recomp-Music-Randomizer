@@ -76,23 +76,40 @@ inline int int32_from_bytes(ByteArray bytes, int idx)
     return ret;
 }
 
+enum class SampleType
+{
+    DRUM,
+    SFX,
+    INST_LOW,
+    INST_MED,
+    INST_HIGH
+};
+
 // Adapted from OoTR's Music.py, credit to rrealmuto https://github.com/OoTRandomizer/OoT-Randomizer/blob/Dev/Audiobank.py
 struct Sample
 {
+    SampleType type;
+    int idx;
+
     ByteArray sample_header;
     int size = 0;
     int sampleAddr = 0;
+    int audiotableId = 0;
     int audiotableAddr = 0;
     int sample_offset;
     ByteArray data;
     
-    Sample(ByteArray bankdata, ByteArray audiotable, ByteArray audiotable_header, int sample_offset, int audiotable_id)
+    Sample(ByteArray bankdata, ByteArray audiotable, ByteArray audiotable_header, int sample_offset, int audiotable_id, SampleType type, int idx)
     {
+        this->type = type;
+        this->idx = idx;
+        
         this->sample_header = bankdata.subspan(sample_offset, 0x10);
         this->sample_offset = sample_offset;
         int bitfield = std::byteswap(*(int*)sample_header.data());
         this->size = bitfield & 0xFFFFFF;
         this->sampleAddr = int32_from_bytes(sample_header, 4);
+        this->audiotableId = audiotable_id;
 
         // Mark as Zsound
         if (this->sampleAddr > audiotable.size())
@@ -134,7 +151,7 @@ struct Drum
         this->sampleOffset = int32_from_bytes(bankdata, drum_offset + 4);
         this->sampleTuning = int32_from_bytes(bankdata, drum_offset + 8);
         this->envelopePointOffset = int32_from_bytes(bankdata, drum_offset + 12);
-        this->sample = Sample(bankdata, audiotable, audiotable_header, this->sampleOffset, audiotable_id);
+        this->sample = Sample(bankdata, audiotable, audiotable_header, this->sampleOffset, audiotable_id, SampleType::DRUM, drum_id);
     }
 };
 
@@ -150,7 +167,7 @@ struct SFX
         this->sfx_id = sfx_id;
         this->sampleOffset = int32_from_bytes(bankdata, sfx_offset);
         this->sampleTuning = int32_from_bytes(bankdata, sfx_offset + 4);
-        this->sample = Sample(bankdata, audiotable, audiotable_header, this->sampleOffset, audiotable_id);
+        this->sample = Sample(bankdata, audiotable, audiotable_header, this->sampleOffset, audiotable_id, SampleType::SFX, sfx_id);
     }
 };
 
@@ -185,9 +202,9 @@ struct Instrument
         this->highNoteSampleOffset = int32_from_bytes(bankdata, inst_offset + 24);
         this->highNoteTuning = int32_from_bytes(bankdata, inst_offset + 28);
 
-        this->lowNoteSample = lowNoteSampleOffset ? Sample(bankdata, audiotable, audiotable_header, this->lowNoteSampleOffset, audiotable_id) : Sample();
-        this->normalNoteSample = normalNoteSampleOffset ? Sample(bankdata, audiotable, audiotable_header, this->normalNoteSampleOffset, audiotable_id) : Sample();
-        this->highNoteSample = highNoteSampleOffset ? Sample(bankdata, audiotable, audiotable_header, this->highNoteSampleOffset, audiotable_id) : Sample();
+        this->lowNoteSample = lowNoteSampleOffset ? Sample(bankdata, audiotable, audiotable_header, this->lowNoteSampleOffset, audiotable_id, SampleType::INST_LOW, inst_id) : Sample();
+        this->normalNoteSample = normalNoteSampleOffset ? Sample(bankdata, audiotable, audiotable_header, this->normalNoteSampleOffset, audiotable_id, SampleType::INST_MED, inst_id) : Sample();
+        this->highNoteSample = highNoteSampleOffset ? Sample(bankdata, audiotable, audiotable_header, this->highNoteSampleOffset, audiotable_id, SampleType::INST_HIGH, inst_id) : Sample();
     }
 };
 
@@ -378,7 +395,7 @@ class OoTAudioHandler
         bool get_all_banks();
         void get_all_mm_samples();
 
-        int find_sample_in_mm_banks(ByteArray sample_data);
+        int find_sample_in_mm_banks(ByteArray sample_data, int audioTableId);
         bool match_all_oot_banks();
 
         mz_zip_archive archive;
