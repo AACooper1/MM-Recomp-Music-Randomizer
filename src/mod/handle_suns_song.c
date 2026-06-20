@@ -9,6 +9,10 @@ RECOMP_HOOK_RETURN("AudioLoad_SyncInitSeqPlayer") void after_AudioLoad_SyncInitS
 {
     SequencePlayer* seqPlayer = &gAudioCtx.seqPlayers[_lastInitializedSeqPlayerIndex];
     int seqId = seqPlayer->seqId;
+    if (seqPlayer->playerIndex == SEQ_PLAYER_BGM_MAIN)
+    {
+        print_bytes(&logger, seqPlayer, sizeof(SequencePlayer));
+    }
     if (randomized[seqId].seq.id == 0x1D && randomized[seqId].type == VANILLA && seqId != 0x1D)
     {
         logger.debug("Morning Sequence loaded on player %x. Handling...\n", seqPlayer->playerIndex);
@@ -139,7 +143,7 @@ RECOMP_HOOK_RETURN("AudioScript_SequencePlayerProcessSequence") void return_to_s
 
 // RECOMP_HOOK("AudioScript_ScriptReadU8") void print_the_thingy(SeqScriptState* state)
 // {
-//     if (state->pc - (u8*)sunsSlotCopyAddr < 0x1000 && state->pc - (u8*)sunsSlotCopyAddr > -0x1000)
+//     // if ((state->pc - (u8*)sunsSlotCopyAddr < 0x1000 && state->pc - (u8*)sunsSlotCopyAddr > -0x1000))
 //     {
 //         logger.noheader.dev("%02x ", *state->pc);
 //     }

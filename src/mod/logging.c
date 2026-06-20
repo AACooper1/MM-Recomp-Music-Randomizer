@@ -183,13 +183,13 @@ void print_bytes(Logger* logger, void* addr, int n)
     logger->noheader.dev("\t\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n\n");
 
     uintptr_t addrInt = (uintptr_t) addr;
-    logger->noheader.dev("%08x\t", addrInt);
+    logger->noheader.dev("%08x\t", 0);
 
     for (int i = 0; i < n; i++)
     {
         if (i % 16 == 0 && i != 0) 
         {
-            logger->noheader.dev("\n%08x\t", addrInt + i);
+            logger->noheader.dev("\n%08x\t", i);
         }
         
         logger->noheader.dev("%02x ", *(unsigned char*)(addr + i));

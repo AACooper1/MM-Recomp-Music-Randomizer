@@ -206,11 +206,11 @@ void link_custom_sound(cTrack* track, int soundIdx, u32* bank)
     if (!found)
     {
         logger.warning("Could not find sound %x (sampleAddr: %p) for track %s!\n", soundIdx, track->sounds[soundIdx].sampleAddr, track->name);
-        print_bytes(&logger, track->bank.data, track->bank.size);
+        // print_bytes(&logger, track->bank.data, track->bank.size);
     }
     else
     {
-        print_bytes(&logger, track->bank.data, track->bank.size);
+        // print_bytes(&logger, track->bank.data, track->bank.size);
     }
 }
 

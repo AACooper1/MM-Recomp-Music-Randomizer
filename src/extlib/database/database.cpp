@@ -98,13 +98,12 @@ bool Database::check_if_in_db(fs::directory_entry entry)
 {
     Statement statement(db);
 
-    std::string query = std::format(
-        "SELECT * FROM track WHERE filename = \"{0}\" AND modified = {1};",
-        fs::relative(entry.path(), musicPath).string(),
-        std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(entry.path()).time_since_epoch()).count()
-    );
+    std::string query = "SELECT * FROM track WHERE filename = ? AND modified = ?;";
 
     statement.prepare(query);
+
+    statement.bind_text(fs::relative(entry.path(), musicPath).string());
+    statement.bind_int64(std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(entry.path()).time_since_epoch()).count());
 
     if (statement.step() == SQLITE_ROW) return true;
     else return false;

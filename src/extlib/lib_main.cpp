@@ -178,7 +178,7 @@ void prepare_custom_track(std::shared_ptr<Track> extlibTrack, cTrack* modTrack)
 
     for (int i = 0; i < extlibTrack->soundIds.size(); i++)
     {
-        if (extlibTrack->soundIds.size() > 64)
+        if (extlibTrack->soundIds.size() > MAX_SOUNDS)
         {
             logger.error << "Track " << extlibTrack->name << " had more than 64 sounds, which is honestly impressive but too many for music rando to handle. Sorry." << std::endl;
             return;
