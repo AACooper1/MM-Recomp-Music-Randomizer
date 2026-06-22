@@ -320,3 +320,73 @@ RECOMP_HOOK("AudioLoad_SyncInitSeqPlayer") void bens_soundtrack_disable_switchin
         BensSoundtrack_SetDisableChannelSwitching(playerIndex, true);
     }
 }
+
+
+// There is an issue where songs won't play if their banks take too long time to load
+// Which will often happen if it has a particularly large bank and a lot of other banks are already loaded
+// (I think)
+// 
+// This code doesn't fix the root cause, I think that's in the Audio API?
+/* But it does disable the final part of the cascade, where a sequence player is disabled entirely if the 
+   font isn't loaded by the time the sequence player tries to start.*/
+// 
+/* If a sequence player tries to play a song but the font (or seq, but that rarely if ever happens)
+   hasn't loaded yet, it'll set a global flag for that player to disallow disabling.*/
+//
+/* But because the API already patches SequencePlayerDisable, I have to exploit some logic it has where it
+   returns if it's already disabled. So this'll temporarily set it to disabled in order to hit that return 
+   statement. It will also run DisableChannels and ClearNotePool, but that fortunately won't be an issue 
+   because this will only ever fire when the song hasn't started playing yet and so the ChannelEnable cmd
+   is still coming and there are no notes that will be dropped.*/
+// If there are no clear side effects of this then I might just make this into a PR on the API.
+bool disable_disabling[SEQ_PLAYER_MAX] = {false, false, false, false, false};
+
+void set_disable_disabling(bool enable_disable_disabling, int playerIdx)
+{
+    if (enable_disable_disabling != disable_disabling[playerIdx])
+    {
+        if (enable_disable_disabling)
+        {
+            logger.debug("Waiting for font or seq to load! SeqPlayer disables will be intercepted.\n");
+        }
+        else
+        {
+            logger.debug("Font and seq loaded! Allowing SeqPlayer disables.\n");
+        }
+    }
+    disable_disabling[playerIdx] = enable_disable_disabling;
+}
+
+RECOMP_HOOK("AudioScript_SequencePlayerProcessSequence") void check_if_disable_disable(SequencePlayer* seqPlayer)
+{
+    if (seqPlayer->seqId >= NA_BGM_TERMINA_FIELD && (!AudioLoad_IsSeqLoadComplete(seqPlayer->seqId) || !AudioLoad_IsFontLoadComplete(seqPlayer->defaultFont)))
+    {
+        set_disable_disabling(true, seqPlayer->playerIndex);
+    }
+    else
+    {
+        set_disable_disabling(false, seqPlayer->playerIndex);
+    }
+}
+
+extern void AudioScript_SequencePlayerDisableChannels(SequencePlayer* seqPlayer, u16 channelBitsUnused);
+SequencePlayer* _player;
+
+RECOMP_HOOK("AudioScript_SequencePlayerDisable") void ugh(SequencePlayer* seqPlayer)
+{
+    if (disable_disabling[seqPlayer->playerIndex])
+    {
+        seqPlayer->enabled = false;
+        _player = seqPlayer;
+    }
+}
+
+RECOMP_HOOK_RETURN("AudioScript_SequencePlayerDisable") void hgu()
+{
+    if (!_player) { return; }
+    if (disable_disabling[_player->playerIndex])
+    {
+        _player->enabled = true;
+    }
+    _player = NULL;
+}

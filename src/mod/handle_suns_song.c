@@ -9,10 +9,6 @@ RECOMP_HOOK_RETURN("AudioLoad_SyncInitSeqPlayer") void after_AudioLoad_SyncInitS
 {
     SequencePlayer* seqPlayer = &gAudioCtx.seqPlayers[_lastInitializedSeqPlayerIndex];
     int seqId = seqPlayer->seqId;
-    if (seqPlayer->playerIndex == SEQ_PLAYER_BGM_MAIN)
-    {
-        print_bytes(&logger, seqPlayer, sizeof(SequencePlayer));
-    }
     if (randomized[seqId].seq.id == 0x1D && randomized[seqId].type == VANILLA && seqId != 0x1D)
     {
         logger.debug("Morning Sequence loaded on player %x. Handling...\n", seqPlayer->playerIndex);
