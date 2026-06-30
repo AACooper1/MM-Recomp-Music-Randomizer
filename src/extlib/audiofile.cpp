@@ -11,7 +11,7 @@ bool Sound::parse_foreignKey()
     try
     {
         std::string foreignKey = filename.substr(filename.length() - 15);
-        sampleAddr = std::stoi(foreignKey, 0, 16);
+        sampleAddr = std::stoll(foreignKey, 0, 16);
         return true;
     }
     catch (const std::exception& e)
