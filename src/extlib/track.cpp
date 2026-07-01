@@ -324,7 +324,7 @@ bool Track::parse_meta(std::vector<char>& filebuffer)
     else
     {
         name = lines[0];
-        if (lines[0].starts_with("-"))
+        if (lines[1].starts_with("-"))
         {
             bankNo = 0x28;
         }

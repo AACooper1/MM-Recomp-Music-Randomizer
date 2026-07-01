@@ -140,8 +140,9 @@ RECOMP_HOOK_RETURN("AudioScript_SequencePlayerProcessSequence") void return_to_s
 // RECOMP_HOOK("AudioScript_ScriptReadU8") void print_the_thingy(SeqScriptState* state)
 // {
 //     // if ((state->pc - (u8*)sunsSlotCopyAddr < 0x1000 && state->pc - (u8*)sunsSlotCopyAddr > -0x1000))
+//     if (*state->pc == 0xC7)
 //     {
-//         logger.noheader.dev("%02x ", *state->pc);
+//         logger.noheader.dev("Random value: %02x \n", state->value);
 //     }
 // }
 

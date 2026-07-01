@@ -10,7 +10,7 @@
     #include "stdbool.h"
 #endif
 
-#define MAX_SOUNDS 32
+#define MAX_SOUNDS 64
 
 typedef enum cTrackType_t
 {

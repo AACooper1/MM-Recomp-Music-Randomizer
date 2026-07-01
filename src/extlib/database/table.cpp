@@ -160,7 +160,7 @@ template<typename T> std::shared_ptr<T> Table<T>::select(std::string q)
     }
     else
     {
-        logger.error << std::format("Could not create {0} from statement: {1}", name, db->lastErrMsg) << std::endl;
+        logger.error << "Could not create" << name << " from statement: " << db->lastErrMsg << std::endl;
     }
 
     return obj;

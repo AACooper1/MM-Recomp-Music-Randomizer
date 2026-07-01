@@ -155,6 +155,7 @@ void Database::add_if_not_in_db()
         if (fs::is_directory(entry.path()))
         {
             logger.dev << "Entry " << entry.path() << " is a directory, continuing..." << std::endl;
+            continue;
         }
         std::shared_ptr<Track> track = std::make_shared<Track>(entry.path());
         if (track->type == TrackType::UNKNOWN)

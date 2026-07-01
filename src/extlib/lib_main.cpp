@@ -180,7 +180,7 @@ void prepare_custom_track(std::shared_ptr<Track> extlibTrack, cTrack* modTrack)
     {
         if (extlibTrack->soundIds.size() > MAX_SOUNDS)
         {
-            logger.error << "Track " << extlibTrack->name << " had more than 64 sounds, which is honestly impressive but too many for music rando to handle. Sorry." << std::endl;
+            logger.error << "Track " << extlibTrack->name << " had more than " << MAX_SOUNDS << " sounds, which is honestly impressive but too many for music rando to handle. Sorry." << std::endl;
             return;
         }
         modTrack->numSounds++;

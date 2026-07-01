@@ -1,3 +1,9 @@
+# v1.1.0
+* Added support for `.ootrs` files
+* Added support for `.zseq` files
+* Fixed a bug that caused tracks to fail to play on a cold load
+* Fixed a bug that caused custom sounds to fail to parse if their sample address was too high
+
 # v1.0.1
 * Fixed a crash related to custom tracks with ID `0x1D`.
 * Removed links to weird chess website in changelog.

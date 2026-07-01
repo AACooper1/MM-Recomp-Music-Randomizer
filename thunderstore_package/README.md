@@ -1,8 +1,8 @@
-# MM Recomp Music Randomizer (v1.0.1)
+# MM Recomp Music Randomizer (v1.1.0)
 
 Reimplements the music randomization features from [MMR](https://github.com/ZoeyZolotova/mm-rando).
 
-The best place to find custom music tracks for MM is [the music-releases channel on the MMR Discord](https://discord.gg/pJdQMqGWXp). You can also find all of my own soundfont adaptations [on my GitHub](https://github.com/AACooper1/MM-Soundfont-Songs/tree/main).
+The best place to find custom music tracks for MM is [the music-releases channel on the MMR Discord](https://discord.gg/pJdQMqGWXp). If you need an OOT audiobin for OoTRS files, you can download one [from their website](https://mmrandomizer.com/audiobin). You can also find all of my own soundfont adaptations [on my GitHub](https://github.com/AACooper1/MM-Soundfont-Songs/tree/main).
 
 If you want to report any, please contact me on the N64 Recomp Discord, N64 Recomp Modding Discord, DM me on Discord directly at @asticky, or open an issue on GitHub.
 
@@ -12,6 +12,8 @@ Drag and drop all mod files (the `.nrm`, and the `.dll` for Windows, `.so` for L
 To add custom music, create a `mod_data` folder in the same directory as `mods`, then create a `music` folder and drop your `.mmrs` files inside that. (i.e., on Windows, `AppData\Local\Zelda64Recompiled\mod_data\music`.) These directories will be created on launching the game if they do not exist. 
 
 A database will be created in the `mod_data` folder, which will add or remove tracks based on filenames and modification dates. If you want to reset your music database, you can delete `mod_data\musicDB.db`.
+
+**New in 1.1**: You can also use `.ootrs` files made for Ocarina of Time Randomizer! Download an audiobin from [MMR's website](https://mmrandomizer.com/audiobin) and place it in your `mod_data` folder, and it should Just Work (TM).
 
 Your folder structure should look like this:
 
@@ -24,12 +26,13 @@ Your folder structure should look like this:
     ⌞magemods_audio_api(.dll|.so|.dylib)
   ⌞mod_data
     ⌞music.db
+    ⌞OOT.audiobin (optional)
     ⌞music
-      ⌞(.mmrs files)
+      ⌞(.mmrs, .ootrs, .zseq files)
 ```
 
 ## Features:
-* Reads and interprets `.mmrs` files
+* Reads and interprets `.mmrs`, `.ootrs`, and `.zseq` files
 
 * Shuffles both vanilla and custom music using (mostly) the same categories as MMR
 
@@ -39,7 +42,11 @@ Your folder structure should look like this:
 
 * Displays the name of the currently-playing song on load
 
-## New in 1.0!
+## New in 1.1!
+* Added support for `.ootrs` and `.zseq` files!
+* ~~Put a band-aid over~~ Fixed an issue where songs would fail to load, which can lead to a softlock on the credits scene
+
+<!-- ## New in 1.0!
 * Greatly improved stability. Probably won't crash for you now.
 * Can now choose custom-only or vanilla-only randomization on generation of a seed.
 * Music seeds are now saved to disk on a per-save-file basis.
@@ -50,4 +57,4 @@ Your folder structure should look like this:
 * Randomization now happens on the extlib side, meaning the pool of songs for any seed is no longer limited to 256 songs.
 * Updated song title display to use RecompUI. Much prettier, works on the title screen, and allows for longer song name display.
 * New option to log to an external file
-* Many, many bugfixes
+* Many, many bugfixes -->

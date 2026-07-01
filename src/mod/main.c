@@ -135,6 +135,7 @@ void prepare_tracks()
     for (int i = 2; i < NUM_SONG_SLOTS; i++)
     {
         fetch_randomized_track(i, &randomized[i]);
+        logger.debug("Preparing track %s...\n", randomized[i].name);
         if (randomized[i].type == VANILLA)
         {
             randomized[i].seq.id += 0x100;
