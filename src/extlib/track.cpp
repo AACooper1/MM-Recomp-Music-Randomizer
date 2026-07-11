@@ -273,6 +273,7 @@ bool Track::read_from_ootrs()
                 if (sounds[j]->filename == filename)
                 {
                     sounds[j]->data = filebuffer;
+                    sounds[j]->size = filebuffer->size();
                     found = true;
                     break;
                 }
