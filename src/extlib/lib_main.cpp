@@ -7,6 +7,8 @@
 #include "modtrackdefs.h"
 #include "ootrs.hpp"
 
+#include "thread.hpp"
+
 extern "C" {
     DLLEXPORT uint32_t recomp_api_version = 1;
 }
@@ -20,26 +22,9 @@ OoTAudioHandler* ootAudioHandler;
 bool can_use_ootrs;
 int read_oot_audiobin();
 
-RECOMP_DLL_FUNC(prepare_database) {
-    std::string modPath = RECOMP_ARG_STR(0);
+int update_database()
+{
     
-    logger.dev << "Extlib-side logger OK!" << std::endl;
-
-    fs::path dbPath = (fs::path)modPath;
-    dbPath = dbPath.parent_path();
-    dbPath /= "mod_data";
-
-    try 
-    {
-        db = std::make_shared<Database>(dbPath);
-        db->init();
-    }
-    catch (std::exception& e)
-    {
-        logger.error << e.what() << std::endl;
-        RECOMP_RETURN(int, 1);
-    }
-
     int rc = 0;
     
     try
@@ -64,10 +49,35 @@ RECOMP_DLL_FUNC(prepare_database) {
     catch (std::exception& e)
     {
         logger.error << e.what() << std::endl;
+        return -1;
+    }
+
+    return 0;
+}
+
+RECOMP_DLL_FUNC(prepare_database) 
+{
+    std::string modPath = RECOMP_ARG_STR(0);
+    
+    logger.dev << "Extlib-side logger OK!" << std::endl;
+
+    fs::path dbPath = (fs::path)modPath;
+    dbPath = dbPath.parent_path();
+    dbPath /= "mod_data";
+
+    try 
+    {
+        db = std::make_shared<Database>(dbPath);
+        db->init();
+    }
+    catch (std::exception& e)
+    {
+        logger.error << e.what() << std::endl;
         RECOMP_RETURN(int, -1);
     }
 
-    RECOMP_RETURN(int, rc);
+    int jobID = music_rando_create_thread(update_database);
+    RECOMP_RETURN(int, 0);
 }
 
 RECOMP_DLL_FUNC(check_seed_exists) 

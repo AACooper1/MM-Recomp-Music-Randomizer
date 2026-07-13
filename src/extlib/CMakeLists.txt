@@ -21,4 +21,5 @@ target_sources(${TARGET_NAME} PUBLIC
     "songforce_songtest.cpp"
     "ootrs.cpp"
     "decompress_rom.cpp"
+    "thread.cpp"
 )

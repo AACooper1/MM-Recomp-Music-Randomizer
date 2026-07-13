@@ -9,9 +9,6 @@
 
 #define NUM_SONG_SLOTS 0x80
 
-RECOMP_IMPORT("*", unsigned char* recomp_get_mod_folder_path());
-
-RECOMP_IMPORT(".", int prepare_database(unsigned char* modPath));
 RECOMP_IMPORT(".", int prepare_seed(int randoSeed, unsigned char* savePath, bool use_custom, bool use_vanilla));
 
 RECOMP_IMPORT(".", void fetch_randomized_track(int slotIdx, cTrack* modTrack));
@@ -23,6 +20,7 @@ RECOMP_IMPORT(".", u32 get_current_time());
 
 RECOMP_IMPORT("mm_recomp_rando", u32 rando_get_random_seed_external());
 
+RECOMP_DECLARE_EVENT(music_rando_begin());
 RECOMP_DECLARE_EVENT(music_rando_begin_randomization());
 RECOMP_DECLARE_EVENT(music_rando_launch_menu());
 RECOMP_DECLARE_EVENT(music_rando_seed_prepared(cTrack* randomizedAddr));

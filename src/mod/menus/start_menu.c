@@ -137,6 +137,7 @@ void start_button_pressed(RecompuiResource resource, const RecompuiEventData* ev
 // We need to induce a gamestate similar to what rando does. Do this after ConsoleLogo_Init.
 void music_rando_startup_menu_main()
 {
+    logger.dev("In startup_menu_main now\n");
     if (!startMenu.ready)
     {
         music_rando_create_start_menu();
@@ -167,7 +168,7 @@ RECOMP_HOOK("ConsoleLogo_Init") void get_game_state(GameState* thisx)
 
 extern void Setup_Destroy(GameState* thisx);
 
-RECOMP_HOOK_RETURN("ConsoleLogo_Init") void music_rando_startup_menu_init()
+RECOMP_CALLBACK(".", init_startup_menu) void music_rando_startup_menu_init()
 {
     unsigned char* savePath = recomp_get_save_file_path();
     if (!check_seed_exists(savePath))
@@ -178,6 +179,8 @@ RECOMP_HOOK_RETURN("ConsoleLogo_Init") void music_rando_startup_menu_init()
     }
     else
     {
+        gState->main = ConsoleLogo_Main;
+        gState->destroy = ConsoleLogo_Destroy;
         music_rando_begin_randomization();
     }
     recomp_free(savePath);

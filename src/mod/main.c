@@ -12,28 +12,11 @@ RECOMP_HOOK("Play_Update") void extract_gamestate(PlayState* this)
     return;
 }
 
+// Should I move all of this to the hook?
 RECOMP_HOOK_RETURN("Play_Update") void after_play_update()
 {
     update_music_state(playCtx);
     apply_mask();
-}
-
-void music_rando_begin()
-{
-    music_rando_update_db();
-}
-
-void music_rando_update_db()
-{
-    update_log_level();
-    logger.debug("%s", "Mod-side logger OK!\n");
-    logger.noheader.debug("%s", "Mod-side no-header logger OK!\n");
-
-    unsigned char* modPath = recomp_get_mod_folder_path();
-
-    prepare_database(modPath);
-    recomp_free(modPath);
-    logger.noheader.debug("Finished prepare_database!\n");
 }
 
 RECOMP_HOOK_RETURN("ConsoleLogo_Init") void begin_if_no_rando()
