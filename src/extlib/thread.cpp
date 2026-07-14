@@ -2,15 +2,10 @@
 
 std::unordered_map<int, std::unique_ptr<MusicRandoJob>> jobs;
 
-int test_async()
-{
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-    return 0;
-}
-
 RECOMP_DLL_FUNC(music_rando_poll_thread)
 {
     int jobId = RECOMP_ARG(int, 0);
+    std::string msg = RECOMP_ARG_STR(1);
 
     ThreadState state = jobs[jobId]->poll();
 

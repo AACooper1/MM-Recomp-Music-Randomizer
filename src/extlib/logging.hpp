@@ -8,6 +8,7 @@
 #include <chrono>
 #include <string>
 #include <filesystem>
+#include <mutex>
 
 class Log;
 namespace fs = std::filesystem;
@@ -28,13 +29,52 @@ extern Log logger;
 class Logger
 {
     public:
-        template<typename T>
-        std::ostream& operator << (const T& text)
+
+        class _MutexLogger
         {
+            public:
+                _MutexLogger(Logger& logger) : _logger(logger) {}
+                ~_MutexLogger()
+                {
+                    _logger.commit(_buffer.str());
+                }
+            
+                template<typename T>
+                _MutexLogger& operator << (const T& text)
+                {
+                    _buffer << text;
+                    return *this;
+                }
+                // This can handle std::endl and other iomanip shit
+                _MutexLogger& operator << (std::ostream& (*manip)(std::ostream&))
+                {
+                    manip(_buffer);
+                    return *this;
+                }
+
+                _MutexLogger(_MutexLogger&&) = default;
+                _MutexLogger(const _MutexLogger&) = delete;
+            private:
+                Logger& _logger;
+                std::ostringstream _buffer;
+        };
+
+        void commit(const std::string& msg) 
+        {
+            std::lock_guard<std::mutex> lock(mutex);
             stream();
-            dest << text;
-            return dest;
+            dest << msg;
+            return;
         }
+
+        template<typename T>
+        _MutexLogger operator << (const T& text) 
+        {
+            _MutexLogger temp(*this);
+            temp << text;
+            return temp;
+        }
+        
         void set_outfile(std::string path) 
         { 
             if (file.is_open())
@@ -83,6 +123,8 @@ class Logger
             bool shouldPrintHeader = true;
 
             const std::string levels[7] = {"", "CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "DEV"};
+    private:
+        std::mutex mutex;
 };
 
 class Log
@@ -142,6 +184,7 @@ private:
 template<typename ...P>
 void Logger::call(std::format_string<P...> format, P &&... params)
 {
+    std::lock_guard<std::mutex> lock(mutex);
     this->dest.clear();
     if (parent->get_log_level() >= level)
     {
