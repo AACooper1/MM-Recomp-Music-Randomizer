@@ -1,6 +1,6 @@
 #include "database.h"
 
-Database::Database(fs::path path)
+Database::Database(fs::path path, StatusMessage& msg) : threadMsg(&msg)
 {
     this->dbPath = path;
     this->musicPath = dbPath / "music";
@@ -51,6 +51,7 @@ Database::~Database()
 
 void Database::init()
 {
+    threadMsg->update("Initializing database");
     try
     {
         init_tables();
@@ -125,6 +126,7 @@ void Database::init_tables()
 
 int Database::update_from_music_dir()
 {
+    threadMsg->update("Preparing to update database");
     if (!fs::exists(musicPath))
     {
         return 2;
@@ -251,7 +253,7 @@ bool Database::add_song(std::shared_ptr<Track>& track)
         if (!ootAudioHandler)
         {
             logger.dev << "New OoTRS detected. Reading OoT audiobin..." << std::endl;
-            ootAudioHandler = new OoTAudioHandler(get_db_dir() / "OOT.audiobin");
+            ootAudioHandler = new OoTAudioHandler(get_db_dir() / "OOT.audiobin", threadMsg);
             ootAudioHandler->prepare_oot_audio();
             if (add_oot_banks(ootAudioHandler))
             {
@@ -417,6 +419,8 @@ int Database::prepare_track(int id)
 
 int Database::add_oot_banks(OoTAudioHandler* audioHandler)
 {
+    threadMsg->update("Caching OoT audiobanks");
+
     if (audioHandler->ootBanks.size() != 0x26)
     {
         logger.error << "OoTBanks should have 38 entries, but had " << audioHandler->ootBanks.size() << "!" << std::endl;
@@ -424,6 +428,9 @@ int Database::add_oot_banks(OoTAudioHandler* audioHandler)
     }
     for (int bankNo = 0; bankNo < audioHandler->ootBanks.size(); bankNo++)
     {
+        std::stringstream updateMsg;
+        updateMsg << "Caching OoT audiobanks (" << bankNo << " of " << audioHandler->ootBanks.size() << ")";
+        threadMsg->update(updateMsg.str());
         AudioBank& parsed_bank = audioHandler->ootBanks[bankNo];
 
         std::shared_ptr<Bank> bank = std::make_shared<Bank>(parsed_bank);

@@ -22,9 +22,23 @@ OoTAudioHandler* ootAudioHandler;
 bool can_use_ootrs;
 int read_oot_audiobin();
 
-int update_database()
+int _prepare_database(StatusMessage& msg, std::string modPath)
 {
-    
+    fs::path dbPath = (fs::path)modPath;
+    dbPath = dbPath.parent_path();
+    dbPath /= "mod_data";
+
+    try 
+    {
+        db = std::make_shared<Database>(dbPath, msg);
+        db->init();
+    }
+    catch (std::exception& e)
+    {
+        logger.error << e.what() << std::endl;
+        return -1;
+    }
+
     int rc = 0;
     
     try
@@ -61,22 +75,7 @@ RECOMP_DLL_FUNC(prepare_database)
     
     logger.dev << "Extlib-side logger OK!" << std::endl;
 
-    fs::path dbPath = (fs::path)modPath;
-    dbPath = dbPath.parent_path();
-    dbPath /= "mod_data";
-
-    try 
-    {
-        db = std::make_shared<Database>(dbPath);
-        db->init();
-    }
-    catch (std::exception& e)
-    {
-        logger.error << e.what() << std::endl;
-        RECOMP_RETURN(int, -1);
-    }
-
-    int jobID = music_rando_create_thread(update_database);
+    int jobID = music_rando_create_thread(_prepare_database, modPath);
     RECOMP_RETURN(int, 0);
 }
 
@@ -215,17 +214,21 @@ RECOMP_DLL_FUNC(reroll_slot)
 
 int read_oot_audiobin()
 {
+    db->threadMsg->update("Checking for OoT AudioBin");
     Statement statement = db->tables->relation.oot_bank_to_bank->select_iter(0);
     if (statement.step() == SQLITE_ROW)
     {
         logger.info << "OoT audiobin already parsed, ootrs available!" << std::endl;
         return 2;
     }
+
     fs::path ootAudioBinPath = db->get_db_dir() / "OOT.audiobin";
     if (fs::exists(ootAudioBinPath))
     {
+        db->threadMsg->update("Reading OoT AudioBin");
         logger.info << "Found OoT audiobin, reading..." << std::endl;
-        ootAudioHandler = new OoTAudioHandler(ootAudioBinPath);
+
+        ootAudioHandler = new OoTAudioHandler(ootAudioBinPath, db->threadMsg);
 
         ootAudioHandler->prepare_oot_audio();
         if (db->add_oot_banks(ootAudioHandler))

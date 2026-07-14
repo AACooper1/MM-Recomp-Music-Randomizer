@@ -14,6 +14,7 @@
 #include "logging.hpp"
 #include "songslot.h"
 #include "sha1.hpp"
+#include "thread.hpp"
 
 #define AUDIOTABLE_HEADER "Audiotable_index"
 #define AUDIOTABLE "Audiotable"
@@ -377,7 +378,7 @@ struct AudioBank
 class OoTAudioHandler
 {
     public:
-        OoTAudioHandler(fs::path path);
+        OoTAudioHandler(fs::path path, StatusMessage* msg);
         void prepare_oot_audio();
         AudioBank match_custom_oot_bank(std::shared_ptr<std::vector<u8>> header, std::shared_ptr<std::vector<u8>> data);
         std::vector<std::vector<u8>> ootZsounds;
@@ -414,6 +415,8 @@ class OoTAudioHandler
         ByteArray mmRom;
         int numMMBanks = 0;
         std::vector<AudioBank> mmBanks;
+
+        StatusMessage* threadMsg;
 };
 
 #endif

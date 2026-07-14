@@ -1,6 +1,6 @@
 #include "ootrs.hpp"
 
-OoTAudioHandler::OoTAudioHandler(fs::path path)
+OoTAudioHandler::OoTAudioHandler(fs::path path, StatusMessage* msg) : threadMsg(msg)
 {
     this->audiobinPath = path;
     this->mmRomPath = path.parent_path().parent_path()/"mm.n64.us.1.0.z64";
@@ -19,6 +19,8 @@ void OoTAudioHandler::prepare_oot_audio()
 
 bool OoTAudioHandler::unzip_oot_audiobin()
 {
+    threadMsg->update("Unzipping OoT Audiobin");
+
     memset(&this->archive, 0, sizeof(mz_zip_archive));
     if (!mz_zip_reader_init_file(&archive, audiobinPath.string().c_str(), 0))
     {
@@ -91,6 +93,8 @@ bool OoTAudioHandler::unzip_oot_audiobin()
 
 bool OoTAudioHandler::copy_mm_rom()
 {
+    threadMsg->update("Copying MM ROM");
+
     if (!fs::exists(mmRomPath))
     {
         logger.error << "Could not find MM ROM?!" << std::endl;
@@ -111,12 +115,17 @@ bool OoTAudioHandler::copy_mm_rom()
 
         ByteArray compressed_rom_span(compressed_rom);
 
+        threadMsg->update("Decompressing MM ROM");
         mmRomRaw = decompress_rom(compressed_rom_span);
+
         SHA1 checksum;
+        threadMsg->update("Validating MM ROM checksum");
         checksum.update(std::string(mmRomRaw.begin(), mmRomRaw.end()));
         std::string checksum_final = checksum.final();
         assert(checksum_final == "e5cecc349b49b6963cce200298e932daa641d1fc");
         logger.debug << "Finished reading and decompressing MM ROM, SHA1s match!" << std::endl;
+
+        threadMsg->update("Finalizing MM ROM");
         mmRom = mmRomRaw;
 
         return true;
@@ -125,6 +134,8 @@ bool OoTAudioHandler::copy_mm_rom()
 
 bool OoTAudioHandler::get_mm_files()
 {
+    threadMsg->update("Getting MM AudioBin");
+
     mmFiles.insert(std::make_pair(AUDIOTABLE_HEADER, mmRom.subspan(MM_AUDIOTABLE_HEADER_OFFSET, MM_AUDIOTABLE_HEADER_LENGTH)));
     mmFiles.insert(std::make_pair(BANKTABLE_HEADER, mmRom.subspan(MM_BANKTABLE_HEADER_OFFSET, MM_BANKTABLE_HEADER_LENGTH)));
     mmFiles.insert(std::make_pair(AUDIOTABLE, mmRom.subspan(MM_AUDIOTABLE_OFFSET, MM_AUDIOTABLE_LENGTH)));
@@ -135,6 +146,8 @@ bool OoTAudioHandler::get_mm_files()
 
 bool OoTAudioHandler::get_all_banks()
 {
+    threadMsg->update("Parsing audiobanks");
+
     this->numOoTBanks = int16_from_bytes(this->ootFiles[BANKTABLE_HEADER], 0);
     for (int i = 0; i < numOoTBanks; i++)
     {
@@ -158,6 +171,7 @@ bool OoTAudioHandler::get_all_banks()
 
 void OoTAudioHandler::get_all_mm_samples()
 {
+    threadMsg->update("Reading MM samples");
     for (int i = 0; i < numMMBanks; i++)
     {
         AudioBank& bank = mmBanks[i];
@@ -221,6 +235,9 @@ bool OoTAudioHandler::match_all_oot_banks()
 {
     for (int bankIdx = 0; bankIdx < this->numOoTBanks; bankIdx++)
     {
+        std::stringstream updateMsg;
+        updateMsg << "Matching OoT sounds (bank " << bankIdx << " of " << this->numOoTBanks << ")";
+        threadMsg->update(updateMsg.str());
         AudioBank& bank = ootBanks[bankIdx];
         std::vector<Sample*> allSamples = bank.get_all_samples();
         for (int sampleIdx = 0; sampleIdx < allSamples.size(); sampleIdx++)

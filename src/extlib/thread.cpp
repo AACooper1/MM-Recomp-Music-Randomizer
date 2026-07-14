@@ -5,24 +5,31 @@ std::unordered_map<int, std::unique_ptr<MusicRandoJob>> jobs;
 RECOMP_DLL_FUNC(music_rando_poll_thread)
 {
     int jobId = RECOMP_ARG(int, 0);
-    std::string msg = RECOMP_ARG_STR(1);
+    char* msg = RECOMP_ARG(char*, 1);
 
-    ThreadState state = jobs[jobId]->poll();
-
-    RECOMP_RETURN(int, state);
+    if (jobs.contains(jobId))
+    {
+        ThreadState state = jobs[jobId]->poll(msg);
+        RECOMP_RETURN(int, state);
+    }
+    else
+    {
+        RECOMP_RETURN(int, ThreadState::ERROR);
+    }
 }
 
-int music_rando_create_thread(std::function<int()> func)
+RECOMP_DLL_FUNC(music_rando_cleanup_thread)
 {
-    int jobId = 0;
-    while(jobs.contains(jobId))
+    int jobId = RECOMP_ARG(int, 0);
+    if (jobs.contains(jobId))
     {
-        jobId++;
+        jobs.erase(jobId); // Calls the destructor so the thread is joined
+        logger.dev.disable_header();
+        logger.dev << "Tore down thread!" << std::endl;
+        logger.dev.enable_header();
     }
-
-    jobs.emplace(jobId, std::make_unique<MusicRandoJob>());
-
-    jobs[jobId]->start(func);
-
-    return jobId;
+    else
+    {
+        logger.dev << "Thread " << jobId << " did not exist!" << std::endl;
+    }
 }

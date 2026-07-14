@@ -7,7 +7,10 @@
 #include "logging.h"
 #include "modtrackdefs.h"
 
-RECOMP_IMPORT(".", int music_rando_poll_thread(int jobId));
+#define JOB_MSG_BUFFER_SIZE 256
+
+RECOMP_IMPORT(".", int music_rando_poll_thread(int jobId, char* msg));
+RECOMP_IMPORT(".", void music_rando_cleanup_thread(int jobId));
 
 RECOMP_IMPORT("*", unsigned char* recomp_get_mod_folder_path());
 RECOMP_IMPORT(".", int prepare_database(unsigned char* modPath));

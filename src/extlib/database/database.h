@@ -14,7 +14,7 @@
 #include "util.h"
 #include "logging.hpp"
 #include "table.h"
-
+#include "thread.hpp"
 
 namespace fs = std::filesystem;
 extern Log logger;
@@ -90,7 +90,7 @@ struct Statement
 class Database : public std::enable_shared_from_this<Database>
 {
     public:
-        Database(fs::path path);
+        Database(fs::path path, StatusMessage& msg);
         Database(fs::path path, bool is_seed_db);
         ~Database();
 
@@ -120,6 +120,7 @@ class Database : public std::enable_shared_from_this<Database>
         bool allow_add_ootrs = false;
         
         char* lastErrMsg;
+        StatusMessage* threadMsg;
         
         std::unique_ptr<dbTables> tables;
         std::unique_ptr<RelationTable> seedTable;

@@ -27,6 +27,8 @@ void music_rando_update_db()
 
 void music_rando_setup_main()
 {
+    char jobMsg[JOB_MSG_BUFFER_SIZE] = {0};
+
     switch (jobState)
     {
         case UNSTARTED:
@@ -34,12 +36,13 @@ void music_rando_setup_main()
             dbJobId = prepare_database(modPath);
             recomp_free(modPath);
 
-            jobState = music_rando_poll_thread(dbJobId);
+            jobState = music_rando_poll_thread(dbJobId, jobMsg);
             break;
         case RUNNING:
-            jobState = music_rando_poll_thread(dbJobId);
+            jobState = music_rando_poll_thread(dbJobId, jobMsg);
             break;
         case DONE:
+            music_rando_cleanup_thread(dbJobId);
             init_startup_menu();
             break;
         case ERROR:
@@ -48,5 +51,5 @@ void music_rando_setup_main()
             break;
     }
 
-    logger.noheader.dev("Job state is %x!\n", jobState);
+    logger.noheader.dev("Job state is %x: %s!\n", jobState, jobMsg);
 }

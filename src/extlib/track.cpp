@@ -95,7 +95,7 @@ bool Track::read_from_zseq()
     
     if (split_filename.size() != 3)
     {
-        logger.error << "Zseq " << name << " had " << split_filename.size() << " fields, expected 3!" << std::endl;
+        logger.error << "Zseq " << path.string() << " had " << split_filename.size() << " fields, expected 3!" << std::endl;
         return false;
     }
 
