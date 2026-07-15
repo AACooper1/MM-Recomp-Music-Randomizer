@@ -24,6 +24,27 @@ typedef enum MusicRandoThreadState_t {
     ERROR
 } MusicRandoThreadState;
 
+typedef struct LoadingScreen_t {
+    RecompuiContext context;
+    RecompuiResource root;
+    RecompuiResource container;
+
+    RecompuiResource header;
+    RecompuiResource header_label;
+    RecompuiResource prellipsis_label;
+    RecompuiResource ellipsis_label;
+
+    RecompuiResource body;
+    RecompuiResource body_label;
+
+    RecompuiColor bg_color;
+    RecompuiColor black_color;
+    RecompuiColor border_color;
+
+    bool ready;
+    bool shown;
+} LoadingScreen;
+
 GameState* gxState;
 extern Logger logger;
 

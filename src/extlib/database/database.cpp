@@ -144,6 +144,10 @@ void Database::add_if_not_in_db()
 {
     for (const fs::directory_entry entry: fs::recursive_directory_iterator(musicPath))
     {
+        std::stringstream updateMsg;
+        updateMsg << "Reading file\n" << entry.path().filename();
+        threadMsg->update(updateMsg.str());
+
         if (check_if_in_db(entry))
         {
             logger.debug("Found matching entry for file {0} with modification time {1}, skipping!\n",
