@@ -74,7 +74,7 @@ class MusicRandoJob
         ThreadState poll(char* msg_addr) 
         {
             char temp[256] = {0};
-            strncpy_s(temp, msg.get().c_str(), 255);
+            msg.get().copy(temp, 255);
             for (int i = 0; i < 256; i++)
             {
                 msg_addr[i] = temp[i ^ 3];

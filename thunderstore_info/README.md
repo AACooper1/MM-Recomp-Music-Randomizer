@@ -1,35 +1,62 @@
-# MM Recomp Music Randomizer (v0.1.4)
+# MM Recomp Music Randomizer (v1.1.0)
 
 Reimplements the music randomization features from [MMR](https://github.com/ZoeyZolotova/mm-rando).
 
-**This mod is still in development. This version should be considered an initial beta release, and there will almost certainly be bugs.** If you want to report any, please contact me on the N64 Recomp Modding Discord, DM me on Discord directly at @asticky, or open an issue on GitHub.
+The best place to find custom music tracks for MM is [the music-releases channel on the MMR Discord](https://discord.gg/pJdQMqGWXp). If you need an OOT audiobin for OoTRS files, you can download one [from their website](https://mmrandomizer.com/audiobin). You can also find all of my own soundfont adaptations [on my GitHub](https://github.com/AACooper1/MM-Soundfont-Songs/tree/main).
+
+If you want to report any, please contact me on the N64 Recomp Discord, N64 Recomp Modding Discord, DM me on Discord directly at @asticky, or open an issue on GitHub.
 
 ## Instructions:
-Drag and drop all mod files into your `mods` directory (usually `AppData\Local\Zelda64Recompiled\mods` on Windows).
+Drag and drop all mod files (the `.nrm`, and the `.dll` for Windows, `.so` for Linux, or `.dylib` for MacOS) into your `mods` directory, or use the `Install Mods` button on the Zelda64 Recomp Launcher's mod menu.
 
-Additionally, download the latest release of [MageMods' Audio API](https://github.com/magemods/mm-audio-api/tags) and install it in the same way. **This is required.**
-
-To add custom music, create a `mod_data` folder in the same directory as `mods`, then create a `music` folder and drop your `.mmrs` files inside that. (i.e., on Windows, `AppData\Local\Zelda64Recompiled\mod_data\music`.) These directories will be created on launching the game if they do not exist.
+To add custom music, create a `mod_data` folder in the same directory as `mods`, then create a `music` folder and drop your `.mmrs` files inside that. (i.e., on Windows, `AppData\Local\Zelda64Recompiled\mod_data\music`.) These directories will be created on launching the game if they do not exist. 
 
 A database will be created in the `mod_data` folder, which will add or remove tracks based on filenames and modification dates. If you want to reset your music database, you can delete `mod_data\musicDB.db`.
 
-## Features:
-* Reads and interprets `.mmrs` files
+**New in 1.1**: You can also use `.ootrs` files made for Ocarina of Time Randomizer! Download an audiobin from [MMR's website](https://mmrandomizer.com/audiobin) and place it in your `mod_data` folder, and it should Just Work (TM).
 
-* Shuffles both vanilla and custom music using the same categories as MMR
+Your folder structure should look like this:
+
+```
+⌞Zelda64Recompiled
+  ⌞mods
+    ⌞mm_recomp_music_randomizer.nrm
+    ⌞mm_recomp_music_randomizer_extlib(.dll|.so|.dylib)
+    ⌞magemods_audio_api.nrm
+    ⌞magemods_audio_api(.dll|.so|.dylib)
+  ⌞mod_data
+    ⌞music.db
+    ⌞OOT.audiobin (optional)
+    ⌞music
+      ⌞(.mmrs, .ootrs, .zseq files)
+```
+
+## Features:
+* Reads and interprets `.mmrs`, `.ootrs`, and `.zseq` files
+
+* Shuffles both vanilla and custom music using (mostly) the same categories as MMR
 
 * Supports custom sounds, custom audiobanks, and `.formmask`
 
 * Adds a toggle to enable or disable combat music
 
-* Displays the name of the currently-playing song on load (max 40 characters)
+* Displays the name of the currently-playing song on load
 
-## Planned features:
+## New in 1.1!
+* Added support for `.ootrs` and `.zseq` files!
+* ~~Put a band-aid over~~ Fixed an issue where songs would fail to load, which can lead to a softlock on the credits scene
+* Added a loading screen with status updates for database updating
+* Fixed a few bugs and edge cases
 
-* Randomization of certain sounds, as in MMR
-
-* Support for OOTRS and streamed music tracks
-
-* Music menu, with support for randomization changes, song testing, and volume control
-
-Requires [MageMods' custom audio API](https://github.com/magemods/mm-audio-api). Made using [LT_Schmiddy's extlib template](https://github.com/LT-Schmiddy/SchmiddysMMRecompModTemplate).
+<!-- ## New in 1.0!
+* Greatly improved stability. Probably won't crash for you now.
+* Can now choose custom-only or vanilla-only randomization on generation of a seed.
+* Music seeds are now saved to disk on a per-save-file basis.
+* The Morning jingle can now be randomized and can appear as a random track. (this is worth a mention bc it was really hard to implement lmao)
+* Can now run without rando.
+* Compatibility with [Ben's Remastered Soundtrack](https://thunderstore.io/c/zelda-64-recompiled/p/MAA/Bens_Remastered_Soundtrack/) (**won't be available until that mod updates**)
+* Implemented MMR's Songtest and Songforce features.
+* Randomization now happens on the extlib side, meaning the pool of songs for any seed is no longer limited to 256 songs.
+* Updated song title display to use RecompUI. Much prettier, works on the title screen, and allows for longer song name display.
+* New option to log to an external file
+* Many, many bugfixes -->

@@ -45,6 +45,9 @@ Your folder structure should look like this:
 ## New in 1.1!
 * Added support for `.ootrs` and `.zseq` files!
 * ~~Put a band-aid over~~ Fixed an issue where songs would fail to load, which can lead to a softlock on the credits scene
+* Added a loading screen with status updates for database updating
+* Added a fix for beta versions of the mod persisting after updating to release versions
+* Fixed a few bugs and edge cases
 
 <!-- ## New in 1.0!
 * Greatly improved stability. Probably won't crash for you now.

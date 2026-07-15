@@ -3,6 +3,8 @@
 * Added support for `.zseq` files
 * Fixed a bug that caused tracks to fail to play on a cold load
 * Fixed a bug that caused custom sounds to fail to parse if their sample address was too high
+* Fixed a bug that caused tracks with no sequence to be added to the database, leading to a crash
+* Added a dummy version of the mod with the filenames from the old version in order to ensure updating from beta versions works
 
 # v1.0.1
 * Fixed a crash related to custom tracks with ID `0x1D`.
