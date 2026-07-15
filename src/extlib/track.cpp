@@ -68,13 +68,14 @@ bool Track::read_from_file()
         return false;
     }
 
+    bool result = false;
     switch (type)
     {
         case TrackType::MMRS:
-            read_from_mmrs();
+            result = read_from_mmrs();
             break;
         case TrackType::OOTRS:
-            read_from_ootrs();
+            result = read_from_ootrs();
             break;
         case TrackType::STREAMED:
         case TrackType::UNKNOWN:
@@ -84,7 +85,7 @@ bool Track::read_from_file()
     }
 
     mz_zip_reader_end(&archive);
-    return true;
+    return result;
 }
 
 bool Track::read_from_zseq()
@@ -217,6 +218,7 @@ bool Track::read_from_mmrs()
     if (!sequence && type != TrackType::STREAMED)
     {
         logger.error << "Non-streamed track " << name << " did not have a sequence and will not be added to the database!" << std::endl;
+        return false;
     }
 
     return true;
@@ -302,6 +304,12 @@ bool Track::read_from_ootrs()
             logger.error << "Zsound " << sounds[i]->filename << " in OOTRS " << name << " has no data! Song will be skipped!" << std::endl;
             return false;
         }
+    }
+
+    if (!sequence && type != TrackType::STREAMED)
+    {
+        logger.error << "Non-streamed track " << name << " did not have a sequence and will not be added to the database!" << std::endl;
+        return false;
     }
 
     return true;

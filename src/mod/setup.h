@@ -33,6 +33,7 @@ typedef struct LoadingScreen_t {
     RecompuiResource header_label;
     RecompuiResource prellipsis_label;
     RecompuiResource ellipsis_label;
+    RecompuiResource postllipsis_label;
 
     RecompuiResource body;
     RecompuiResource body_label;

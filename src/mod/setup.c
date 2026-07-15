@@ -72,6 +72,8 @@ void music_rando_create_loading_screen()
     recompui_set_color(loadingScreen.prellipsis_label, &loadingScreen.black_color);
     loadingScreen.header_label = recompui_create_label(loadingScreen.context, loadingScreen.header, &loading_title_text, LABELSTYLE_LARGE);
     loadingScreen.ellipsis_label = recompui_create_label(loadingScreen.context, loadingScreen.header, &loading_title_ellipse, LABELSTYLE_LARGE);
+    loadingScreen.postllipsis_label = recompui_create_label(loadingScreen.context, loadingScreen.header, "...", LABELSTYLE_LARGE);
+    recompui_set_color(loadingScreen.postllipsis_label, &loadingScreen.black_color);
     recompui_set_justify_content(loadingScreen.header, JUSTIFY_CONTENT_CENTER);
     recompui_set_text_align(loadingScreen.header, TEXT_ALIGN_CENTER);
 
