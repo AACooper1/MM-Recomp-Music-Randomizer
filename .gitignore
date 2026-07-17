@@ -40,3 +40,4 @@ downloads/
 test_env/
 .vscode/
 .DS_Store
+*.zip
