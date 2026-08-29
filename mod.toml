@@ -150,3 +150,15 @@ description = "Controls whether the songs' titles are displayed on screen."
 type = "Enum"
 options = [ "Off", "On" ]
 default = "On"
+
+[[manifest.config_options]]
+id = "test_volume_scale"
+name = "Volume Scale test"
+description = "Testing VolumeScale (0xD9)"
+type = "Number"
+min = 0
+max = 100
+step = 1
+precision = 1
+percent = true
+default = 100

@@ -144,8 +144,21 @@ void Database::add_if_not_in_db()
 {
     for (const fs::directory_entry entry: fs::recursive_directory_iterator(musicPath))
     {
+        // Remove files with unicode shit in their name fuck this
+        try
+        {
+            entry.path().filename().string();
+        }
+        catch (std::exception& e)
+        {
+            std::u8string evil = entry.path().filename().u8string();
+            std::string printable_evil(evil.begin(), evil.end());
+            logger.error << "Illegal character in file " << printable_evil << ". Song will be skipped." << std::endl;
+            continue;
+        }
+
         std::stringstream updateMsg;
-        updateMsg << "Reading file\n" << entry.path().filename();
+        updateMsg << "Reading file\n" << entry.path().filename().string();
         threadMsg->update(updateMsg.str());
 
         if (check_if_in_db(entry))
