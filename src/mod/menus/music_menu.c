@@ -1,4 +1,4 @@
-#include "music_menu.h"
+/*#include "music_menu.h"
 
 extern f32 sQuestStatusCursorsX[];
 extern f32 sQuestStatusCursorsY[];
@@ -14,10 +14,7 @@ extern u8 sAudioPauseState;
 s32 seqId;
 u16 seqArgs;
 
-RecompuiContext context;
-RecompuiResource root;
-RecompuiResource container;
-RecompuiResource sliders[NA_BGM_MAX];
+PauseMenu pauseMenu;
 
 float volumeVals[NA_BGM_MAX] = {100.0f};
 
@@ -33,11 +30,11 @@ extern s32 ShrinkWindow_Letterbox_GetSize(void);
 // Update the X/Y positions of these cursors before calling the function. They are declared outside the function, so it should be good.
 RECOMP_HOOK("KaleidoScope_UpdateCursorSize") void insert_music_buttons(PlayState* play)
 {
-    sQuestStatusCursorsX[QUEST_TRACKS] = -58.0f;
+    sQuestStatusCursorsX[QUEST_TRACKS] = -63.0f;
     sQuestStatusCursorsX[QUEST_REWIND] = -35.0f;
     sQuestStatusCursorsX[QUEST_FORWARD] = -13.0f;
 
-    sQuestStatusCursorsY[QUEST_TRACKS] = -45.0f;
+    sQuestStatusCursorsY[QUEST_TRACKS] = -49.0f;
     sQuestStatusCursorsY[QUEST_REWIND] = -45.0f;
     sQuestStatusCursorsY[QUEST_FORWARD] = -45.0f;
 }
@@ -46,7 +43,14 @@ RECOMP_DECLARE_EVENT(music_buttons_interact(u16 cursor, PlayState* play));
 RECOMP_DECLARE_EVENT(music_menu_open(PlayState* play));
 RECOMP_DECLARE_EVENT(music_menu_close(PlayState* play));
 
-RECOMP_CALLBACK("*", recomp_on_init) void musicMenuInit()
+extern bool should_skip_song_title_display[0x7F];
+
+RecompuiResource create_track_element(RecompuiContext context, RecompuiResource parent, cTrack* track)
+{
+    
+}
+
+RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(cTrack* randomized)
 {
     RecompuiColor bg_color;
     bg_color.r = 255;
@@ -72,69 +76,98 @@ RECOMP_CALLBACK("*", recomp_on_init) void musicMenuInit()
     const float container_border_width = 1.1f;
     const float container_border_radius = 16.0f;
 
-    context = recompui_create_context();
-    recompui_open_context(context);
+    pauseMenu.context = recompui_create_context();
+    recompui_open_context(pauseMenu.context);
 
-    recompui_set_context_captures_input(context, false);
-    recompui_set_context_captures_mouse(context, true);
+    recompui_set_context_captures_input(pauseMenu.context, false);
+    recompui_set_context_captures_mouse(pauseMenu.context, true);
 
-    root = recompui_context_root(context);
+    pauseMenu.root = recompui_context_root(pauseMenu.context);
 
-    recompui_set_position(root, POSITION_ABSOLUTE);
-    recompui_set_display(root, DISPLAY_FLEX);
+    recompui_set_position(pauseMenu.root, POSITION_ABSOLUTE);
+    recompui_set_display(pauseMenu.root, DISPLAY_FLEX);
 
-    recompui_set_top(root, 0, UNIT_PERCENT);
-    recompui_set_left(root, 0, UNIT_PERCENT);
-    recompui_set_bottom(root, 100, UNIT_PERCENT);
-    recompui_set_right(root, 100, UNIT_PERCENT);
+    recompui_set_top(pauseMenu.root, 0, UNIT_PERCENT);
+    recompui_set_left(pauseMenu.root, 0, UNIT_PERCENT);
+    recompui_set_bottom(pauseMenu.root, 100, UNIT_PERCENT);
+    recompui_set_right(pauseMenu.root, 100, UNIT_PERCENT);
 
-    recompui_set_width(root, 100, UNIT_PERCENT);
-    recompui_set_min_width(root, 100, UNIT_PERCENT);
-    recompui_set_max_width(root, 100, UNIT_PERCENT);
-    recompui_set_height(root, 100, UNIT_PERCENT);
-    recompui_set_min_height(root, 100, UNIT_PERCENT);
-    recompui_set_max_height(root, 100, UNIT_PERCENT);
+    recompui_set_width(pauseMenu.root, 100, UNIT_PERCENT);
+    recompui_set_min_width(pauseMenu.root, 100, UNIT_PERCENT);
+    recompui_set_max_width(pauseMenu.root, 100, UNIT_PERCENT);
+    recompui_set_height(pauseMenu.root, 100, UNIT_PERCENT);
+    recompui_set_min_height(pauseMenu.root, 100, UNIT_PERCENT);
+    recompui_set_max_height(pauseMenu.root, 100, UNIT_PERCENT);
 
-    recompui_set_align_items(root, ALIGN_ITEMS_CENTER);
-    recompui_set_justify_content(root, JUSTIFY_CONTENT_CENTER);
-    
+    recompui_set_align_items(pauseMenu.root, ALIGN_ITEMS_CENTER);
+    recompui_set_justify_content(pauseMenu.root, JUSTIFY_CONTENT_CENTER);
 
-    // recompui_set_background_color(root, &bg_color);
-
-    container = recompui_create_element(context, root);
+    pauseMenu.container = recompui_create_element(pauseMenu.context, pauseMenu.root);
     
     // Center the thing where the map viewport is
 
-    recompui_set_display(container, DISPLAY_INLINE_BLOCK);
+    recompui_set_display(pauseMenu.container, DISPLAY_INLINE_BLOCK);
+    recompui_set_overflow_y(pauseMenu.container, OVERFLOW_SCROLL);
 
-    recompui_set_width(container, 0.90f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
+    recompui_set_width(pauseMenu.container, 0.90f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
     // recompui_set_max_width(container, 70, UNIT_PERCENT);
+    recompui_set_border_width(pauseMenu.container, 2, UNIT_DP);
+    RecompuiColor white = {255, 255, 255, 255};
+    recompui_set_border_color(pauseMenu.container, &white);
 
-    recompui_set_height(container, 0.533f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
+    recompui_set_height(pauseMenu.container, 0.533f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
 
-    recompui_set_margin_top(container, 53.0f, UNIT_DP);
-    recompui_set_margin_right(container, 10.0f, UNIT_DP);
+    recompui_set_margin_top(pauseMenu.container, 53.0f, UNIT_DP);
+    recompui_set_margin_right(pauseMenu.container, 10.0f, UNIT_DP);
 
-    recompui_set_background_color(container, &container_color);
+    recompui_set_background_color(pauseMenu.container, &container_color);
 
-    volumeVals[gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].seqId] = gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].fadeVolumeScale;
-    
-    for (int i = 0; i < NA_BGM_MAX; i++)
+    pauseMenu.tracks = recomp_alloc(sizeof(PauseMenu_Track_Element*) *  NA_BGM_MAX);
+
+    for (int i = NA_BGM_TERMINA_FIELD; i < NA_BGM_MAX; i++)
     {
-        sliders[i] = recompui_create_slider(context, container, SLIDERTYPE_PERCENT, 0, 100, 1, volumeVals[i]);
+        pauseMenu.tracks[i] = recomp_alloc(sizeof(PauseMenu_Track_Element));
+        if (should_skip_song_title_display[i])
+        {
+            continue;
+        }
+        PauseMenu_Track_Element* this_element = pauseMenu.tracks[i];
+        
+        this_element->root = pauseMenu.container;
+        this_element->container = recompui_create_element(pauseMenu.context, this_element->root);
+        recompui_set_width(this_element->container, 100.0f, UNIT_PERCENT);
+
+
+        this_element->text.container = recompui_create_element(pauseMenu.context, this_element->container);
+        recompui_set_display(this_element->text.container, DISPLAY_FLEX);
+        recompui_set_flex_direction(this_element->text.container, FLEX_DIRECTION_ROW);
+        recompui_set_width(this_element->text.container, 100.0f, UNIT_PERCENT);
+
+        this_element->text.slotName = recompui_create_label(pauseMenu.context, this_element->text.container, randomized[i].slotName, LABELSTYLE_SMALL);
+        this_element->text.title = recompui_create_label(pauseMenu.context, this_element->text.container, randomized[i].name, LABELSTYLE_SMALL);
+        recompui_set_justify_content(this_element->text.container, JUSTIFY_CONTENT_SPACE_BETWEEN);
+
+        this_element->volume.container = recompui_create_element(pauseMenu.context, this_element->container);
+        this_element->volume.slider = recompui_create_slider(pauseMenu.context, this_element->volume.container, SLIDERTYPE_PERCENT, 0, 200, 1, 100);
+
+        recompui_set_padding(this_element->container, 10.0f, UNIT_DP);
+        
+        recompui_set_border_color(this_element->container, &white);
+        recompui_set_border_width(this_element->container, 1.0f, UNIT_DP);
     }
 
-    recompui_close_context(context);
+    recompui_close_context(pauseMenu.context);
 }
 
 RECOMP_HOOK_RETURN("Play_Update") void update_volume()
 {
     int seqId = gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].seqId;
+    logger.noheader.dev("fadeVolumeScale: %f\n", gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].fadeVolumeScale);
     if (is_music_menu_open)
     {
-        recompui_open_context(context);
-        volumeVals[seqId] = recompui_get_input_value_float(sliders[seqId]) * 127.0f / 100.0f;
-        recompui_close_context(context);
+        recompui_open_context(pauseMenu.context);
+        volumeVals[seqId] = recompui_get_input_value_float(pauseMenu.tracks[seqId]->volume.slider) * 127.0f / 100.0f;
+        recompui_close_context(pauseMenu.context);
     }
     if (has_music_menu_been_opened)
     {
@@ -149,7 +182,7 @@ RECOMP_HOOK("KaleidoScope_UpdateQuestCursor") void check_music_menu_close(PlaySt
         if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->press.button, BTN_B | BTN_START | BTN_Z | BTN_R))
         {
             Audio_PlaySfx(NA_SE_SY_DECIDE);
-            recompui_hide_context(context);
+            recompui_hide_context(pauseMenu.context);
             music_menu_close(play);
             is_music_menu_open = false;
         }
@@ -170,34 +203,6 @@ RECOMP_CALLBACK(".", music_buttons_interact) void on_music_buttons_interact(u16 
         seqArgs = seqArgsPrev;
     }
 
-    if (cursor == QUEST_REWIND)
-    {
-        if (CHECK_BTN_ALL(CONTROLLER1(&play->state)->press.button, BTN_A))
-        {
-            do
-            {
-                seqId--;
-                seqId %= gAudioCtx.sequenceTable->header.numEntries;
-            } while(gAudioCtx.sequenceTable->entries[seqId].romAddr == NULL);
-
-            AudioSeq_StopSequence(SEQ_PLAYER_BGM_MAIN, 0);
-            AudioApi_StartSequence(SEQ_PLAYER_BGM_MAIN, seqId, seqArgs, 0);
-        }
-    }
-    else if (cursor == QUEST_FORWARD)
-    {
-        if (CHECK_BTN_ALL(CONTROLLER1(&play->state)->press.button, BTN_A))
-        {
-            do
-            {
-                seqId++;
-                seqId %= gAudioCtx.sequenceTable->header.numEntries;
-            } while(gAudioCtx.sequenceTable->entries[seqId].romAddr == NULL);
-
-            AudioSeq_StopSequence(SEQ_PLAYER_BGM_MAIN, 0);
-            AudioApi_StartSequence(SEQ_PLAYER_BGM_MAIN, seqId, seqArgs, 0);
-        }
-    }
     else if (cursor == QUEST_TRACKS)
     {
         if (CHECK_BTN_ALL(CONTROLLER1(&play->state)->press.button, BTN_A))
@@ -245,7 +250,7 @@ RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState
                 case PAUSE_MUSICMENU_STATE_IDLE:
                     if (!is_music_menu_open)
                     {
-                        recompui_show_context(context);
+                        recompui_show_context(pauseMenu.context);
                         is_music_menu_open = true;
                         has_music_menu_been_opened = true;
                         music_menu_open(play);
@@ -316,6 +321,32 @@ RECOMP_HOOK_RETURN("KaleidoScope_DrawPages")void replace_quest_texture()
 
     CLOSE_DISPS(gfxCtx);
 }
+
+#include "textures.h"
+
+RECOMP_HOOK_RETURN("KaleidoScope_DrawQuestStatus") void draw_menu_button()
+{
+    PlayState* play = thisPlay;
+    PauseContext* pauseCtx = &play->pauseCtx;
+    GraphicsContext* gfxCtx = thisGfxCtx;
+
+    OPEN_DISPS(gfxCtx);
+
+    gDPPipeSync(POLY_OPA_DISP++);
+    gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 100, 100, 210, pauseCtx->alpha);
+    gDPSetEnvColor(POLY_OPA_DISP++, 0, 0, 0, 255);
+
+    Matrix_Scale(0.78f, 0.78f, 0.78f, MTXMODE_APPLY);
+
+    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, play->state.gfxCtx);
+
+    gSPVertex(POLY_OPA_DISP++, &pauseCtx->questVtx[QUEST_TRACKS * 4], 4, 0);
+
+    KaleidoScope_DrawTexQuadRGBA32(play->state.gfxCtx, gMenuBtnTex, 32, 32, 0);
+
+    CLOSE_DISPS();
+}
+
 
 // Unfortunately I have to RECOMP_PATCH this one, as sCursorPointLinks is defined within the function.
 // Actually that like. actually omegasucks
@@ -538,7 +569,7 @@ RECOMP_PATCH void KaleidoScope_UpdateQuestCursor(PlayState* play)
                         pauseCtx->ocarinaButtonsY[OCARINA_BTN_C_LEFT] = -46;
                         pauseCtx->ocarinaButtonsY[OCARINA_BTN_C_UP] = -41;
 
-                        pauseCtx->mainState = PAUSE_MAIN_STATE_IDLE_CURSOR_ON_SONG;
+                        // pauseCtx->mainState = PAUSE_MAIN_STATE_IDLE_CURSOR_ON_SONG;
 
                         if (interfaceCtx->aButtonDoActionDelayed != DO_ACTION_DECIDE) {
                             Interface_SetAButtonDoAction(play, DO_ACTION_DECIDE);
@@ -719,18 +750,19 @@ GraphicsContext* sGfxCtx;
 
 RECOMP_HOOK("KaleidoScope_SetVertices") void music_buttons_init(PlayState* play, GraphicsContext* gfxCtx)
 {
-    sQuestVtxRectLeft[QUEST_TRACKS] = -80;
-    sQuestVtxRectTop[QUEST_TRACKS] = -44;
-    sQuestVtxWidths[QUEST_TRACKS] = 24;
-    sQuestVtxHeights[QUEST_TRACKS] = 24;
+    sQuestVtxRectLeft[QUEST_TRACKS] = -93 / 0.78f;
+    sQuestVtxRectTop[QUEST_TRACKS] = -43 / 0.78f;
+    sQuestVtxWidths[QUEST_TRACKS] = 32;
+    sQuestVtxHeights[QUEST_TRACKS] = 32;
 
     sQuestVtxRectLeft[QUEST_REWIND] = -56;
     sQuestVtxRectTop[QUEST_REWIND] = -44;
     sQuestVtxWidths[QUEST_REWIND] = 16;
-    sQuestVtxHeights[QUEST_TRACKS] = 16;
+    sQuestVtxHeights[QUEST_REWIND] = 16;
 
     sQuestVtxRectLeft[QUEST_FORWARD] = -14;
     sQuestVtxRectTop[QUEST_FORWARD] = -44;
-    sQuestVtxWidths[QUEST_TRACKS] = 16;
-    sQuestVtxHeights[QUEST_TRACKS] = 16;
+    sQuestVtxWidths[QUEST_FORWARD] = 16;
+    sQuestVtxHeights[QUEST_FORWARD] = 16;
 }
+*/

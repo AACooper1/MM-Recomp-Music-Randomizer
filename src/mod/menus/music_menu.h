@@ -8,7 +8,33 @@
 #include "modtrackdefs.h"
 extern Logger logger;
 
-typedef struct VolumeMenu_t {
+typedef struct PauseMenu_Volume_Element_t {
+    RecompuiResource container;
+    RecompuiResource slider;
+
+    float defaultValue;
+} PauseMenu_Volume_Element;
+
+typedef struct PauseMenu_Slot_Title_t {
+    RecompuiResource container;
+    RecompuiResource slotName;
+} PauseMenu_Slot_Title;
+
+typedef struct PauseMenu_Track_Title_t {
+    RecompuiResource container;
+    RecompuiResource trackName;
+} PauseMenu_Track_Title;
+
+typedef struct PauseMenu_Track_Element_t {
+    RecompuiResource root;
+    RecompuiResource container;
+    PauseMenu_Slot_Title slot;
+    RecompuiResource image;
+    PauseMenu_Track_Title title;
+    PauseMenu_Volume_Element volume;
+} PauseMenu_Track_Element;
+
+typedef struct PauseMenu_t {
     RecompuiContext context;
     RecompuiResource root;
     RecompuiResource container;
@@ -16,17 +42,19 @@ typedef struct VolumeMenu_t {
     RecompuiResource header;
     RecompuiResource header_label;
 
+    PauseMenu_Track_Element** tracks;
+
+    RecompuiResource nowPlaying;
+
     RecompuiColor bg_color;
     RecompuiColor modal_color;
     RecompuiColor border_color;
 
     bool ready;
     bool shown;
-} VolumeMenu;
+} PauseMenu;
 
 #include "overlays/kaleido_scope/ovl_kaleido_scope/z_kaleido_scope.h"
-
-void display_song_name(char* songName, int seqId, OSTime t);
 
 /*
     NOTES ON PAUSE MENU CODE:
