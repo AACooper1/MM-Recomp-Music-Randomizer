@@ -113,7 +113,7 @@ struct Sample
         this->audiotableId = audiotable_id;
 
         // Mark as Zsound
-        if (this->sampleAddr > audiotable.size())
+        if (this->sampleAddr + this->size >= audiotable.size())
         {
             this->sampleAddr = -1;
         }
