@@ -60,7 +60,7 @@ func_reference_syms_file = "Zelda64RecompSyms/mm.us.rev1.syms.toml"
 data_reference_syms_files = [ "Zelda64RecompSyms/mm.us.rev1.datasyms.toml", "Zelda64RecompSyms/mm.us.rev1.datasyms_static.toml" ]
 
 # Additional files to include in the mod.
-additional_files = [ "thumb.png" ]
+additional_files = [ "thumb.png", "menu_button.png" ]
 
 # Info for building the extlib. If this mod will have no extlib, remove this section and
 # the build scripts disable extlib compilation and packaging. You can then safely delete 
@@ -150,15 +150,3 @@ description = "Controls whether the songs' titles are displayed on screen."
 type = "Enum"
 options = [ "Off", "On" ]
 default = "On"
-
-[[manifest.config_options]]
-id = "test_volume_scale"
-name = "Volume Scale test"
-description = "Testing VolumeScale (0xD9)"
-type = "Number"
-min = 0
-max = 100
-step = 1
-precision = 1
-percent = true
-default = 100
