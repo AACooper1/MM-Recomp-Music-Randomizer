@@ -1,6 +1,12 @@
 #include "setup.h"
 
 LoadingScreen loadingScreen;
+
+RecompuiColor red = {210, 0, 0, 255};
+RecompuiColor bGreen = {0, 210, 0, 255};
+RecompuiColor aBlue = {0, 0, 210, 255};
+RecompuiColor white = {255, 255, 255, 255};
+
 char loading_title_text[20] = "Music Rando Loading\0";
 char loading_title_ellipse[4] = ".\0\0\0";
 
@@ -89,6 +95,38 @@ void music_rando_create_loading_screen()
 
     loadingScreen.body_label = recompui_create_label(loadingScreen.context, loadingScreen.body, "Creating Thread", LABELSTYLE_NORMAL);
 
+    // Create error options
+    loadingScreen.error_options = recompui_create_element(loadingScreen.context, loadingScreen.container);
+    recompui_set_height_auto(loadingScreen.error_options);
+    recompui_set_width(loadingScreen.error_options, 100.0, UNIT_PERCENT);
+    recompui_set_padding(loadingScreen.error_options, 48.0f, UNIT_DP);
+    recompui_set_padding_top(loadingScreen.error_options, 96.0f, UNIT_DP);
+    recompui_set_flex_direction(loadingScreen.error_options, FLEX_DIRECTION_ROW);
+    recompui_set_display(loadingScreen.error_options, DISPLAY_FLEX);
+    recompui_set_justify_content(loadingScreen.error_options, JUSTIFY_CONTENT_SPACE_EVENLY);
+    recompui_set_text_align(loadingScreen.error_options, TEXT_ALIGN_CENTER);
+
+    loadingScreen.ignore = recompui_create_element(loadingScreen.context, loadingScreen.error_options);
+    loadingScreen.ignore_button_label = recompui_create_label(loadingScreen.context, loadingScreen.ignore, "A", LABELSTYLE_LARGE);
+    recompui_set_flex_direction(loadingScreen.ignore, FLEX_DIRECTION_ROW);
+    recompui_set_display(loadingScreen.ignore, DISPLAY_FLEX);
+    recompui_set_width_auto(loadingScreen.ignore);
+    recompui_set_color(loadingScreen.ignore_button_label, &aBlue);
+    recompui_set_padding_right(loadingScreen.ignore_button_label, 16.0f, UNIT_DP);
+    loadingScreen.ignore_label = recompui_create_label(loadingScreen.context, loadingScreen.ignore, "Continue", LABELSTYLE_LARGE);
+
+    loadingScreen.remove = recompui_create_element(loadingScreen.context, loadingScreen.error_options);
+    loadingScreen.remove_button_label = recompui_create_label(loadingScreen.context, loadingScreen.remove, "B", LABELSTYLE_LARGE);
+    recompui_set_flex_direction(loadingScreen.remove, FLEX_DIRECTION_ROW);
+    recompui_set_display(loadingScreen.remove, DISPLAY_FLEX);
+    recompui_set_width_auto(loadingScreen.remove);
+    recompui_set_color(loadingScreen.remove_button_label, &bGreen);
+    recompui_set_padding_right(loadingScreen.remove_button_label, 16.0f, UNIT_DP);
+    loadingScreen.remove_label = recompui_create_label(loadingScreen.context, loadingScreen.remove, "Always Skip File", LABELSTYLE_LARGE);
+
+    recompui_set_opacity(loadingScreen.ignore, 0.0f);
+    recompui_set_opacity(loadingScreen.remove, 0.0f);
+
     recompui_close_context(loadingScreen.context);
 
     loadingScreen.ready = true;
@@ -137,9 +175,16 @@ void music_rando_setup_main()
             jobState = music_rando_poll_thread(dbJobId, jobMsg);
 
             recompui_open_context(loadingScreen.context);
+            // Reset after errors
+            recompui_set_color(loadingScreen.header_label, &white);
+            recompui_set_text(loadingScreen.header_label, &loading_title_text);
+            recompui_set_opacity(loadingScreen.ignore, 0.0f);
+            recompui_set_opacity(loadingScreen.remove, 0.0f);
+
             recompui_set_text(loadingScreen.body_label, jobMsg);
             recompui_set_text(loadingScreen.ellipsis_label, loading_title_ellipse);
             recompui_set_text(loadingScreen.prellipsis_label, loading_title_ellipse);
+
             recompui_close_context(loadingScreen.context);
 
             break;
@@ -154,7 +199,62 @@ void music_rando_setup_main()
             break;
         case ERROR:
             logger.error("Job returned error!\n");
-            init_startup_menu();
+
+            jobState = music_rando_poll_thread(dbJobId, jobMsg);
+
+            recompui_open_context(loadingScreen.context);
+            recompui_set_text(loadingScreen.body_label, jobMsg);
+            recompui_close_context(loadingScreen.context);
+
+            jobState = music_rando_send_thread_msg(dbJobId, WAIT_CONTINUE);
+
+            break;
+        case WAIT_CONTINUE:
+            jobState = music_rando_poll_thread(dbJobId, jobMsg);
+
+            recompui_open_context(loadingScreen.context);
+            
+            recompui_set_color(loadingScreen.header_label, &red);
+            recompui_set_text(loadingScreen.header_label, "Music Rando ERROR");
+            recompui_set_text(loadingScreen.body_label, jobMsg);
+            recompui_set_text(loadingScreen.prellipsis_label, "");
+            recompui_set_text(loadingScreen.ellipsis_label, "");
+
+            recompui_set_opacity(loadingScreen.ignore, 1.0f);
+            recompui_set_opacity(loadingScreen.remove, 1.0f);
+            
+            recompui_close_context(loadingScreen.context);
+
+            if (CHECK_BTN_ANY(CONTROLLER1(gxState)->press.button, BTN_A))
+            {
+                jobState = music_rando_send_thread_msg(dbJobId, CONTINUE);
+                break;
+            }
+            else if (CHECK_BTN_ANY(CONTROLLER1(gxState)->press.button, BTN_B))
+            {
+                jobState = music_rando_send_thread_msg(dbJobId, REQUEST_DELETE);
+                break;
+            }
+
+            break;
+        case REQUEST_DELETE:
+        case CONTINUE:
+            jobState = music_rando_poll_thread(dbJobId, jobMsg);
+            break;            
+        case FATAL:
+            logger.critical("Job returned fatal error!\n");
+            recompui_open_context(loadingScreen.context);
+            recompui_set_color(loadingScreen.header_label, &red);
+            recompui_set_text(loadingScreen.header_label, "Music Rando FATAL ERROR\n(Press any button to continue)");
+            recompui_set_text(loadingScreen.body_label, jobMsg);
+            recompui_set_text(loadingScreen.ellipsis_label, "");
+            recompui_close_context(loadingScreen.context);
+            if (CHECK_BTN_ANY(CONTROLLER1(gxState)->press.button, 0xFBFF))
+            {
+                recompui_hide_context(loadingScreen.context);
+                music_rando_cleanup_thread(dbJobId);
+                init_startup_menu();
+            }
             break;
     }
 

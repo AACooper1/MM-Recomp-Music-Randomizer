@@ -144,55 +144,104 @@ void Database::add_if_not_in_db()
 {
     for (const fs::directory_entry entry: fs::recursive_directory_iterator(musicPath))
     {
-        // Remove files with unicode shit in their name fuck this
+        if (fs::is_directory(entry.path()))
+            {
+                std::u8string u8filepath(entry.path().u8string());
+                std::string filepath(u8filepath.begin(), u8filepath.end());
+                logger.dev << "Entry " << filepath << " is a directory, continuing..." << std::endl;
+                continue;
+        }
+        else if (entry.path().extension().string().ends_with("_ignore"))
+        {
+            continue;
+        }
         try
         {
-            entry.path().filename().string();
+            std::stringstream updateMsg;
+            updateMsg << "Reading file\n" << entry.path().filename();
+            threadMsg->update(updateMsg.str());
+
+            if (check_if_in_db(entry))
+            {
+                logger.debug("Found matching entry for file {0} with modification time {1}, skipping!\n",
+                    entry.path().filename().string(), 
+                    fs::last_write_time(entry.path()).time_since_epoch().count()
+                );
+                logger.debug.disable_header();
+                continue;
+            }
+            logger.debug.enable_header();
+            std::shared_ptr<Track> track = std::make_shared<Track>(entry.path());
+            if (track->type == TrackType::UNKNOWN)
+            {
+                logger.error << "Got unknown track type " << (int)track->type << " for file " << entry.path().string() << "! File will be skipped." << std::endl;
+                continue;
+            }
+            if (track->type == TrackType::OOTRS && !allow_add_ootrs)
+            {
+                logger.warning << "Skipping OoTRS song " << track->name << ", as OoT audiobin is not present." << std::endl;
+                continue;
+            }
+
+            if (track->read_from_file())
+            {
+                add_song(track);
+            }
         }
         catch (std::exception& e)
         {
-            std::u8string evil = entry.path().filename().u8string();
-            std::string printable_evil(evil.begin(), evil.end());
-            logger.error << "Illegal character in file " << printable_evil << ". Song will be skipped." << std::endl;
-            continue;
-        }
+            logger.error << e.what() << std::endl;
+            std::stringstream updateMsg;
+            std::u8string u8filepath = entry.path().filename().u8string();
+            updateMsg << "Could not parse track " << std::string(u8filepath.begin(), u8filepath.end()) << ":\n" << e.what();
+            threadMsg->update(updateMsg.str());
+            threadMsg->set_state(ThreadState::ERROR);
 
-        std::stringstream updateMsg;
-        updateMsg << "Reading file\n" << entry.path().filename().string();
-        threadMsg->update(updateMsg.str());
+            while (threadMsg->get_state() == ThreadState::ERROR)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
 
-        if (check_if_in_db(entry))
-        {
-            logger.debug("Found matching entry for file {0} with modification time {1}, skipping!\n",
-                entry.path().filename().string(), 
-                fs::last_write_time(entry.path()).time_since_epoch().count()
-            );
-            logger.debug.disable_header();
-            continue;
-        }
-        logger.debug.enable_header();
-        if (fs::is_directory(entry.path()))
-        {
-            logger.dev << "Entry " << entry.path() << " is a directory, continuing..." << std::endl;
-            continue;
-        }
-        std::shared_ptr<Track> track = std::make_shared<Track>(entry.path());
-        if (track->type == TrackType::UNKNOWN)
-        {
-            logger.error << "Got unknown track type " << (int)track->type << " for file " << entry.path().string() << "! File will be skipped." << std::endl;
-            continue;
-        }
-        if (track->type == TrackType::OOTRS && !allow_add_ootrs)
-        {
-            logger.warning << "Skipping OoTRS song " << track->name << ", as OoT audiobin is not present." << std::endl;
-            continue;
-        }
+            while (threadMsg->get_state() == ThreadState::WAIT_CONTINUE)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
 
-        if (track->read_from_file())
-        {
-            add_song(track);
+            if (threadMsg->get_state() == ThreadState::REQUEST_DELETE)
+            {
+                try
+                {
+                    const fs::path errext(fs::path(entry.path().extension().string() + "_ignore"));
+                    fs::path p = entry.path();
+                    p.replace_extension(errext);
+                    fs::rename(entry, p);
+                }
+                catch (std::exception& e)
+                {
+                    std::string filepath(u8filepath.begin(), u8filepath.end());
+                    logger.critical << "Fatal error while reading file " << filepath << ": " << e.what();
+                    updateMsg.str("");
+                    updateMsg << "Could not delete entry " << filepath << ":\n" << e.what();
+                    threadMsg->update(updateMsg.str());
+                    
+                    do
+                    {
+                        threadMsg->set_state(ThreadState::FATAL);
+                    } while (threadMsg->get_state() != ThreadState::KILL);
+
+                    throw(e);
+                }
+            }
+
+            threadMsg->set_state(ThreadState::RUNNING);
+            
+            continue;
         }
     }
+
+    std::stringstream updateMsg;
+    updateMsg << "Preparing seed";
+    threadMsg->update(updateMsg.str());
 
     return;
 }
