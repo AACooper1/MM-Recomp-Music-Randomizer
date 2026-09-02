@@ -1,6 +1,6 @@
 {
     "name": "Music_Randomizer",
-    "version_number": "1.1.0",
+    "version_number": "1.1.1",
     "website_url": "https://github.com/AACooper1/MM-Recomp-Music-Randomizer",
     "description": "Custom music reader and randomizer akin to MMR's randomization system",
     "dependencies": [
