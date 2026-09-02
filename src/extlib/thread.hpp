@@ -16,7 +16,10 @@ enum class ThreadState
     UNSTARTED,
     RUNNING,
     DONE,
-    ERROR
+    ERROR,
+    WAIT_CONTINUE,
+    CONTINUE,
+    FATAL
 };
 
 class StatusMessage
@@ -28,14 +31,26 @@ class StatusMessage
             _msg = msg;
         }
 
-        std::string& get()
+        std::string& get_msg()
         {
             std::lock_guard<std::mutex> lock(mutex);
             return _msg;
         }
+
+        void set_state(ThreadState state)
+        {
+            _state = state;
+        }
+
+        ThreadState& get_state()
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            return _state;
+        }
     private:
         std::mutex mutex;
         std::string _msg = "Starting Thread...";
+        ThreadState _state = ThreadState::UNSTARTED;
 };
 
 class MusicRandoJob
@@ -59,7 +74,7 @@ class MusicRandoJob
         template <typename Func, typename... Args>
         void start(Func&& func, Args&&... args) 
         {
-            state.store(ThreadState::RUNNING);
+            set_state(ThreadState::RUNNING);
             thread = std::thread(
                 [this](auto&& func, auto&&... args) {
                     run(std::forward<decltype(func)>(func), std::forward<decltype(args)>(args)...);
@@ -74,14 +89,32 @@ class MusicRandoJob
         ThreadState poll(char* msg_addr) 
         {
             char temp[256] = {0};
-            msg.get().copy(temp, 255);
+            msg.get_msg().copy(temp, 255);
             for (int i = 0; i < 256; i++)
             {
                 msg_addr[i] = temp[i ^ 3];
             }
             msg_addr[255] = '\0';
 
+            ThreadState newState = msg.get_state();
+
+            if (newState != state.load())
+            {
+                state.store(newState);
+            }
+
             return state.load(); 
+        }
+
+        void set_state(ThreadState state)
+        {
+            msg.set_state(state);
+            this->state.store(state);
+        }
+
+        ThreadState get_state()
+        {
+            return this->state.load();
         }
     private:
         template <typename Func, typename... Args>
@@ -90,11 +123,11 @@ class MusicRandoJob
             try
             {
                 result = func(msg, std::forward<Args>(args)...);
-                state.store(ThreadState::DONE);
+                set_state(ThreadState::DONE);
             }
             catch (...)
             {
-                state.store(ThreadState::ERROR);
+                set_state(ThreadState::ERROR);
             }
         }
 
