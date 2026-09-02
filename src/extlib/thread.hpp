@@ -19,7 +19,9 @@ enum class ThreadState
     ERROR,
     WAIT_CONTINUE,
     CONTINUE,
-    FATAL
+    REQUEST_DELETE,
+    FATAL,
+    KILL
 };
 
 class StatusMessage

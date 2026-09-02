@@ -144,6 +144,17 @@ void Database::add_if_not_in_db()
 {
     for (const fs::directory_entry entry: fs::recursive_directory_iterator(musicPath))
     {
+        if (fs::is_directory(entry.path()))
+            {
+                std::u8string u8filepath(entry.path().u8string());
+                std::string filepath(u8filepath.begin(), u8filepath.end());
+                logger.dev << "Entry " << filepath << " is a directory, continuing..." << std::endl;
+                continue;
+        }
+        else if (entry.path().extension().string().ends_with("_ignore"))
+        {
+            continue;
+        }
         try
         {
             std::stringstream updateMsg;
@@ -160,11 +171,6 @@ void Database::add_if_not_in_db()
                 continue;
             }
             logger.debug.enable_header();
-            if (fs::is_directory(entry.path()))
-            {
-                logger.dev << "Entry " << entry.path() << " is a directory, continuing..." << std::endl;
-                continue;
-            }
             std::shared_ptr<Track> track = std::make_shared<Track>(entry.path());
             if (track->type == TrackType::UNKNOWN)
             {
@@ -187,18 +193,44 @@ void Database::add_if_not_in_db()
             logger.error << e.what() << std::endl;
             std::stringstream updateMsg;
             std::u8string u8filepath = entry.path().filename().u8string();
-            updateMsg << "[ERROR] " << "Error parsing track " << std::string(u8filepath.begin(), u8filepath.end()) << ": " << e.what();
+            updateMsg << "Could not parse track " << std::string(u8filepath.begin(), u8filepath.end()) << ":\n" << e.what();
             threadMsg->update(updateMsg.str());
             threadMsg->set_state(ThreadState::ERROR);
 
-            while (threadMsg->get_state() != ThreadState::WAIT_CONTINUE)
+            while (threadMsg->get_state() == ThreadState::ERROR)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
 
-            while (threadMsg->get_state() != ThreadState::CONTINUE)
+            while (threadMsg->get_state() == ThreadState::WAIT_CONTINUE)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+
+            if (threadMsg->get_state() == ThreadState::REQUEST_DELETE)
+            {
+                try
+                {
+                    const fs::path errext(fs::path(entry.path().extension().string() + "_ignore"));
+                    fs::path p = entry.path();
+                    p.replace_extension(errext);
+                    fs::rename(entry, p);
+                }
+                catch (std::exception& e)
+                {
+                    std::string filepath(u8filepath.begin(), u8filepath.end());
+                    logger.critical << "Fatal error while reading file " << filepath << ": " << e.what();
+                    updateMsg.str("");
+                    updateMsg << "Could not delete entry " << filepath << ":\n" << e.what();
+                    threadMsg->update(updateMsg.str());
+                    
+                    do
+                    {
+                        threadMsg->set_state(ThreadState::FATAL);
+                    } while (threadMsg->get_state() != ThreadState::KILL);
+
+                    throw(e);
+                }
             }
 
             threadMsg->set_state(ThreadState::RUNNING);
@@ -206,6 +238,10 @@ void Database::add_if_not_in_db()
             continue;
         }
     }
+
+    std::stringstream updateMsg;
+    updateMsg << "Preparing seed";
+    threadMsg->update(updateMsg.str());
 
     return;
 }

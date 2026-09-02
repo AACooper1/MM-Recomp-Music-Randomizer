@@ -41,6 +41,7 @@ RECOMP_DLL_FUNC(music_rando_cleanup_thread)
     int jobId = RECOMP_ARG(int, 0);
     if (jobs.contains(jobId))
     {
+        jobs[jobId]->set_state(ThreadState::KILL);
         jobs.erase(jobId); // Calls the destructor so the thread is joined
         logger.dev.disable_header();
         logger.dev << "Tore down thread!" << std::endl;

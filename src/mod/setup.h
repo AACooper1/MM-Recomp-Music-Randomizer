@@ -16,7 +16,9 @@ typedef enum MusicRandoThreadState_t {
     ERROR,
     WAIT_CONTINUE,
     CONTINUE,
-    FATAL
+    REQUEST_DELETE,
+    FATAL,
+    KILL
 } MusicRandoThreadState;
 
 RECOMP_IMPORT(".", int music_rando_poll_thread(int jobId, char* msg));
@@ -41,6 +43,14 @@ typedef struct LoadingScreen_t {
 
     RecompuiResource body;
     RecompuiResource body_label;
+
+    RecompuiResource error_options;
+    RecompuiResource ignore;
+    RecompuiResource ignore_button_label;
+    RecompuiResource ignore_label;
+    RecompuiResource remove;
+    RecompuiResource remove_button_label;
+    RecompuiResource remove_label;
 
     RecompuiColor bg_color;
     RecompuiColor black_color;
