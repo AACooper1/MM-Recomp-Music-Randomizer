@@ -1,3 +1,8 @@
+# v1.1.1
+* Added an error handler to the loading screen
+* Fixed a crash when parsing files with nonstandard characters
+* Fixed a crash caused by bankmeta files smaller than 8 bytes
+
 # v1.1.0
 * Added support for `.ootrs` files
 * Added support for `.zseq` files

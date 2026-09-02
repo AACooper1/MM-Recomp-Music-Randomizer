@@ -185,7 +185,17 @@ void Database::add_if_not_in_db()
 
             if (track->read_from_file())
             {
-                add_song(track);
+                try
+                {
+                    add_song(track);
+                }
+                catch(const std::exception& e)
+                {
+                    // Remove any residual entries left in the database
+                    logger.error << "Error adding track" << track->name << "; will be removed from track list." << std::endl;
+                    remove_song(track->databaseIndex);
+                    throw;
+                }
             }
         }
         catch (std::exception& e)
@@ -194,6 +204,7 @@ void Database::add_if_not_in_db()
             std::stringstream updateMsg;
             std::u8string u8filepath = entry.path().filename().u8string();
             updateMsg << "Could not parse track " << std::string(u8filepath.begin(), u8filepath.end()) << ":\n" << e.what();
+
             threadMsg->update(updateMsg.str());
             threadMsg->set_state(ThreadState::ERROR);
 
