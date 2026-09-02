@@ -38,6 +38,7 @@ Bank::Bank(AudioBank& bank)
     
     std::shared_ptr<std::vector<char>> bankHeader = std::make_shared<std::vector<char>>();
     // Count down from the end, because we can get bank headers that are 8 bytes (custom) or 16 bytes (vanilla)
+    assert(bank.table_entry.size() >= 8);
     bankHeader->assign(bank.table_entry.end() - 8, bank.table_entry.end());
 
     this->header = bankHeader;
