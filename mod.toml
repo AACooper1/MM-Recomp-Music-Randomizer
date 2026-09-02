@@ -43,7 +43,7 @@ optional_dependencies = [
 
 # Native libraries (e.g. DLLs) and the functions they export.
 native_libraries = [
-   { name = "mm_recomp_music_randomizer_extlib", funcs = ["_log", "_set_log_level", "_get_log_level", "get_current_time", "_get_log_dest", "_set_log_file", "_set_log_console", "prepare_database", "check_seed_exists", "prepare_seed", "fetch_randomized_track", "fetch_seq", "fetch_bank", "fetch_sound", "music_rando_poll_thread", "music_rando_cleanup_thread"] }
+   { name = "mm_recomp_music_randomizer_extlib", funcs = ["_log", "_set_log_level", "_get_log_level", "get_current_time", "_get_log_dest", "_set_log_file", "_set_log_console", "prepare_database", "check_seed_exists", "prepare_seed", "fetch_randomized_track", "fetch_seq", "fetch_bank", "fetch_sound", "music_rando_poll_thread", "send_thread_msg", "music_rando_cleanup_thread"] }
 ]
 
 # Inputs to the mod tool.

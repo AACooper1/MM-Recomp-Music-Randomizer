@@ -137,9 +137,15 @@ void music_rando_setup_main()
             jobState = music_rando_poll_thread(dbJobId, jobMsg);
 
             recompui_open_context(loadingScreen.context);
+            // Reset after errors
+            RecompuiColor white = {255, 255, 255, 255};
+            recompui_set_color(loadingScreen.header_label, &white);
+            recompui_set_text(loadingScreen.header_label, &loading_title_text);
+
             recompui_set_text(loadingScreen.body_label, jobMsg);
             recompui_set_text(loadingScreen.ellipsis_label, loading_title_ellipse);
             recompui_set_text(loadingScreen.prellipsis_label, loading_title_ellipse);
+
             recompui_close_context(loadingScreen.context);
 
             break;
@@ -154,6 +160,37 @@ void music_rando_setup_main()
             break;
         case ERROR:
             logger.error("Job returned error!\n");
+
+            jobState = music_rando_poll_thread(dbJobId, jobMsg);
+
+            recompui_open_context(loadingScreen.context);
+            recompui_set_text(loadingScreen.body_label, jobMsg);
+            recompui_close_context(loadingScreen.context);
+
+            jobState = send_thread_msg(dbJobId, WAIT_CONTINUE);
+
+            break;
+        case WAIT_CONTINUE:
+            if (CHECK_BTN_ANY(CONTROLLER1(gxState)->press.button, (0xFFBF /* Any button */)))
+            {
+                jobState = send_thread_msg(dbJobId, CONTINUE);
+                break;
+            }
+            jobState = music_rando_poll_thread(dbJobId, jobMsg);
+
+            recompui_open_context(loadingScreen.context);
+            RecompuiColor red = {255, 0, 0, 255};
+            recompui_set_color(loadingScreen.header_label, &red);
+            recompui_set_text(loadingScreen.header_label, "Music Rando ERROR\n(Press any button to continue)");
+            recompui_set_text(loadingScreen.body_label, jobMsg);
+            recompui_set_text(loadingScreen.ellipsis_label, "");
+            recompui_close_context(loadingScreen.context);
+            break;
+        case CONTINUE:
+            jobState = music_rando_poll_thread(dbJobId, jobMsg);
+            break;
+        case FATAL:
+            logger.error("Job returned fatal error!\n");
             init_startup_menu();
             break;
     }

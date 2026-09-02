@@ -9,20 +9,24 @@
 
 #define JOB_MSG_BUFFER_SIZE 256
 
+typedef enum MusicRandoThreadState_t {
+    UNSTARTED,
+    RUNNING,
+    DONE,
+    ERROR,
+    WAIT_CONTINUE,
+    CONTINUE,
+    FATAL
+} MusicRandoThreadState;
+
 RECOMP_IMPORT(".", int music_rando_poll_thread(int jobId, char* msg));
 RECOMP_IMPORT(".", void music_rando_cleanup_thread(int jobId));
+RECOMP_IMPORT(".", int send_thread_msg(int jobId, MusicRandoThreadState state));
 
 RECOMP_IMPORT("*", unsigned char* recomp_get_mod_folder_path());
 RECOMP_IMPORT(".", int prepare_database(unsigned char* modPath));
 
 RECOMP_DECLARE_EVENT(init_startup_menu());
-
-typedef enum MusicRandoThreadState_t {
-    UNSTARTED,
-    RUNNING,
-    DONE,
-    ERROR
-} MusicRandoThreadState;
 
 typedef struct LoadingScreen_t {
     RecompuiContext context;

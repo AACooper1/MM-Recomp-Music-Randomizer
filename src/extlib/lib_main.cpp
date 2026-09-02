@@ -79,6 +79,24 @@ RECOMP_DLL_FUNC(prepare_database)
     RECOMP_RETURN(int, 0);
 }
 
+RECOMP_DLL_FUNC(send_thread_msg)
+{
+    int jobId = RECOMP_ARG(int, 0);
+    ThreadState state = ThreadState(RECOMP_ARG(int, 1));
+
+    if (jobs.contains(jobId))
+    {
+        jobs[jobId]->set_state(state);
+        RECOMP_RETURN(int, jobs[jobId]->get_state());
+    }
+    else
+    {
+        logger.critical << "Thread with job ID " << jobId << " not found!! Aborting database read." << std::endl;
+        RECOMP_RETURN(int, ThreadState::FATAL);
+    }
+
+}
+
 RECOMP_DLL_FUNC(check_seed_exists) 
 {
     fs::path savePath = RECOMP_ARG_STR(0);
