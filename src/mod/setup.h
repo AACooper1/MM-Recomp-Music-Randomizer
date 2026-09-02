@@ -21,7 +21,7 @@ typedef enum MusicRandoThreadState_t {
 
 RECOMP_IMPORT(".", int music_rando_poll_thread(int jobId, char* msg));
 RECOMP_IMPORT(".", void music_rando_cleanup_thread(int jobId));
-RECOMP_IMPORT(".", int send_thread_msg(int jobId, MusicRandoThreadState state));
+RECOMP_IMPORT(".", int music_rando_send_thread_msg(int jobId, MusicRandoThreadState state));
 
 RECOMP_IMPORT("*", unsigned char* recomp_get_mod_folder_path());
 RECOMP_IMPORT(".", int prepare_database(unsigned char* modPath));
