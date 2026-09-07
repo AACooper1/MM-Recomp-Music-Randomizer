@@ -1,4 +1,4 @@
-/*#include "music_menu.h"
+#include "music_menu.h"
 
 extern f32 sQuestStatusCursorsX[];
 extern f32 sQuestStatusCursorsY[];
@@ -30,13 +30,8 @@ extern s32 ShrinkWindow_Letterbox_GetSize(void);
 // Update the X/Y positions of these cursors before calling the function. They are declared outside the function, so it should be good.
 RECOMP_HOOK("KaleidoScope_UpdateCursorSize") void insert_music_buttons(PlayState* play)
 {
-    sQuestStatusCursorsX[QUEST_TRACKS] = -63.0f;
-    sQuestStatusCursorsX[QUEST_REWIND] = -35.0f;
-    sQuestStatusCursorsX[QUEST_FORWARD] = -13.0f;
-
-    sQuestStatusCursorsY[QUEST_TRACKS] = -49.0f;
-    sQuestStatusCursorsY[QUEST_REWIND] = -45.0f;
-    sQuestStatusCursorsY[QUEST_FORWARD] = -45.0f;
+    sQuestStatusCursorsX[QUEST_MUSIC_MENU] = -71.0f;
+    sQuestStatusCursorsY[QUEST_MUSIC_MENU] = -51.0f;
 }
 
 RECOMP_DECLARE_EVENT(music_buttons_interact(u16 cursor, PlayState* play));
@@ -138,14 +133,20 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(
         recompui_set_width(this_element->container, 100.0f, UNIT_PERCENT);
 
 
-        this_element->text.container = recompui_create_element(pauseMenu.context, this_element->container);
-        recompui_set_display(this_element->text.container, DISPLAY_FLEX);
-        recompui_set_flex_direction(this_element->text.container, FLEX_DIRECTION_ROW);
-        recompui_set_width(this_element->text.container, 100.0f, UNIT_PERCENT);
+        this_element->slot.container = recompui_create_element(pauseMenu.context, this_element->container);
+        recompui_set_display(this_element->slot.container, DISPLAY_FLEX);
+        recompui_set_flex_direction(this_element->slot.container, FLEX_DIRECTION_ROW);
+        recompui_set_width(this_element->slot.container, 100.0f, UNIT_PERCENT);
 
-        this_element->text.slotName = recompui_create_label(pauseMenu.context, this_element->text.container, randomized[i].slotName, LABELSTYLE_SMALL);
-        this_element->text.title = recompui_create_label(pauseMenu.context, this_element->text.container, randomized[i].name, LABELSTYLE_SMALL);
-        recompui_set_justify_content(this_element->text.container, JUSTIFY_CONTENT_SPACE_BETWEEN);
+        this_element->slot.slotName = recompui_create_label(pauseMenu.context, this_element->slot.container, randomized[i].slotName, LABELSTYLE_SMALL);
+
+        this_element->title.container = recompui_create_element(pauseMenu.context, this_element->container);
+        recompui_set_display(this_element->title.container, DISPLAY_FLEX);
+        recompui_set_flex_direction(this_element->title.container, FLEX_DIRECTION_ROW);
+        recompui_set_width(this_element->title.container, 100.0f, UNIT_PERCENT);
+
+        this_element->title.trackName = recompui_create_label(pauseMenu.context, this_element->title.container, randomized[i].name, LABELSTYLE_SMALL);
+        recompui_set_justify_content(this_element->title.container, JUSTIFY_CONTENT_SPACE_BETWEEN);
 
         this_element->volume.container = recompui_create_element(pauseMenu.context, this_element->container);
         this_element->volume.slider = recompui_create_slider(pauseMenu.context, this_element->volume.container, SLIDERTYPE_PERCENT, 0, 200, 1, 100);
@@ -179,7 +180,7 @@ RECOMP_HOOK("KaleidoScope_UpdateQuestCursor") void check_music_menu_close(PlaySt
 {
     if (is_music_menu_open)
     {
-        if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->press.button, BTN_B | BTN_START | BTN_Z | BTN_R))
+        if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->press.button, BTN_B))
         {
             Audio_PlaySfx(NA_SE_SY_DECIDE);
             recompui_hide_context(pauseMenu.context);
@@ -203,7 +204,7 @@ RECOMP_CALLBACK(".", music_buttons_interact) void on_music_buttons_interact(u16 
         seqArgs = seqArgsPrev;
     }
 
-    else if (cursor == QUEST_TRACKS)
+    else if (cursor == QUEST_MUSIC_MENU)
     {
         if (CHECK_BTN_ALL(CONTROLLER1(&play->state)->press.button, BTN_A))
         {
@@ -221,8 +222,9 @@ extern f32 D_8082B90C;
 extern s16 sPauseCursorLeftX;
 extern s16 sPauseCursorRightX;
 
-extern f32 sPauseCursorLeftMoveOffsetX;
-extern f32 sPauseCursorRightMoveOffsetX;
+extern f32 sPauseCursorLeftMoveOffsetX = 20.0f;
+extern f32 sPauseCursorRightMoveOffsetX = -20.0f;
+extern f32 sPauseMenuVerticalOffset;
 
 RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState* play)
 {
@@ -261,11 +263,22 @@ RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState
                         pauseCtx->savePromptState = PAUSE_MUSICMENU_STATE_CLOSING;
                         D_8082B90C = pauseCtx->questPageRoll;
                     }
+                    else if (CHECK_BTN_ALL(input->press.button, BTN_START))
+                    {
+                        Interface_SetAButtonDoAction(play, DO_ACTION_NONE);
+                        pauseCtx->state = PAUSE_STATE_UNPAUSE_SETUP;
+                        sPauseMenuVerticalOffset = -6240.0f;
+                        Audio_PlaySfx_PauseMenuOpenOrClose(SFX_PAUSE_MENU_CLOSE);
+                        pauseCtx->mainState = PAUSE_MAIN_STATE_IDLE;
+                        recompui_hide_context(pauseMenu.context);
+                        music_menu_close(play);
+                        is_music_menu_open = false;
+                    }
                     break;
                 case PAUSE_MUSICMENU_STATE_CLOSING:
                         pauseCtx->questPageRoll += 78.5f;
-                        sPauseCursorLeftX -= TRUNCF_BINANG(sPauseCursorLeftMoveOffsetX / 4);
-                        sPauseCursorRightX -= TRUNCF_BINANG(sPauseCursorRightMoveOffsetX / 4);
+                        sPauseCursorLeftX += TRUNCF_BINANG(sPauseCursorLeftMoveOffsetX / 4);
+                        sPauseCursorRightX += TRUNCF_BINANG(sPauseCursorRightMoveOffsetX / 4);
                         if (pauseCtx->questPageRoll >= 0.0f) {
                             pauseCtx->questPageRoll = 0.0f;
                             pauseCtx->state = PAUSE_STATE_MAIN;
@@ -283,70 +296,11 @@ GraphicsContext* thisGfxCtx;
 
 extern Gfx* KaleidoScope_DrawPageSections(Gfx* gfx, Vtx* vertices, TexturePtr* textures);
 
-RECOMP_HOOK("KaleidoScope_DrawPages") void Pre_replace_quest_texture(PlayState* play, GraphicsContext* gfxCtx)
+RECOMP_HOOK("KaleidoScope_DrawPages") void pre_replace_quest_texture(PlayState* play, GraphicsContext* gfxCtx)
 {
     thisPlay = play;
     thisGfxCtx = gfxCtx;
 }
-
-RECOMP_HOOK_RETURN("KaleidoScope_DrawPages")void replace_quest_texture()
-{
-    PlayState* play = thisPlay;
-    GraphicsContext* gfxCtx = thisGfxCtx;
-
-    PauseContext* pauseCtx = &play->pauseCtx;
-
-    OPEN_DISPS(gfxCtx);
-
-    if (pauseCtx->pageIndex == PAUSE_QUEST && pauseCtx->questPageRoll <= -314.0f)
-    {
-        gDPPipeSync(POLY_OPA_DISP++);
-
-        gDPSetCombineLERP(POLY_OPA_DISP++, TEXEL0, 0, PRIMITIVE, 0, TEXEL0, 0, SHADE, 0, TEXEL0, 0, PRIMITIVE,
-                            0, TEXEL0, 0, SHADE, 0);
-
-        gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 180, 180, 120, 255);
-
-        gDPSetTextureFilter(POLY_OPA_DISP++, G_TF_BILERP);
-
-        Matrix_RotateYF(-3.14f, MTXMODE_NEW);
-        Matrix_Translate(0.0f, sPauseMenuVerticalOffset / 100.0f, -93.0f, MTXMODE_APPLY);
-        Matrix_Scale(0.78f, 0.78f, 0.78f, MTXMODE_APPLY);
-        Matrix_RotateXFApply(-pauseCtx->questPageRoll / 100.0f);
-
-        MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, gfxCtx);
-
-        POLY_OPA_DISP = KaleidoScope_DrawPageSections(POLY_OPA_DISP, pauseCtx->questPageVtx, sMapPageBgTextures);
-    }
-
-    CLOSE_DISPS(gfxCtx);
-}
-
-#include "textures.h"
-
-RECOMP_HOOK_RETURN("KaleidoScope_DrawQuestStatus") void draw_menu_button()
-{
-    PlayState* play = thisPlay;
-    PauseContext* pauseCtx = &play->pauseCtx;
-    GraphicsContext* gfxCtx = thisGfxCtx;
-
-    OPEN_DISPS(gfxCtx);
-
-    gDPPipeSync(POLY_OPA_DISP++);
-    gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 100, 100, 210, pauseCtx->alpha);
-    gDPSetEnvColor(POLY_OPA_DISP++, 0, 0, 0, 255);
-
-    Matrix_Scale(0.78f, 0.78f, 0.78f, MTXMODE_APPLY);
-
-    MATRIX_FINALIZE_AND_LOAD(POLY_OPA_DISP++, play->state.gfxCtx);
-
-    gSPVertex(POLY_OPA_DISP++, &pauseCtx->questVtx[QUEST_TRACKS * 4], 4, 0);
-
-    KaleidoScope_DrawTexQuadRGBA32(play->state.gfxCtx, gMenuBtnTex, 32, 32, 0);
-
-    CLOSE_DISPS();
-}
-
 
 // Unfortunately I have to RECOMP_PATCH this one, as sCursorPointLinks is defined within the function.
 // Actually that like. actually omegasucks
@@ -529,7 +483,7 @@ RECOMP_PATCH void KaleidoScope_UpdateQuestCursor(PlayState* play)
 
             if ((pauseCtx->debugEditor == DEBUG_EDITOR_NONE) && (pauseCtx->state == PAUSE_STATE_MAIN) &&
                 (pauseCtx->mainState == PAUSE_MAIN_STATE_IDLE) && (pauseCtx->cursorSpecialPos == 0)) {
-                if ((cursor >= QUEST_SONG_SONATA) && (cursor <= QUEST_SONG_SUN) && !(cursor == QUEST_TRACKS || cursor == QUEST_REWIND || cursor == QUEST_FORWARD)) {
+                if ((cursor >= QUEST_SONG_SONATA) && (cursor <= QUEST_SONG_SUN) && !(cursor == QUEST_MUSIC_MENU)) {
                     // Handle part of the ocarina songs playback
                     if ((CHECK_QUEST_ITEM(pauseCtx->cursorPoint[PAUSE_QUEST]) ||
                          ((cursor == QUEST_SONG_LULLABY) && !CHECK_QUEST_ITEM(pauseCtx->cursorPoint[PAUSE_QUEST]) &&
@@ -594,8 +548,10 @@ RECOMP_PATCH void KaleidoScope_UpdateQuestCursor(PlayState* play)
                         }
                     }
                 } 
-                else if (cursor == QUEST_TRACKS || cursor == QUEST_REWIND || cursor == QUEST_FORWARD)
+                else if (cursor == QUEST_MUSIC_MENU)
                 {
+                    pauseCtx->nameSegment = gMusicMenuNameTex;
+                    pauseCtx->nameColorSet = PAUSE_NAME_COLOR_SET_WHITE;
                     music_buttons_interact(cursor, play);
                 }
                 else {
@@ -750,19 +706,8 @@ GraphicsContext* sGfxCtx;
 
 RECOMP_HOOK("KaleidoScope_SetVertices") void music_buttons_init(PlayState* play, GraphicsContext* gfxCtx)
 {
-    sQuestVtxRectLeft[QUEST_TRACKS] = -93 / 0.78f;
-    sQuestVtxRectTop[QUEST_TRACKS] = -43 / 0.78f;
-    sQuestVtxWidths[QUEST_TRACKS] = 32;
-    sQuestVtxHeights[QUEST_TRACKS] = 32;
-
-    sQuestVtxRectLeft[QUEST_REWIND] = -56;
-    sQuestVtxRectTop[QUEST_REWIND] = -44;
-    sQuestVtxWidths[QUEST_REWIND] = 16;
-    sQuestVtxHeights[QUEST_REWIND] = 16;
-
-    sQuestVtxRectLeft[QUEST_FORWARD] = -14;
-    sQuestVtxRectTop[QUEST_FORWARD] = -44;
-    sQuestVtxWidths[QUEST_FORWARD] = 16;
-    sQuestVtxHeights[QUEST_FORWARD] = 16;
+    sQuestVtxRectLeft[QUEST_MUSIC_MENU] = -100 / 0.78f;
+    sQuestVtxRectTop[QUEST_MUSIC_MENU] = -45 / 0.78f;
+    sQuestVtxWidths[QUEST_MUSIC_MENU] = 32;
+    sQuestVtxHeights[QUEST_MUSIC_MENU] = 32;
 }
-*/
