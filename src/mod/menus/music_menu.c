@@ -160,19 +160,22 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(
     recompui_close_context(pauseMenu.context);
 }
 
-RECOMP_HOOK_RETURN("Play_Update") void update_volume()
+RECOMP_HOOK_RETURN("AudioSeq_UpdateActiveSequences") void update_volume()
 {
     int seqId = gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].seqId;
-    logger.noheader.dev("fadeVolumeScale: %f\n", gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].fadeVolumeScale);
+    logger.dev("fadeVolumeScale: %f\n", gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].fadeVolumeScale);
     if (is_music_menu_open)
     {
         recompui_open_context(pauseMenu.context);
         volumeVals[seqId] = recompui_get_input_value_float(pauseMenu.tracks[seqId]->volume.slider) * 127.0f / 100.0f;
+        logger.noheader.dev("%f\n", recompui_get_input_value_float(pauseMenu.tracks[seqId]->volume.slider) * 127.0f / 100.0f);
         recompui_close_context(pauseMenu.context);
     }
     if (has_music_menu_been_opened)
     {
-        gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].fadeVolumeScale = volumeVals[seqId];
+        f32 cur_volume = gActiveSeqs[SEQ_PLAYER_BGM_MAIN].volCur;
+        cur_volume *= volumeVals[gActiveSeqs[SEQ_PLAYER_BGM_MAIN].seqId] / 127.0f;
+        AUDIOCMD_SEQPLAYER_FADE_VOLUME_SCALE(SEQ_PLAYER_BGM_MAIN, cur_volume);
     }
 }
 
@@ -550,8 +553,6 @@ RECOMP_PATCH void KaleidoScope_UpdateQuestCursor(PlayState* play)
                 } 
                 else if (cursor == QUEST_MUSIC_MENU)
                 {
-                    pauseCtx->nameSegment = gMusicMenuNameTex;
-                    pauseCtx->nameColorSet = PAUSE_NAME_COLOR_SET_WHITE;
                     music_buttons_interact(cursor, play);
                 }
                 else {

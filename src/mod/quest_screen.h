@@ -10,3 +10,10 @@ extern Logger logger;
 
 #include "overlays/kaleido_scope/ovl_kaleido_scope/z_kaleido_scope.h"
 #include "quest_screen_textures.h"
+
+extern u64 gPauseToPlayMelodyENGTex[];
+extern Gfx gAButtonIconDL[];
+
+extern void CmpDma_LoadFile(uintptr_t segmentVrom, s32 id, void* dst, size_t size);
+
+void update_song_nameplate(PlayState* play);
