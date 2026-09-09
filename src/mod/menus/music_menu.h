@@ -57,7 +57,7 @@ typedef struct PauseMenu_t {
 
 #include "overlays/kaleido_scope/ovl_kaleido_scope/z_kaleido_scope.h"
 
-extern u64 gMusicMenuNameTex[];
+extern const u64 gMusicMenuNameTex[];
 
 /*
     NOTES ON PAUSE MENU CODE:
@@ -143,7 +143,7 @@ static CursorPointDirection sCursorPointLinksButWithMusicMenu[] = {
         { CURSOR_NONE_PAUSE, QUEST_SONG_TIME, CURSOR_TO_LEFT, QUEST_HEART_PIECE },                  // QUEST_BOMBERS_NOTEBOOK
         { QUEST_SWORD, CURSOR_NONE_PAUSE, QUEST_MUSIC_MENU, QUEST_BOMB_BAG },                          // QUEST_QUIVER
         { QUEST_SHIELD, CURSOR_NONE_PAUSE, QUEST_QUIVER, CURSOR_TO_RIGHT },                         // QUEST_BOMB_BAG
-        /*Mod slop*/ { QUEST_SONG_LULLABY, CURSOR_NONE_PAUSE, CURSOR_TO_LEFT, CURSOR_NONE_PAUSE },       // !!QUEST_MUSIC_MENU!!
+        /*Mod slop*/ { QUEST_SONG_LULLABY, CURSOR_NONE_PAUSE, CURSOR_TO_LEFT, QUEST_QUIVER },       // !!QUEST_MUSIC_MENU!!
         { CURSOR_NONE_PAUSE, QUEST_SONG_STORMS, QUEST_BOMBERS_NOTEBOOK, QUEST_REMAINS_GYORG },      // QUEST_HEART_PIECE
     };
 
