@@ -14,8 +14,6 @@ extern u8 sAudioPauseState;
 s32 seqId;
 u16 seqArgs;
 
-PauseMenu pauseMenu;
-
 float volumeVals[NA_BGM_MAX] = {100.0f};
 
 bool is_music_menu_open = false;
@@ -40,136 +38,304 @@ RECOMP_DECLARE_EVENT(music_menu_close(PlayState* play));
 
 extern bool should_skip_song_title_display[0x7F];
 
-RecompuiResource create_track_element(RecompuiContext context, RecompuiResource parent, cTrack* track)
+RecompuiResource music_menu_create_slot_settings()
 {
+    // Not implemented
+    return false;
+}
+
+RecompuiResource music_menu_create_select_track()
+{
+    return false;
+}
+
+RecompuiResource music_menu_create_edit_title()
+{
+    return false;
+}
+
+RecompuiResource music_menu_create_track_settings()
+{
+    return false;
+}
+
+unsigned long music_menu_reroll_slot()
+{
+    return false;
+}
+
+void music_menu_init_icons()
+{
+    settingsIcon = recompui_create_texture_rgba32(settingsIconData, BUTTON_WIDTH, BUTTON_HEIGHT);
+    openDropdownIcon = recompui_create_texture_rgba32(openDropdownIconData, BUTTON_WIDTH, BUTTON_HEIGHT);
+    pencilIcon = recompui_create_texture_rgba32(pencilIconData, BUTTON_WIDTH_SMALL, BUTTON_HEIGHT_SMALL);
+    dieIcon = recompui_create_texture_rgba32(dieIconData, BUTTON_WIDTH, BUTTON_HEIGHT);
+    speakerIcon = recompui_create_texture_rgba32(speakerIconData, BUTTON_WIDTH, BUTTON_HEIGHT);
+}
+
+MusicMenu_Volume music_menu_create_volume(RecompuiResource parent, cTrack* track)
+{
+    MusicMenu_Volume volume;
+    volume._base.parent = parent;
+    volume._base.container = recompui_create_element(musicMenuContext, parent);
+
+    // recompui_set_width(volume._base.container, 100.0f, UNIT_PERCENT);
+
+    recompui_set_display(volume._base.container, DISPLAY_INLINE);
+    // recompui_set_flex_direction(volume._base.container, FLEX_DIRECTION_ROW);
     
+    volume.iconContainer = recompui_create_element(musicMenuContext, volume._base.container);
+    recompui_set_width(volume.iconContainer, BUTTON_WIDTH, UNIT_DP);
+    recompui_set_height(volume.iconContainer, BUTTON_HEIGHT, UNIT_DP);
+
+    volume.icon = recompui_create_imageview(musicMenuContext, volume.iconContainer, speakerIcon);
+
+    volume.slider = recompui_create_slider(musicMenuContext, volume._base.container, SLIDERTYPE_PERCENT, 0.0f, 200.0f, 1.0f, 100.0f);
+    recompui_set_width(volume.slider, 100.0f, UNIT_PERCENT);
+}
+
+MusicMenu_Icon_Button music_menu_create_icon_button(RecompuiTextureHandle icon, RecompuiResource parent, unsigned long width, unsigned long height, unsigned long (*callback)())
+{
+    MusicMenu_Icon_Button button;
+    button._base.parent = parent;
+    button._base.container = recompui_create_element(musicMenuContext, parent);
+
+    
+    recompui_set_width(button._base.container, width + 4, UNIT_DP);
+    recompui_set_height(button._base.container, 50.0f, UNIT_PERCENT);
+    
+    button.icon = recompui_create_imageview(musicMenuContext, button._base.container, icon);
+    recompui_set_padding(button.icon, 2.0f, UNIT_DP);
+
+    button.callback = callback;
+
+    return button;
+}
+
+MusicMenu_Slot_Column music_menu_create_slot_column(cTrack* slot, RecompuiResource parent)
+{
+    MusicMenu_Slot_Column column;
+    column.cell.parent = parent;
+
+    column.cell.container = recompui_create_element(musicMenuContext, parent);
+    recompui_set_display(column.cell.container, DISPLAY_TABLE_CELL);
+
+    recompui_set_min_width(column.cell.container, 15.0f, UNIT_PERCENT);
+    recompui_set_max_width(column.cell.container, 15.0f, UNIT_PERCENT);
+    recompui_set_min_height(column.cell.container, 15.0f, UNIT_PERCENT);
+    recompui_set_max_height(column.cell.container, 15.0f, UNIT_PERCENT);
+    recompui_set_border_width(column.cell.container, 2.0f, UNIT_DP);
+
+    column._base.parent = column.cell.parent;
+    column._base.container = recompui_create_element(musicMenuContext, column.cell.container);
+    
+    recompui_set_flex_direction(column._base.container, FLEX_DIRECTION_ROW);
+    recompui_set_display(column._base.container, DISPLAY_FLEX);
+    recompui_set_align_items(column._base.container, ALIGN_ITEMS_CENTER);
+
+    recompui_set_height(column._base.container, 100.0f, UNIT_PERCENT);
+    recompui_set_width(column._base.container, 100.0f, UNIT_PERCENT);
+
+    column.slotIdx = slot->slotIdx;
+    column.name = slot->slotName;
+    column.label = recompui_create_label(musicMenuContext, column._base.container, column.name, LABELSTYLE_NORMAL);
+    recompui_set_flex_grow(column.label, 1.0f); 
+    recompui_set_text_align(column.label, TEXT_ALIGN_CENTER);
+    recompui_set_line_height(column.label, 90.0f, UNIT_PERCENT);
+    recompui_set_font_size(column.label, 100.0f, UNIT_PERCENT);
+    recompui_set_overflow(column.label, OVERFLOW_HIDDEN);
+    recompui_set_width(column.label, 100.0f, UNIT_PERCENT);
+
+    column.buttonsContainer = recompui_create_element(musicMenuContext, column._base.container);
+    recompui_set_height(column.buttonsContainer, 100.0f, UNIT_PERCENT);
+    recompui_set_width(column.buttonsContainer, 32.0f, UNIT_DP);
+    recompui_set_display(column.buttonsContainer, DISPLAY_BLOCK);
+    recompui_set_margin(column.buttonsContainer, 2.0f, UNIT_DP);
+    recompui_set_margin_right(column.buttonsContainer, 11.0f, UNIT_DP);
+
+    column.settings = music_menu_create_icon_button(settingsIcon, column.buttonsContainer, BUTTON_WIDTH, BUTTON_HEIGHT, music_menu_create_slot_settings);
+    recompui_set_border_left_width(column.settings._base.container, 2.0f, UNIT_DP);
+    recompui_set_border_bottom_width(column.settings._base.container, 1.0f, UNIT_DP);
+    
+    column.selectTrack = music_menu_create_icon_button(openDropdownIcon, column.buttonsContainer, BUTTON_WIDTH, BUTTON_HEIGHT, music_menu_create_select_track);
+    recompui_set_border_left_width(column.selectTrack._base.container, 2.0f, UNIT_DP);
+    recompui_set_border_top_width(column.selectTrack._base.container, 1.0f, UNIT_DP);
+
+    return column;
+}
+
+MusicMenu_Track_Column music_menu_create_track_column(cTrack* slot, RecompuiResource parent)
+{
+    MusicMenu_Track_Column column;
+    column.cell.parent = parent;
+
+    column.cell.container = recompui_create_element(musicMenuContext, parent);
+    recompui_set_display(column.cell.container, DISPLAY_TABLE_CELL);
+
+    recompui_set_width_auto(column.cell.container);
+    recompui_set_min_height(column.cell.container, 15.0f, UNIT_PERCENT);
+    recompui_set_max_height(column.cell.container, 15.0f, UNIT_PERCENT);
+
+    column._base.parent = column.cell.parent;
+    column._base.container = recompui_create_element(musicMenuContext, column.cell.container);
+    
+    recompui_set_flex_direction(column._base.container, FLEX_DIRECTION_ROW);
+    recompui_set_display(column._base.container, DISPLAY_FLEX);
+    recompui_set_align_items(column._base.container, ALIGN_ITEMS_CENTER);
+
+    recompui_set_height(column._base.container, 100.0f, UNIT_PERCENT);
+    recompui_set_width_auto(column._base.container);
+    recompui_set_border_width(column._base.container, 2.0f, UNIT_DP);
+    recompui_set_padding_left(column._base.container, 20.0f, UNIT_DP);
+    
+    column.albumArt._base.container = recompui_create_element(musicMenuContext, column._base.container);
+    recompui_set_min_width(column.albumArt._base.container, 64.0f, UNIT_DP);
+    recompui_set_max_width(column.albumArt._base.container, 64.0f, UNIT_DP);
+    recompui_set_height(column.albumArt._base.container, 64.0f, UNIT_DP);
+    recompui_set_border_width(column.albumArt._base.container, 3.0f, UNIT_DP);
+
+    column.name = slot->name;
+    column.titleContainer = recompui_create_element(musicMenuContext, column._base.container);
+    recompui_set_display(column.titleContainer, DISPLAY_FLEX);
+    recompui_set_flex_direction(column.titleContainer, FLEX_DIRECTION_ROW);
+    recompui_set_width(column.titleContainer, 85.0f, UNIT_PERCENT);
+    recompui_set_height(column.titleContainer, 100.0f, UNIT_PERCENT);
+    recompui_set_margin_left(column.titleContainer, 20.0f, UNIT_DP);
+    recompui_set_align_items(column.titleContainer, ALIGN_ITEMS_FLEX_END);
+    recompui_set_padding_bottom(column.titleContainer, 20.0f, UNIT_DP);
+    column.label = recompui_create_label(musicMenuContext, column.titleContainer, column.name, LABELSTYLE_NORMAL);
+    column.editTitle = music_menu_create_icon_button(pencilIcon, column.titleContainer, BUTTON_WIDTH_SMALL, BUTTON_HEIGHT_SMALL, music_menu_create_edit_title);
+    recompui_set_margin_top_auto(column.editTitle._base.container);
+
+    column.volume = music_menu_create_volume(column._base.container, slot);
+
+    column.buttonsContainer = recompui_create_element(musicMenuContext, column._base.container);
+    recompui_set_height(column.buttonsContainer, 100.0f, UNIT_PERCENT);
+    recompui_set_margin_left_auto(column.buttonsContainer);
+    column.rerollSlot = music_menu_create_icon_button(dieIcon, column.buttonsContainer, BUTTON_WIDTH, BUTTON_HEIGHT, music_menu_reroll_slot);
+    recompui_set_border_left_width(column.rerollSlot._base.container, 2.0f, UNIT_DP);
+    recompui_set_border_bottom_width(column.rerollSlot._base.container, 1.0f, UNIT_DP);
+    
+    column.trackSettings = music_menu_create_icon_button(settingsIcon, column.buttonsContainer, BUTTON_WIDTH, BUTTON_HEIGHT, music_menu_create_track_settings);
+    recompui_set_border_left_width(column.trackSettings._base.container, 2.0f, UNIT_DP);
+    recompui_set_border_top_width(column.trackSettings._base.container, 1.0f, UNIT_DP);
+
+    return column;
+}
+
+MusicMenu_Track_Element music_menu_create_row(cTrack* slot, RecompuiResource parent)
+{
+    MusicMenu_Track_Element row; 
+    row._base.parent = parent;
+    row._base.container = recompui_create_element(musicMenuContext, parent);
+
+    recompui_set_width(row._base.container, 100.0f, UNIT_PERCENT);
+
+    recompui_set_display(row._base.container, DISPLAY_TABLE_ROW);
+    // recompui_set_align_items(row._base.container, ALIGN_ITEMS_CENTER);
+
+    recompui_set_min_height(row._base.container, 15.0f, UNIT_PERCENT);
+    recompui_set_max_height(row._base.container, 15.0f, UNIT_PERCENT);
+
+    row.track = slot;
+    row.slotCol = music_menu_create_slot_column(slot, row._base.container);
+    row.trackCol = music_menu_create_track_column(slot, row._base.container);
+
+    return row;
 }
 
 RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(cTrack* randomized)
 {
-    RecompuiColor bg_color;
-    bg_color.r = 255;
-    bg_color.g = 255;
-    bg_color.b = 255;
-    bg_color.a = 0.3f * 255;
-
-    RecompuiColor border_color;
-    border_color.r = 255;
-    border_color.g = 255;
-    border_color.b = 255;
-    border_color.a = 0.2f * 255;
-
-    RecompuiColor container_color;
-    container_color.r = 8;
-    container_color.g = 7;
-    container_color.b = 13;
-    container_color.a = 1.0f * 255;
-
     const float body_padding = 64.0f;
     const float container_height = RECOMPUI_TOTAL_HEIGHT - (2 * body_padding);
     const float container_width = container_height * (16.0f / 9.0f);
     const float container_border_width = 1.1f;
     const float container_border_radius = 16.0f;
 
-    pauseMenu.context = recompui_create_context();
-    recompui_open_context(pauseMenu.context);
+    musicMenuContext = recompui_create_context();
+    recompui_open_context(musicMenuContext);
 
-    recompui_set_context_captures_input(pauseMenu.context, false);
-    recompui_set_context_captures_mouse(pauseMenu.context, true);
+    music_menu_init_icons();
 
-    pauseMenu.root = recompui_context_root(pauseMenu.context);
+    recompui_set_context_captures_input(musicMenuContext, false);
+    recompui_set_context_captures_mouse(musicMenuContext, true);
 
-    recompui_set_position(pauseMenu.root, POSITION_ABSOLUTE);
-    recompui_set_display(pauseMenu.root, DISPLAY_FLEX);
+    musicMenu._base.parent = recompui_context_root(musicMenuContext);
 
-    recompui_set_top(pauseMenu.root, 0, UNIT_PERCENT);
-    recompui_set_left(pauseMenu.root, 0, UNIT_PERCENT);
-    recompui_set_bottom(pauseMenu.root, 100, UNIT_PERCENT);
-    recompui_set_right(pauseMenu.root, 100, UNIT_PERCENT);
+    recompui_set_position(musicMenu._base.parent, POSITION_ABSOLUTE);
+    recompui_set_display(musicMenu._base.parent, DISPLAY_FLEX);
 
-    recompui_set_width(pauseMenu.root, 100, UNIT_PERCENT);
-    recompui_set_min_width(pauseMenu.root, 100, UNIT_PERCENT);
-    recompui_set_max_width(pauseMenu.root, 100, UNIT_PERCENT);
-    recompui_set_height(pauseMenu.root, 100, UNIT_PERCENT);
-    recompui_set_min_height(pauseMenu.root, 100, UNIT_PERCENT);
-    recompui_set_max_height(pauseMenu.root, 100, UNIT_PERCENT);
+    recompui_set_top(musicMenu._base.parent, 0, UNIT_PERCENT);
+    recompui_set_left(musicMenu._base.parent, 0, UNIT_PERCENT);
+    recompui_set_bottom(musicMenu._base.parent, 100, UNIT_PERCENT);
+    recompui_set_right(musicMenu._base.parent, 100, UNIT_PERCENT);
 
-    recompui_set_align_items(pauseMenu.root, ALIGN_ITEMS_CENTER);
-    recompui_set_justify_content(pauseMenu.root, JUSTIFY_CONTENT_CENTER);
+    recompui_set_width(musicMenu._base.parent, 100, UNIT_PERCENT);
+    recompui_set_min_width(musicMenu._base.parent, 100, UNIT_PERCENT);
+    recompui_set_max_width(musicMenu._base.parent, 100, UNIT_PERCENT);
+    recompui_set_height(musicMenu._base.parent, 100, UNIT_PERCENT);
+    recompui_set_min_height(musicMenu._base.parent, 100, UNIT_PERCENT);
+    recompui_set_max_height(musicMenu._base.parent, 100, UNIT_PERCENT);
 
-    pauseMenu.container = recompui_create_element(pauseMenu.context, pauseMenu.root);
+    recompui_set_align_items(musicMenu._base.parent, ALIGN_ITEMS_CENTER);
+    recompui_set_justify_content(musicMenu._base.parent, JUSTIFY_CONTENT_CENTER);
+
+    musicMenu._base.container = recompui_create_element(musicMenuContext, musicMenu._base.parent);
     
     // Center the thing where the map viewport is
 
-    recompui_set_display(pauseMenu.container, DISPLAY_INLINE_BLOCK);
-    recompui_set_overflow_y(pauseMenu.container, OVERFLOW_SCROLL);
+    recompui_set_display(musicMenu._base.container, DISPLAY_INLINE_BLOCK);
+    recompui_set_overflow_y(musicMenu._base.container, OVERFLOW_SCROLL);
+    recompui_set_margin_top(musicMenu._base.container, 53.0f, UNIT_DP);
 
-    recompui_set_width(pauseMenu.container, 0.90f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
+    recompui_set_width(musicMenu._base.container, 0.90f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
     // recompui_set_max_width(container, 70, UNIT_PERCENT);
-    recompui_set_border_width(pauseMenu.container, 2, UNIT_DP);
-    RecompuiColor white = {255, 255, 255, 255};
-    recompui_set_border_color(pauseMenu.container, &white);
+    recompui_set_border_width(musicMenu._base.container, 2, UNIT_DP);
+    recompui_set_border_color(musicMenu._base.container, &white);
 
-    recompui_set_height(pauseMenu.container, 0.533f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
+    recompui_set_height(musicMenu._base.container, 0.533f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
 
-    recompui_set_margin_top(pauseMenu.container, 53.0f, UNIT_DP);
-    recompui_set_margin_right(pauseMenu.container, 10.0f, UNIT_DP);
+    recompui_set_background_color(musicMenu._base.container, &container_color);
 
-    recompui_set_background_color(pauseMenu.container, &container_color);
+    musicMenu.trackTable = recompui_create_element(musicMenuContext, musicMenu._base.container);
+    recompui_set_display(musicMenu.trackTable, DISPLAY_TABLE);
+    recompui_set_width(musicMenu.trackTable, 100.0f, UNIT_PERCENT);
+    recompui_set_height(musicMenu.trackTable, 100.0f, UNIT_PERCENT);
+    recompui_set_border_top_width(musicMenu.trackTable, 1.0f, UNIT_DP);
 
-    pauseMenu.tracks = recomp_alloc(sizeof(PauseMenu_Track_Element*) *  NA_BGM_MAX);
+    musicMenu.tracks = recomp_alloc(sizeof(MusicMenu_Track_Element*) * (NA_BGM_MAX - 2));
 
     for (int i = NA_BGM_TERMINA_FIELD; i < NA_BGM_MAX; i++)
     {
-        pauseMenu.tracks[i] = recomp_alloc(sizeof(PauseMenu_Track_Element));
         if (should_skip_song_title_display[i])
         {
             continue;
         }
-        PauseMenu_Track_Element* this_element = pauseMenu.tracks[i];
-        
-        this_element->root = pauseMenu.container;
-        this_element->container = recompui_create_element(pauseMenu.context, this_element->root);
-        recompui_set_width(this_element->container, 100.0f, UNIT_PERCENT);
+        MusicMenu_Track_Element row = music_menu_create_row(&randomized[i], musicMenu.trackTable);
 
-
-        this_element->slot.container = recompui_create_element(pauseMenu.context, this_element->container);
-        recompui_set_display(this_element->slot.container, DISPLAY_FLEX);
-        recompui_set_flex_direction(this_element->slot.container, FLEX_DIRECTION_ROW);
-        recompui_set_width(this_element->slot.container, 100.0f, UNIT_PERCENT);
-
-        this_element->slot.slotName = recompui_create_label(pauseMenu.context, this_element->slot.container, randomized[i].slotName, LABELSTYLE_SMALL);
-
-        this_element->title.container = recompui_create_element(pauseMenu.context, this_element->container);
-        recompui_set_display(this_element->title.container, DISPLAY_FLEX);
-        recompui_set_flex_direction(this_element->title.container, FLEX_DIRECTION_ROW);
-        recompui_set_width(this_element->title.container, 100.0f, UNIT_PERCENT);
-
-        this_element->title.trackName = recompui_create_label(pauseMenu.context, this_element->title.container, randomized[i].name, LABELSTYLE_SMALL);
-        recompui_set_justify_content(this_element->title.container, JUSTIFY_CONTENT_SPACE_BETWEEN);
-
-        this_element->volume.container = recompui_create_element(pauseMenu.context, this_element->container);
-        this_element->volume.slider = recompui_create_slider(pauseMenu.context, this_element->volume.container, SLIDERTYPE_PERCENT, 0, 200, 1, 100);
-
-        recompui_set_padding(this_element->container, 10.0f, UNIT_DP);
-        
-        recompui_set_border_color(this_element->container, &white);
-        recompui_set_border_width(this_element->container, 1.0f, UNIT_DP);
+        musicMenu.tracks[i] = recomp_alloc(sizeof(MusicMenu_Track_Element));
+        Lib_MemCpy(musicMenu.tracks[i], &row, sizeof(MusicMenu_Track_Element));
     }
 
-    recompui_close_context(pauseMenu.context);
+    // recompui_set_border_color(musicMenu.tracks[NA_BGM_TERMINA_FIELD]->slotCol.cell.container, &aBlue);
+    // recompui_set_border_width(musicMenu.tracks[NA_BGM_TERMINA_FIELD]->slotCol.cell.container, 10.0f, UNIT_DP);
+    // recompui_set_border_color(musicMenu.tracks[NA_BGM_TERMINA_FIELD]->_base.container, &red);
+    // recompui_set_border_width(musicMenu.tracks[NA_BGM_TERMINA_FIELD]->_base.container, 10.0f, UNIT_DP);
+
+    recompui_close_context(musicMenuContext);
+    recompui_show_context(musicMenuContext);
 }
 
 RECOMP_HOOK_RETURN("AudioSeq_UpdateActiveSequences") void update_volume()
 {
     int seqId = gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].seqId;
-    logger.dev("fadeVolumeScale: %f\n", gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].fadeVolumeScale);
+    // logger.dev("fadeVolumeScale: %f\n", gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].fadeVolumeScale);
     if (is_music_menu_open)
     {
-        recompui_open_context(pauseMenu.context);
-        volumeVals[seqId] = recompui_get_input_value_float(pauseMenu.tracks[seqId]->volume.slider) * 127.0f / 100.0f;
-        logger.noheader.dev("%f\n", recompui_get_input_value_float(pauseMenu.tracks[seqId]->volume.slider) * 127.0f / 100.0f);
-        recompui_close_context(pauseMenu.context);
+        recompui_open_context(musicMenuContext);
+        // volumeVals[seqId] = recompui_get_input_value_float(musicMenu.tracks[seqId]->volume.slider) * 127.0f / 100.0f;
+        // logger.noheader.dev("%f\n", recompui_get_input_value_float(musicMenu.tracks[seqId]->volume.slider) * 127.0f / 100.0f);
+        recompui_close_context(musicMenuContext);
     }
     if (has_music_menu_been_opened)
     {
@@ -186,7 +352,7 @@ RECOMP_HOOK("KaleidoScope_UpdateQuestCursor") void check_music_menu_close(PlaySt
         if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->press.button, BTN_B))
         {
             Audio_PlaySfx(NA_SE_SY_DECIDE);
-            recompui_hide_context(pauseMenu.context);
+            recompui_hide_context(musicMenuContext);
             music_menu_close(play);
             is_music_menu_open = false;
         }
@@ -255,7 +421,7 @@ RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState
                 case PAUSE_MUSICMENU_STATE_IDLE:
                     if (!is_music_menu_open)
                     {
-                        recompui_show_context(pauseMenu.context);
+                        recompui_show_context(musicMenuContext);
                         is_music_menu_open = true;
                         has_music_menu_been_opened = true;
                         music_menu_open(play);
@@ -273,7 +439,7 @@ RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState
                         sPauseMenuVerticalOffset = -6240.0f;
                         Audio_PlaySfx_PauseMenuOpenOrClose(SFX_PAUSE_MENU_CLOSE);
                         pauseCtx->mainState = PAUSE_MAIN_STATE_IDLE;
-                        recompui_hide_context(pauseMenu.context);
+                        recompui_hide_context(musicMenuContext);
                         music_menu_close(play);
                         is_music_menu_open = false;
                     }
