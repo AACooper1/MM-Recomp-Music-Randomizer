@@ -6,44 +6,118 @@
 
 #include "logging.h"
 #include "modtrackdefs.h"
+#include "recompuiColors.h"
+
+#include "menu_textures.h"
+
+#define ALBUM_ART_MAX_SIZE 64 * 64
+#define TRACK_NAME_MAX_SIZE 256
+#define SLOT_NAME_MAX_SIZE 256
+
+#define BUTTON_WIDTH 32
+#define BUTTON_HEIGHT 32
+
+#define BUTTON_WIDTH_SMALL 16
+#define BUTTON_HEIGHT_SMALL 16
+
+#define TABLE_HEADER_SLOT "Slot"
+#define TABLE_HEADER_TRACK "Track"
+static const char headerText[2][16] = {TABLE_HEADER_SLOT, TABLE_HEADER_TRACK};
 
 extern Logger logger;
 
-typedef struct PauseMenu_Volume_Element_t {
+RecompuiContext musicMenuContext;
+
+typedef struct MusicMenu_Resource_t {
+    RecompuiResource parent;
     RecompuiResource container;
-    RecompuiResource slider;
+} MusicMenu_Resource;
 
-    float defaultValue;
-} PauseMenu_Volume_Element;
+typedef struct MusicMenu_Icon_Button_t {
+    MusicMenu_Resource _base;
 
-typedef struct PauseMenu_Slot_Title_t {
-    RecompuiResource container;
-    RecompuiResource slotName;
-} PauseMenu_Slot_Title;
+    RecompuiResource icon;
 
-typedef struct PauseMenu_Track_Title_t {
-    RecompuiResource container;
-    RecompuiResource trackName;
-} PauseMenu_Track_Title;
+    unsigned long (*callback)();
+} MusicMenu_Icon_Button;
 
-typedef struct PauseMenu_Track_Element_t {
-    RecompuiResource root;
-    RecompuiResource container;
-    PauseMenu_Slot_Title slot;
-    RecompuiResource image;
-    PauseMenu_Track_Title title;
-    PauseMenu_Volume_Element volume;
-} PauseMenu_Track_Element;
 
-typedef struct PauseMenu_t {
-    RecompuiContext context;
-    RecompuiResource root;
-    RecompuiResource container;
 
-    RecompuiResource header;
-    RecompuiResource header_label;
+    typedef struct MusicMenu_Slot_Column_t {
+        MusicMenu_Resource _base;
+        MusicMenu_Resource cell;
 
-    PauseMenu_Track_Element** tracks;
+        int slotIdx;
+        RecompuiResource label;
+        const char* name;
+
+        RecompuiResource buttonsContainer;
+        MusicMenu_Icon_Button settings;
+        MusicMenu_Icon_Button selectTrack;
+    } MusicMenu_Slot_Column;
+
+        typedef struct MusicMenu_Album_Art_t {
+            MusicMenu_Resource _base;
+
+            RecompuiResource image;
+            char imageData[ALBUM_ART_MAX_SIZE]; // 64*64
+        } MusicMenu_Album_Art;
+
+        typedef struct MusicMenu_Volume_t {
+            MusicMenu_Resource _base;
+
+            cTrack* track;
+
+            RecompuiResource iconContainer;
+            RecompuiResource icon;
+            
+            RecompuiResource slider;
+        } MusicMenu_Volume;
+
+    typedef struct MusicMenu_Track_Column_t {
+        MusicMenu_Resource _base;
+        MusicMenu_Resource cell;
+
+        MusicMenu_Album_Art albumArt;
+
+        RecompuiResource titleContainer;
+        RecompuiResource label;
+        const char* name;
+        MusicMenu_Icon_Button editTitle;
+
+        MusicMenu_Volume volume;
+
+        RecompuiResource buttonsContainer;
+        MusicMenu_Icon_Button rerollSlot;
+        MusicMenu_Icon_Button trackSettings;
+    } MusicMenu_Track_Column;
+
+typedef struct MusicMenu_Track_Element_t {
+    MusicMenu_Resource _base;
+    MusicMenu_Resource row;
+
+    cTrack* track;
+    MusicMenu_Slot_Column slotCol;
+    MusicMenu_Track_Column trackCol;
+} MusicMenu_Track_Element;
+
+
+
+
+typedef struct MusicMenu_Table_Header_t {
+    MusicMenu_Resource _base;
+
+    RecompuiResource labels[2];
+    const char text[2][16];
+} MusicMenu_Table_Header;
+
+typedef struct MusicMenu_t {
+    MusicMenu_Resource _base;
+
+    MusicMenu_Table_Header tableHeader;
+
+    RecompuiResource trackTable;
+    MusicMenu_Track_Element** tracks;
 
     RecompuiResource nowPlaying;
 
@@ -53,7 +127,14 @@ typedef struct PauseMenu_t {
 
     bool ready;
     bool shown;
-} PauseMenu;
+} MusicMenu;
+
+MusicMenu musicMenu;
+
+MusicMenu_Track_Element music_menu_create_row(cTrack* slot, RecompuiResource parent);
+MusicMenu_Slot_Column music_menu_create_slot_column(cTrack* slot, RecompuiResource parent);
+MusicMenu_Icon_Button music_menu_create_icon_button(RecompuiTextureHandle icon, RecompuiResource parent, unsigned long width, unsigned long height, unsigned long (*callback)());
+MusicMenu_Volume music_menu_create_volume(RecompuiResource parent, cTrack* track);
 
 #include "overlays/kaleido_scope/ovl_kaleido_scope/z_kaleido_scope.h"
 
@@ -108,19 +189,6 @@ extern u8 sQuestSongPlayedOcarinaButtons[];
 extern s16 sQuestSongPlayedOcarinaButtonsAlpha[];
 extern s16 sQuestSongPlayedOcarinaButtonsNum;
 
-typedef struct MusicMenu_t 
-{
-    RecompuiContext context;
-
-    RecompuiResource root;
-    RecompuiResource container;
-    RecompuiResource header;
-    RecompuiResource title;
-    RecompuiResource body;
-} MusicMenu;
-
-MusicMenu musicMenu;
-
 static CursorPointDirection sCursorPointLinksButWithMusicMenu[] = {
         { CURSOR_NONE_PAUSE, QUEST_REMAINS_TWINMOLD, QUEST_REMAINS_GYORG, QUEST_REMAINS_GOHT },     // QUEST_REMAINS_ODOLWA
         { QUEST_REMAINS_ODOLWA, QUEST_SHIELD, QUEST_REMAINS_TWINMOLD, CURSOR_TO_RIGHT },            // QUEST_REMAINS_GOHT
@@ -144,7 +212,7 @@ static CursorPointDirection sCursorPointLinksButWithMusicMenu[] = {
         { QUEST_SWORD, CURSOR_NONE_PAUSE, QUEST_MUSIC_MENU, QUEST_BOMB_BAG },                          // QUEST_QUIVER
         { QUEST_SHIELD, CURSOR_NONE_PAUSE, QUEST_QUIVER, CURSOR_TO_RIGHT },                         // QUEST_BOMB_BAG
         /*Mod slop*/ { QUEST_SONG_LULLABY, CURSOR_NONE_PAUSE, CURSOR_TO_LEFT, QUEST_QUIVER },       // !!QUEST_MUSIC_MENU!!
-        { CURSOR_NONE_PAUSE, QUEST_SONG_STORMS, QUEST_BOMBERS_NOTEBOOK, QUEST_REMAINS_GYORG },      // QUEST_HEART_PIECE
+        { CURSOR_NONE_PAUSE, QUEST_SONG_STORMS, QUEST_BOMBERS_NOTEBOOK, QUEST_REMAINS_GYORG }       // QUEST_HEART_PIECE
     };
 
 typedef enum PauseState_Extended {

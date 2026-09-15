@@ -2,11 +2,6 @@
 
 LoadingScreen loadingScreen;
 
-RecompuiColor red = {210, 0, 0, 255};
-RecompuiColor bGreen = {0, 210, 0, 255};
-RecompuiColor aBlue = {0, 0, 210, 255};
-RecompuiColor white = {255, 255, 255, 255};
-
 char loading_title_text[20] = "Music Rando Loading\0";
 char loading_title_ellipse[4] = ".\0\0\0";
 

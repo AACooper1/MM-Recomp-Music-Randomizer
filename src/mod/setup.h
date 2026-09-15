@@ -6,6 +6,7 @@
 
 #include "logging.h"
 #include "modtrackdefs.h"
+#include "recompuiColors.h"
 
 #define JOB_MSG_BUFFER_SIZE 256
 
