@@ -79,19 +79,29 @@ MusicMenu_Volume music_menu_create_volume(RecompuiResource parent, cTrack* track
     volume._base.parent = parent;
     volume._base.container = recompui_create_element(musicMenuContext, parent);
 
-    // recompui_set_width(volume._base.container, 100.0f, UNIT_PERCENT);
+    // recompui_set_width(volume._base.container, 60.0f, UNIT_PERCENT);
 
-    recompui_set_display(volume._base.container, DISPLAY_INLINE);
-    // recompui_set_flex_direction(volume._base.container, FLEX_DIRECTION_ROW);
+    recompui_set_align_items(volume._base.container, ALIGN_ITEMS_CENTER);
+    recompui_set_display(volume._base.container, DISPLAY_FLEX);
+    recompui_set_flex_grow(volume._base.container, 1.0f);
+
+    recompui_set_margin(volume._base.container, 10.0f, UNIT_DP);
     
     volume.iconContainer = recompui_create_element(musicMenuContext, volume._base.container);
     recompui_set_width(volume.iconContainer, BUTTON_WIDTH, UNIT_DP);
     recompui_set_height(volume.iconContainer, BUTTON_HEIGHT, UNIT_DP);
+    recompui_set_margin_right(volume.iconContainer, 5.0f, UNIT_DP);
 
     volume.icon = recompui_create_imageview(musicMenuContext, volume.iconContainer, speakerIcon);
 
     volume.slider = recompui_create_slider(musicMenuContext, volume._base.container, SLIDERTYPE_PERCENT, 0.0f, 200.0f, 1.0f, 100.0f);
+    if (track->slotIdx == NA_BGM_TERMINA_FIELD)
+    {
+        recomp_printf("Created slider at %p.\n", volume.slider);
+    }
     recompui_set_width(volume.slider, 100.0f, UNIT_PERCENT);
+
+    return volume;
 }
 
 MusicMenu_Icon_Button music_menu_create_icon_button(RecompuiTextureHandle icon, RecompuiResource parent, unsigned long width, unsigned long height, unsigned long (*callback)())
@@ -198,12 +208,19 @@ MusicMenu_Track_Column music_menu_create_track_column(cTrack* slot, RecompuiReso
     column.titleContainer = recompui_create_element(musicMenuContext, column._base.container);
     recompui_set_display(column.titleContainer, DISPLAY_FLEX);
     recompui_set_flex_direction(column.titleContainer, FLEX_DIRECTION_ROW);
-    recompui_set_width(column.titleContainer, 85.0f, UNIT_PERCENT);
+    recompui_set_width(column.titleContainer, 40.0f, UNIT_PERCENT);
+    recompui_set_overflow_x(column.titleContainer, OVERFLOW_HIDDEN);
+    recompui_set_overflow_y(column.titleContainer, OVERFLOW_HIDDEN);
     recompui_set_height(column.titleContainer, 100.0f, UNIT_PERCENT);
     recompui_set_margin_left(column.titleContainer, 20.0f, UNIT_DP);
-    recompui_set_align_items(column.titleContainer, ALIGN_ITEMS_FLEX_END);
-    recompui_set_padding_bottom(column.titleContainer, 20.0f, UNIT_DP);
+    recompui_set_align_items(column.titleContainer, ALIGN_ITEMS_CENTER);
+    // recompui_set_padding_bottom(column.titleContainer, 20.0f, UNIT_DP);
+
     column.label = recompui_create_label(musicMenuContext, column.titleContainer, column.name, LABELSTYLE_NORMAL);
+    // recompui_set_height(column.label, 100.0f, UNIT_PERCENT);
+    recompui_set_min_width(column.label, 1920.0f, UNIT_DP);
+    // recompui_set_overflow(column.label, OVERFLOW_HIDDEN);
+    
     column.editTitle = music_menu_create_icon_button(pencilIcon, column.titleContainer, BUTTON_WIDTH_SMALL, BUTTON_HEIGHT_SMALL, music_menu_create_edit_title);
     recompui_set_margin_top_auto(column.editTitle._base.container);
 
@@ -212,13 +229,14 @@ MusicMenu_Track_Column music_menu_create_track_column(cTrack* slot, RecompuiReso
     column.buttonsContainer = recompui_create_element(musicMenuContext, column._base.container);
     recompui_set_height(column.buttonsContainer, 100.0f, UNIT_PERCENT);
     recompui_set_margin_left_auto(column.buttonsContainer);
-    column.rerollSlot = music_menu_create_icon_button(dieIcon, column.buttonsContainer, BUTTON_WIDTH, BUTTON_HEIGHT, music_menu_reroll_slot);
-    recompui_set_border_left_width(column.rerollSlot._base.container, 2.0f, UNIT_DP);
-    recompui_set_border_bottom_width(column.rerollSlot._base.container, 1.0f, UNIT_DP);
-    
+
     column.trackSettings = music_menu_create_icon_button(settingsIcon, column.buttonsContainer, BUTTON_WIDTH, BUTTON_HEIGHT, music_menu_create_track_settings);
     recompui_set_border_left_width(column.trackSettings._base.container, 2.0f, UNIT_DP);
-    recompui_set_border_top_width(column.trackSettings._base.container, 1.0f, UNIT_DP);
+    recompui_set_border_bottom_width(column.trackSettings._base.container, 1.0f, UNIT_DP);
+
+    column.rerollSlot = music_menu_create_icon_button(dieIcon, column.buttonsContainer, BUTTON_WIDTH, BUTTON_HEIGHT, music_menu_reroll_slot);
+    recompui_set_border_left_width(column.rerollSlot._base.container, 2.0f, UNIT_DP);
+    recompui_set_border_top_width(column.rerollSlot._base.container, 1.0f, UNIT_DP);
 
     return column;
 }
@@ -323,7 +341,6 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(
     // recompui_set_border_width(musicMenu.tracks[NA_BGM_TERMINA_FIELD]->_base.container, 10.0f, UNIT_DP);
 
     recompui_close_context(musicMenuContext);
-    recompui_show_context(musicMenuContext);
 }
 
 RECOMP_HOOK_RETURN("AudioSeq_UpdateActiveSequences") void update_volume()
@@ -333,8 +350,7 @@ RECOMP_HOOK_RETURN("AudioSeq_UpdateActiveSequences") void update_volume()
     if (is_music_menu_open)
     {
         recompui_open_context(musicMenuContext);
-        // volumeVals[seqId] = recompui_get_input_value_float(musicMenu.tracks[seqId]->volume.slider) * 127.0f / 100.0f;
-        // logger.noheader.dev("%f\n", recompui_get_input_value_float(musicMenu.tracks[seqId]->volume.slider) * 127.0f / 100.0f);
+        volumeVals[seqId] = recompui_get_input_value_float(musicMenu.tracks[seqId]->trackCol.volume.slider) * 127.0f / 100.0f;
         recompui_close_context(musicMenuContext);
     }
     if (has_music_menu_been_opened)
