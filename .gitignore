@@ -41,3 +41,4 @@ test_env/
 .vscode/
 .DS_Store
 *.zip
+Textures/Quest.xcf

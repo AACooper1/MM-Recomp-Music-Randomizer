@@ -60,7 +60,7 @@ typedef struct MusicMenu_Icon_Button_t {
             MusicMenu_Resource _base;
 
             RecompuiResource image;
-            char imageData[ALBUM_ART_MAX_SIZE]; // 64*64
+            char* imageData; // 64*64
         } MusicMenu_Album_Art;
 
         typedef struct MusicMenu_Volume_t {
