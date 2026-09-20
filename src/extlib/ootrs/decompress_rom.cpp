@@ -4,7 +4,7 @@
 #include <cstring>
 #include <fstream>
 
-#include <ootrs.hpp>
+#include "ootrs.hpp"
 
 void naive_copy(std::span<uint8_t> dst, std::span<const uint8_t> src) 
 {

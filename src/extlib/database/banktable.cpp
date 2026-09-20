@@ -1,5 +1,5 @@
-#include "table.h"
-#include "database.h"
+#include "table.hpp"
+#include "database.hpp"
 
 template<> BankTable::Table(std::shared_ptr<Database> db): db(db), name("bank")
 {

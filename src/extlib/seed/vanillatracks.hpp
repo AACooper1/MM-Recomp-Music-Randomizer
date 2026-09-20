@@ -1,7 +1,8 @@
-#include "track.h"
-#include "category.h"
-#include "seed.h"
 #include <string>
+
+#include "fileparse/track.hpp"
+#include "category.hpp"
+#include "seed.hpp"
 
 #define CAT(...) std::vector<int>({__VA_ARGS__})
 

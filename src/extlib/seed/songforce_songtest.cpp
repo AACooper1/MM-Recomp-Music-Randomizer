@@ -1,5 +1,5 @@
-#include "songslot.h"
-#include "seed.h"
+#include "songslot.hpp"
+#include "seed.hpp"
 
 void Seed::apply_songforce()
 {

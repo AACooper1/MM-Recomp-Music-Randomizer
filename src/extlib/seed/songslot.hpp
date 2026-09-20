@@ -4,7 +4,7 @@
 #include <string>
 #include <memory>
 
-#include "category.h"
+#include "category.hpp"
 
 class Seed;
 class Track;

@@ -1,5 +1,5 @@
-#include "table.h"
-#include "database.h"
+#include "table.hpp"
+#include "database.hpp"
 
 RelationTable::RelationTable(std::shared_ptr<Database> db, std::string name)
 {

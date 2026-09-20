@@ -3,8 +3,8 @@
 
 #include <string>
 #include <vector>
-#include <util.h>
-#include "logging.hpp"
+
+#include "common.hpp"
 
 extern Log logger;
 

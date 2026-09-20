@@ -1,4 +1,4 @@
-#include "database.h"
+#include "database.hpp"
 
 Database::Database(fs::path path, StatusMessage& msg) : threadMsg(&msg)
 {

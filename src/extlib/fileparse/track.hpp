@@ -4,14 +4,16 @@
 #include <string>
 #include <filesystem>
 #include <chrono>
-#include "audiofile.h"
+
+#include "common.hpp"
+
+#include "audiofile.hpp"
 #include "formmask.hpp"
-#include "util.h"
 
-#include "miniz.h"
+#include "lib/miniz.h"
 
-#include "category.h"
-#include "ootrs.hpp"
+#include "seed/category.hpp"
+#include "ootrs/ootrs.hpp"
 
 namespace fs = std::filesystem;
 

@@ -1,5 +1,5 @@
-#include "table.h"
-#include "database.h"
+#include "table.hpp"
+#include "database.hpp"
 
 template<typename T>
 std::shared_ptr<sqlite3> Table<T>::get_sqlite() { return db->sqlite(); }
