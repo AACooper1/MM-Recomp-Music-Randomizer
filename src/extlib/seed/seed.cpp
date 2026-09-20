@@ -1,7 +1,6 @@
-#include "category.h"
-#include "vanillatracks.h"
-#include "songslot.h"
-#include "seed.h"
+#include "seed.hpp"
+
+#include "vanillatracks.hpp"
 
 Seed::Seed(long long seed, std::shared_ptr<Database> db, fs::path savePath, bool use_custom, bool use_vanilla, bool use_ootrs) : 
 seed(seed), db(db), use_custom(use_custom), use_vanilla(use_vanilla), savePath(savePath), use_ootrs(use_ootrs)

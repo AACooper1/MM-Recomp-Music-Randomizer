@@ -1,10 +1,10 @@
 #ifndef TABLES_H
 #define TABLES_H
 
-#include "sqlite3.h"
+#include "lib/sqlite3.h"
 #include <map>
 
-#include "track.h"
+#include "fileparse/track.hpp"
 
 class Database;
 struct Statement;

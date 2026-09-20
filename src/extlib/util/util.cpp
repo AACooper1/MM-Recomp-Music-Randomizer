@@ -1,7 +1,7 @@
 #include <vector>
 #include <string>
 
-#include "util.h"
+#include "util.hpp"
 
 std::vector<std::string> split_string(const std::string& s, const std::string& delims)
 {

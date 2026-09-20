@@ -7,14 +7,15 @@
 #include <span>
 #include <bit>
 
-#include "miniz.h"
+#include "common.hpp"
+
+#include "lib/miniz.h"
 
 #include "lib_recomp.hpp"
 
-#include "logging.hpp"
-#include "songslot.h"
+#include "seed/songslot.hpp"
+
 #include "sha1.hpp"
-#include "thread.hpp"
 
 #define AUDIOTABLE_HEADER "Audiotable_index"
 #define AUDIOTABLE "Audiotable"

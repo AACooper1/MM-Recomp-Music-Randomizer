@@ -1,20 +1,16 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
-#include "sqlite3.h"
-
 #include <cstdarg>
 #include <filesystem>
-
 #include <vector>
 #include <format>
 #include <string>
 #include <stdexcept>
 
-#include "util.h"
-#include "logging.hpp"
-#include "table.h"
-#include "thread.hpp"
+#include "common.hpp"
+#include "lib/sqlite3.h"
+#include "table.hpp"
 
 namespace fs = std::filesystem;
 extern Log logger;

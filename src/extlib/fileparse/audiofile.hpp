@@ -6,9 +6,11 @@
 #include <filesystem>
 #include <vector>
 
-#include "miniz.h"
-#include "logging.hpp"
-#include "ootrs.hpp"
+#include "common.hpp"
+
+#include "lib/miniz.h"
+
+#include "ootrs/ootrs.hpp"
 
 #define MAX_ZSEQ_SIZE 32768     // 32 KiB
 #define MAX_ZBANK_SIZE 32768    // 32 KiB

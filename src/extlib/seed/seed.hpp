@@ -7,9 +7,10 @@
 
 #include "lib_recomp.hpp"
 
-#include "category.h"
+#include "category.hpp"
+#include "songslot.hpp"
 
-#include "database.h"
+#include "database/database.hpp"
 
 #define N_VANILLA_SEQS 0x7F
 #define N_VANILLA_BANKS 0x28
