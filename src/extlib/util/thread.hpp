@@ -118,13 +118,14 @@ class MusicRandoJob
         {
             return this->state.load();
         }
-    private:
+        
         template <typename Func, typename... Args>
         void run(Func&& func, Args&&... args)
         {
             try
             {
-                result = func(msg, std::forward<Args>(args)...);
+                int res = func(msg, std::forward<Args>(args)...);
+                result.store(res);
                 set_state(ThreadState::DONE);
             }
             catch (...)
@@ -133,9 +134,10 @@ class MusicRandoJob
             }
         }
 
+    private:
         std::thread thread;
         StatusMessage msg;
-        int result = 0;
+        std::atomic<int> result = 0;
         std::atomic<ThreadState> state = ThreadState::UNSTARTED;
 };
 

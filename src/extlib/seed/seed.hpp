@@ -26,7 +26,8 @@ class Seed
 {
     public:
         Seed(long long seed, std::shared_ptr<Database> db, fs::path savePath, bool use_custom, bool use_vanilla, bool use_ootrs);
-        
+        Seed(std::shared_ptr<Database> db, fs::path savePath);
+
         long long seed;
 
         std::shared_ptr<Database> db;

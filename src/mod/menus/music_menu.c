@@ -59,8 +59,14 @@ RecompuiResource music_menu_create_track_settings()
     return false;
 }
 
-unsigned long music_menu_reroll_slot()
+unsigned long music_menu_reroll_slot(int slotIdx)
 {
+    int jobState = reroll_slot(dbJobId, slotIdx);
+    while (jobState == 1)
+    {
+        
+    }
+
     return false;
 }
 

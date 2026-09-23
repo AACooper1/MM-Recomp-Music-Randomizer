@@ -189,7 +189,7 @@ void music_rando_setup_main()
                 recompui_hide_context(loadingScreen.context);
                 loadingScreen.shown = false;
             }
-            music_rando_cleanup_thread(dbJobId);
+            // music_rando_cleanup_thread(dbJobId);
             init_startup_menu();
             break;
         case ERROR:
