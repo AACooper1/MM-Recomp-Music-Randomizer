@@ -24,6 +24,8 @@ seed(seed), db(db), use_custom(use_custom), use_vanilla(use_vanilla), savePath(s
     prepare_song_slots();
 }
 
+Seed::Seed(std::shared_ptr<Database> db, fs::path savePath) : db(db), savePath(savePath) {}
+
 std::vector<int> Seed::get_available_tracks(SongSlotID slotId)
 {
     return songSlots[(int)slotId].availableTracksNoRemove;
