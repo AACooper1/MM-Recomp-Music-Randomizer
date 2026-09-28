@@ -2,7 +2,7 @@
 
 #include "menu_textures.h"
 
-RECOMP_IMPORT(".", int reroll_slot(int jobId, int slotIdx));
+RECOMP_IMPORT(".", int reroll_slot(int slotIdx));
 
 #define ALBUM_ART_MAX_SIZE 64 * 64
 #define TRACK_NAME_MAX_SIZE 256

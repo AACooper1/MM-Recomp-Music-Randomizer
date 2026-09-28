@@ -291,21 +291,6 @@ RECOMP_PATCH void Scene_CommandSoundSettings(PlayState* play, SceneCmd* cmd) {
     }
 }
 
-RECOMP_IMPORT("mm_bens_remastered_soundtrack", void BensSoundtrack_SetDisableChannelSwitching(int playerIndex, bool shouldDisable));
-RECOMP_HOOK("AudioLoad_SyncInitSeqPlayer") void bens_soundtrack_disable_switching(s32 playerIndex, s32 seqId, s32 arg2)
-{
-    if (recomp_is_dependency_met("mm_bens_remastered_soundtrack") != DEPENDENCY_STATUS_FOUND) return;
-    if (randomized[seqId].type == VANILLA)
-    {
-        BensSoundtrack_SetDisableChannelSwitching(playerIndex, false);
-    }
-    else
-    {
-        BensSoundtrack_SetDisableChannelSwitching(playerIndex, true);
-    }
-}
-
-
 // There is an issue where songs won't play if their banks take too long time to load
 // Which will often happen if it has a particularly large bank and a lot of other banks are already loaded
 // (I think)

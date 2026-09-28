@@ -1,10 +1,29 @@
+#ifndef SETUP_H
+#define SETUP_H
+
 #include "util/globals.h"
-#include "setup.h"
 
-LoadingScreen loadingScreen;
+#define JOB_MSG_BUFFER_SIZE 256
 
-char loading_title_text[20] = "Music Rando Loading\0";
-char loading_title_ellipse[4] = ".\0\0\0";
+typedef enum MusicRandoThreadState_t {
+    UNSTARTED,
+    RUNNING,
+    DONE,
+    ERROR,
+    WAIT_CONTINUE,
+    CONTINUE,
+    REQUEST_DELETE,
+    FATAL,
+    KILL
+} MusicRandoThreadState;
+
+RECOMP_IMPORT(".", int music_rando_poll_thread(int jobId, char* msg));
+RECOMP_IMPORT(".", void music_rando_cleanup_thread(int jobId));
+RECOMP_IMPORT(".", int music_rando_send_thread_msg(int jobId, MusicRandoThreadState state));
+
+RECOMP_IMPORT(".", int prepare_database(unsigned char* modPath));
+
+RECOMP_DECLARE_EVENT(init_startup_menu());
 
 typedef struct LoadingScreen_t {
     RecompuiContext context;
@@ -36,4 +55,14 @@ typedef struct LoadingScreen_t {
     bool shown;
 } LoadingScreen;
 
-void music_rando_loading_screen_main();
+GameState* gxState;
+extern Logger logger;
+
+MusicRandoThreadState jobState = UNSTARTED;
+int dbJobId = 0;
+char msg[256];
+
+void music_rando_setup_main();
+void music_rando_update_db();
+
+#endif
