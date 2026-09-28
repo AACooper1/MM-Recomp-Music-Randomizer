@@ -93,7 +93,7 @@ void Seed::randomize_slot(int i)
         trackId = -0x118;
     }
 
-    randomized.emplace(i, tracks[trackId]);
+    randomized.insert_or_assign(i, tracks[trackId]);
 
     clear_track_availability(trackId);
 }
