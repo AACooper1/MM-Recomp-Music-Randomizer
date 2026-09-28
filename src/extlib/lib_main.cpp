@@ -210,6 +210,9 @@ RECOMP_DLL_FUNC(reroll_slot)
     int slotIdx = RECOMP_ARG(int, 0);
 
     seed->randomize_slot(slotIdx);
+    logger.dev << "Rerolling slot " << slotIdx << "!" << std::endl;
+
+    RECOMP_RETURN(int, seed->randomized[slotIdx]->databaseIndex);
 }
 
 int read_oot_audiobin()

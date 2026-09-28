@@ -37,30 +37,38 @@ RECOMP_DECLARE_EVENT(music_menu_close(PlayState* play));
 
 extern bool should_skip_song_title_display[0x7F];
 
-RecompuiResource music_menu_create_slot_settings()
+void music_menu_create_slot_settings(RecompuiResource resouce, const RecompuiEventData* event, void* userdata)
 {
     // Not implemented
-    return false;
+    return;
 }
 
-RecompuiResource music_menu_create_select_track()
+void music_menu_create_select_track(RecompuiResource resouce, const RecompuiEventData* event, void* userdata)
 {
-    return false;
+    return;
 }
 
-RecompuiResource music_menu_create_edit_title()
+void music_menu_create_edit_title(RecompuiResource resouce, const RecompuiEventData* event, void* userdata)
 {
-    return false;
+    return;
 }
 
-RecompuiResource music_menu_create_track_settings()
+void music_menu_create_track_settings(RecompuiResource resouce, const RecompuiEventData* event, void* userdata)
 {
-    return false;
+    return;
 }
 
-unsigned long music_menu_reroll_slot(int slotIdx)
+void music_menu_reroll_slot(RecompuiResource resouce, const RecompuiEventData* event, void* userdata)
 {
-    return reroll_slot(slotIdx);
+    if (event->type == UI_EVENT_CLICK)
+    {    
+        int slotIdx = *(int*)userdata;
+        int newId = reroll_slot(slotIdx);
+
+        logger.dev("Called reroll_slot on slot %i and got %i!\n", slotIdx, newId);
+    }
+
+    return;
 }
 
 void music_menu_init_icons()
@@ -103,11 +111,11 @@ MusicMenu_Volume music_menu_create_volume(RecompuiResource parent, cTrack* track
     return volume;
 }
 
-MusicMenu_Icon_Button music_menu_create_icon_button(RecompuiTextureHandle icon, RecompuiResource parent, unsigned long width, unsigned long height, unsigned long (*callback)())
+MusicMenu_Icon_Button music_menu_create_icon_button(RecompuiTextureHandle icon, RecompuiResource parent, unsigned long width, unsigned long height, void (*callback)(RecompuiResource, const RecompuiEventData*, void*))
 {
     MusicMenu_Icon_Button button;
     button._base.parent = parent;
-    button._base.container = recompui_create_element(musicMenuContext, parent);
+    button._base.container = recompui_create_button(musicMenuContext, parent, "", BUTTONSTYLE_SECONDARY);
 
     
     recompui_set_width(button._base.container, width + 4, UNIT_DP);
@@ -234,6 +242,8 @@ MusicMenu_Track_Column music_menu_create_track_column(cTrack* slot, RecompuiReso
     recompui_set_border_bottom_width(column.trackSettings._base.container, 1.0f, UNIT_DP);
 
     column.rerollSlot = music_menu_create_icon_button(dieIcon, column.buttonsContainer, BUTTON_WIDTH, BUTTON_HEIGHT, music_menu_reroll_slot);
+    recompui_register_callback(column.rerollSlot._base.container, column.rerollSlot.callback, &slot->slotIdx);
+
     recompui_set_border_left_width(column.rerollSlot._base.container, 2.0f, UNIT_DP);
     recompui_set_border_top_width(column.rerollSlot._base.container, 1.0f, UNIT_DP);
 
