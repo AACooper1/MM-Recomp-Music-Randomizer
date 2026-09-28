@@ -60,13 +60,7 @@ RecompuiResource music_menu_create_track_settings()
 
 unsigned long music_menu_reroll_slot(int slotIdx)
 {
-    int jobState = reroll_slot(dbJobId, slotIdx);
-    while (jobState == 1)
-    {
-        
-    }
-
-    return false;
+    return reroll_slot(slotIdx);
 }
 
 void music_menu_init_icons()

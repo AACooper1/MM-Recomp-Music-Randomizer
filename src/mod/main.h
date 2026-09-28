@@ -1,11 +1,4 @@
-#include "modding.h"
-#include "global.h"
-#include "recomputils.h"
-#include "recompconfig.h"
-
-#include "logging.h"
-#include "modtrackdefs.h"
-#include "audio_api/all.h"
+#include "util/globals.h"
 
 #define NUM_SONG_SLOTS 0x80
 
