@@ -1,14 +1,5 @@
-#include "modding.h"
-#include "global.h"
-#include "recomputils.h"
-#include "recompconfig.h"
-#include "recompui.h"
+#include "util/globals.h"
 
-#include "logging.h"
-#include "modtrackdefs.h"
-#include "recompuiColors.h"
-
-#include "logging.h"
 extern Logger logger;
 
 RECOMP_IMPORT(".", int check_seed_exists(unsigned char* savePath));

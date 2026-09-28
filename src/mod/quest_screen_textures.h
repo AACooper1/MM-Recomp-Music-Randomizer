@@ -1,8 +1,4 @@
-#include "modding.h"
-#include "global.h"
-#include "recomputils.h"
-#include "recompconfig.h"
-#include "recompui.h"
+#include "util/globals.h"
 
 u64 gMusicStaffTex[] = {
 0xFFCFDFDFCFDFCFDF, 0xDFCFDFEFFFEFCFEF, 0xFFEFCFDFDFDFFFFF, 0xEFFFFFDFEFDFDFEF, 

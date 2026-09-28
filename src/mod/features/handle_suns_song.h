@@ -3,11 +3,9 @@
 #include "recomputils.h"
 #include "recompconfig.h"
 
-#include "logging.h"
-#include "modtrackdefs.h"
+#include "util/globals.h"
 #include "audio_api/all.h"
 
-extern Logger logger;
 extern cTrack randomized[0x80];
 
 s32 _lastInitializedSeqPlayerIndex;
