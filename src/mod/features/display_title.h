@@ -1,16 +1,8 @@
-#include "modding.h"
-#include "global.h"
-#include "recomputils.h"
-#include "recompconfig.h"
-#include "recompui.h"
-
-#include "logging.h"
-#include "modtrackdefs.h"
+#include "util/globals.h"
 
 cTrack* randomizedTable;
-extern Logger logger;
 
-// I used Claude to write this and I'm not proud of that :(
+// This macro is the only AI-written code in this repo.
 #define FADE_OUT(a, t0, delay, fadetime)                                                                                  \
     (a) = (u8)(                                                                                                  \
         (osGetTime() < (t0) + (OS_USEC_TO_CYCLES((delay) * 1000 * 1000)))                                             \

@@ -1,20 +1,12 @@
 #ifndef FORMMASK_H
 #define FORMMASK_H
 
-#include "modding.h"
-#include "global.h"
-#include "recomputils.h"
-#include "recompconfig.h"
-#include "recompui.h"
-
-#include "logging.h"
-#include "modtrackdefs.h"
+#include "util/globals.h"
 
 #define PLAYER_STATE1_EPONA PLAYER_STATE1_800000
 #define PLAYER_STATE1_SWIM PLAYER_STATE1_8000000
 #define PLAYER_STATE3_SPIKE_ROLL PLAYER_STATE3_80000
 
-extern Logger logger;
 extern cTrack randomized[0x80];
 
 extern u32 LifeMeter_IsCritical(void);

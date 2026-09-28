@@ -1,12 +1,13 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
-// MM Recomp Mod Requirements
 #include "modding.h"
 #include "global.h"
 #include "recomputils.h"
 #include "recompconfig.h"
+#include "recompui.h"
 
+#include <stdbool.h>
 #include "libc64/sprintf.h"
 
 typedef enum LogLevel_t

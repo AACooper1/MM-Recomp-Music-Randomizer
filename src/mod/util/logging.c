@@ -2,7 +2,7 @@
 
 RECOMP_IMPORT("*", unsigned char* recomp_get_mod_folder_path());
 
-RECOMP_IMPORT(".", void _log(const unsigned char* msg, int logLevel, bool noheader))
+RECOMP_IMPORT(".", void _log(const char* msg, int logLevel, bool noheader))
 RECOMP_IMPORT(".", void _set_log_level(LogLevel level));
 RECOMP_IMPORT(".", int _get_log_level());
 
@@ -192,7 +192,7 @@ void print_bytes(Logger* logger, void* addr, int n)
             logger->noheader.dev("\n%08x\t", i);
         }
         
-        logger->noheader.dev("%02x ", *(unsigned char*)(addr + i));
+        logger->noheader.dev("%02x ", *((unsigned char*)addr + i)); // Hope this doesn't break things
     }
     logger->noheader.dev("\n\n");
 }

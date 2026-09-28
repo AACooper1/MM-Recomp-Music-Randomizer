@@ -7,9 +7,6 @@
 #include "recompconfig.h"
 #include "recompui.h"
 
-#include "logging.h"
-#include "modtrackdefs.h"
-
 static RecompuiColor bg_color = {255, 255, 255, 0.3f * 255};
 static RecompuiColor border_color = {255, 255, 255, 0.2f * 255};
 static RecompuiColor container_color = {8, 7, 13, 1.0f * 255};
