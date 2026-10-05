@@ -135,7 +135,7 @@ RECOMP_HOOK_RETURN("AudioScript_SequencePlayerProcessSequence") void return_to_s
 }
 
 
-/*
+
 // Prints live data read by seqPlayer playing Sun's Song. 
 // Disabling but not deleting in case I need to use it in the future.
 
@@ -231,7 +231,7 @@ RECOMP_HOOK("AudioScript_ScriptReadCompressedU16") void print_the_thingy3(SeqScr
             to_print = (to_print << 8) & 0x7F00;
             to_print = *(state->pc + 1) | to_print;
         }
-        logger.noheader.dev("%02x %02x ", to_print & 0x00FF, to_print & 0xFF00 >> 8);
+        logger.noheader.dev("%02x %02x ", (to_print & 0xFF00) >> 8, to_print & 0x00FF);
         
         
         if (*(state->pc - 1) == 0xFD)
@@ -249,5 +249,3 @@ RECOMP_HOOK("AudioScript_ScriptReadCompressedU16") void print_the_thingy3(SeqScr
 //         logger.noheader.dev("%04x ", *state->pc);
 //     }
 // }
-
-*/

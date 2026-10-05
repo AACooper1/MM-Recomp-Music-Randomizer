@@ -121,7 +121,9 @@ void prepare_tracks()
         logger.debug("Preparing track %s...\n", randomized[i].name);
         if (randomized[i].type == VANILLA)
         {
+            logger.dev("seq.id = %x\n", randomized[i].seq.id);
             randomized[i].seq.id += 0x100;
+            logger.noheader.dev("seq.id = %x\n", randomized[i].seq.id);
             for (int i = 0; i < 16; i++) { randomized[i].formmask.states[i] = 0xFFFF; }
             randomized[i].formmask.cumulativeStates = 0xFFFF;
 

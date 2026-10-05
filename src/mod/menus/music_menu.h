@@ -3,6 +3,11 @@
 #include "menu_textures.h"
 
 RECOMP_IMPORT(".", int reroll_slot(int slotIdx));
+RECOMP_IMPORT(".", void fetch_randomized_track(int slotIdx, cTrack* modTrack));
+
+extern void populate_custom_track(cTrack* track);
+extern void replace_custom(int i);
+extern void replace_vanilla(int i);
 
 #define ALBUM_ART_MAX_SIZE 64 * 64
 #define TRACK_NAME_MAX_SIZE 256
@@ -31,6 +36,7 @@ typedef struct MusicMenu_Resource_t {
 typedef struct MusicMenu_Icon_Button_t {
     MusicMenu_Resource _base;
 
+    RecompuiResource button;
     RecompuiResource icon;
 
     void (*callback)(RecompuiResource, const RecompuiEventData*, void*);
@@ -134,6 +140,7 @@ MusicMenu_Volume music_menu_create_volume(RecompuiResource parent, cTrack* track
 #include "overlays/kaleido_scope/ovl_kaleido_scope/z_kaleido_scope.h"
 
 extern const u64 gMusicMenuNameTex[];
+extern u8* AudioLoad_SyncLoadSeq(s32 seqId);
 
 /*
     NOTES ON PAUSE MENU CODE:
