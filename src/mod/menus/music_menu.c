@@ -90,9 +90,8 @@ void music_menu_reroll_slot(RecompuiResource resouce, const RecompuiEventData* e
             if (gAudioCtx.seqPlayers[playerIdx].seqId == slotIdx)
             {
                 logger.noheader.dev("Restarting sequence\n");
-                // AudioSeq_StopSequence(playerIdx, 0);
-                // AudioScript_SequencePlayerDisable(&gAudioCtx.seqPlayers[playerIdx]);
-                AudioScript_ResetSequencePlayer(&gAudioCtx.seqPlayers[playerIdx]);
+                AudioScript_SequencePlayerDisable(&gAudioCtx.seqPlayers[playerIdx]);
+                AudioHeap_DiscardFont(randomized[slotIdx].bankNo);
                 seqPlayersToRestart[playerIdx] = true;
             }
         }
