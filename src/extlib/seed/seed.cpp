@@ -60,6 +60,7 @@ void Seed::randomize()
 
 void Seed::randomize_slot(int i)
 {
+    rng.seed(std::chrono::system_clock::now().time_since_epoch().count());
     if (songSlots[i].availableTracks.size() == 0)
     {
         songSlots[i].availableTracks = songSlots[i].availableTracksNoRemove;

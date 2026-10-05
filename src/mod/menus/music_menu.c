@@ -11,6 +11,11 @@ extern s16 sQuestVtxHeights[];
 
 extern u8 sAudioPauseState;
 
+extern f32 sPauseMenuVerticalOffset;
+extern TexturePtr sMapPageBgTextures[];
+PlayState* thisPlay;
+GraphicsContext* thisGfxCtx;
+
 s32 seqId;
 u16 seqArgs;
 
@@ -60,12 +65,107 @@ void music_menu_create_track_settings(RecompuiResource resouce, const RecompuiEv
 
 void music_menu_reroll_slot(RecompuiResource resouce, const RecompuiEventData* event, void* userdata)
 {
+    bool seqPlayersToRestart[SEQ_PLAYER_MAX];
+    char* oldBankData = 0;
+    int oldBankNo;
+    char* oldSeqData = 0;
+    char* oldSoundData[MAX_SOUNDS];
+    int oldNumSounds = 0;
+    
+    for (int i = 0; i < SEQ_PLAYER_MAX; i++)
+    {
+        seqPlayersToRestart[i] = 0;
+    }
+    
     if (event->type == UI_EVENT_CLICK)
     {    
+        tryAgain: // Goto Considered Harmful
         int slotIdx = *(int*)userdata;
         int newId = reroll_slot(slotIdx);
 
         logger.dev("Called reroll_slot on slot %i and got %i!\n", slotIdx, newId);
+
+        for (int playerIdx = 0; playerIdx < SEQ_PLAYER_MAX; playerIdx++)
+        {
+            if (gAudioCtx.seqPlayers[playerIdx].seqId == slotIdx)
+            {
+                logger.noheader.dev("Restarting sequence\n");
+                // AudioSeq_StopSequence(playerIdx, 0);
+                // AudioScript_SequencePlayerDisable(&gAudioCtx.seqPlayers[playerIdx]);
+                AudioScript_ResetSequencePlayer(&gAudioCtx.seqPlayers[playerIdx]);
+                seqPlayersToRestart[playerIdx] = true;
+            }
+        }
+
+        cTrack* oldTrack = &randomized[slotIdx];
+        if (oldTrack->hasSeq)
+        {
+            oldSeqData = oldTrack->seq.data;
+        }
+        if (oldTrack->hasBank)
+        {
+            oldBankNo = oldTrack->bankNo;
+            oldBankData = oldTrack->bank.data;
+        }
+        oldNumSounds = oldTrack->numSounds;
+        for (int i = 0; i < oldTrack->numSounds; i++)
+        {
+            oldSoundData[i] = oldTrack->sounds[i].data;
+        }
+        Lib_MemSet(oldTrack, 0, sizeof(cTrack));
+
+        fetch_randomized_track(slotIdx, &randomized[slotIdx]);
+        logger.debug("Preparing track %s...\n", randomized[slotIdx].name);
+        if (randomized[slotIdx].type == VANILLA)
+        {
+            randomized[slotIdx].seq.id += 0x100;
+            for (int i = 0; i < 16; i++) { randomized[slotIdx].formmask.states[i] = 0xFFFF; }
+            randomized[slotIdx].formmask.cumulativeStates = 0xFFFF;
+            replace_vanilla(slotIdx);
+        }
+        else
+        {
+            populate_custom_track(&randomized[slotIdx]);
+            logger.debug("Track %s prepared!\n", &randomized[slotIdx].name);
+            replace_custom(slotIdx);
+        }
+
+        for (int playerIdx = 0; playerIdx < SEQ_PLAYER_MAX; playerIdx++)
+        {
+            if (seqPlayersToRestart[playerIdx])
+            {
+                logger.debug("Restarting player idx %i\n", playerIdx);
+
+                recompui_close_context(musicMenuContext);
+                AudioLoad_SyncInitSeqPlayer(playerIdx, slotIdx, 0);
+                recompui_open_context(musicMenuContext);
+
+                AudioSeq_StartSequence(playerIdx, slotIdx, 0, 0);
+                
+                if (oldSeqData)
+                {
+                    recomp_free(oldSeqData);
+                }
+                if (oldBankData)
+                {
+                    logger.dev("Freeing bank %x\n", oldBankNo);
+                    recomp_free(oldBankData);
+                    logger.noheader.dev("Bank %x freed!\n", oldBankNo);
+                }
+
+                for (int i = 0; i < oldNumSounds; i++)
+                {
+                    recomp_free(oldSoundData[i]);
+                }
+                seqPlayersToRestart[playerIdx] = false;
+            }
+        }
+
+        logger.dev("Setting text...\n");
+        recompui_set_text(musicMenu.tracks[slotIdx]->trackCol.label, randomized[slotIdx].name);
+        logger.dev("Set text to %s!\n", randomized[slotIdx].name);
+        // print_bytes(&logger, randomized[slotIdx].seq.data, randomized[slotIdx].seq.size);
+        // print_bytes(&logger, gAudioCtx.seqPlayers->seqData, randomized[slotIdx].seq.size);
     }
 
     return;
@@ -115,8 +215,11 @@ MusicMenu_Icon_Button music_menu_create_icon_button(RecompuiTextureHandle icon, 
 {
     MusicMenu_Icon_Button button;
     button._base.parent = parent;
-    button._base.container = recompui_create_button(musicMenuContext, parent, "", BUTTONSTYLE_SECONDARY);
-
+    button._base.container = recompui_create_element(musicMenuContext, parent);
+    recompui_set_position(button._base.container, POSITION_RELATIVE);
+    button.button = recompui_create_button(musicMenuContext, button._base.container, "", BUTTONSTYLE_SECONDARY);
+    recompui_set_opacity(button.button, 0.0f);
+    recompui_set_position(button.button, POSITION_ABSOLUTE);
     
     recompui_set_width(button._base.container, width + 4, UNIT_DP);
     recompui_set_height(button._base.container, 50.0f, UNIT_PERCENT);
@@ -242,7 +345,7 @@ MusicMenu_Track_Column music_menu_create_track_column(cTrack* slot, RecompuiReso
     recompui_set_border_bottom_width(column.trackSettings._base.container, 1.0f, UNIT_DP);
 
     column.rerollSlot = music_menu_create_icon_button(dieIcon, column.buttonsContainer, BUTTON_WIDTH, BUTTON_HEIGHT, music_menu_reroll_slot);
-    recompui_register_callback(column.rerollSlot._base.container, column.rerollSlot.callback, &slot->slotIdx);
+    recompui_register_callback(column.rerollSlot.button, column.rerollSlot.callback, &slot->slotIdx);
 
     recompui_set_border_left_width(column.rerollSlot._base.container, 2.0f, UNIT_DP);
     recompui_set_border_top_width(column.rerollSlot._base.container, 1.0f, UNIT_DP);
@@ -273,6 +376,11 @@ MusicMenu_Track_Element music_menu_create_row(cTrack* slot, RecompuiResource par
 
 RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(cTrack* randomized)
 {
+    for (int i = 0; i < NA_BGM_MAX; i++)
+    {
+        volumeVals[i] = 100.0f;
+    }
+
     const float body_padding = 64.0f;
     const float container_height = RECOMPUI_TOTAL_HEIGHT - (2 * body_padding);
     const float container_width = container_height * (16.0f / 9.0f);
@@ -354,19 +462,25 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(
 
 RECOMP_HOOK_RETURN("AudioSeq_UpdateActiveSequences") void update_volume()
 {
-    int seqId = gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].seqId;
-    // logger.dev("fadeVolumeScale: %f\n", gAudioCtx.seqPlayers[SEQ_PLAYER_BGM_MAIN].fadeVolumeScale);
-    if (is_music_menu_open)
+    for (int playerIdx = 0; playerIdx < SEQ_PLAYER_MAX; playerIdx++)
     {
-        recompui_open_context(musicMenuContext);
-        volumeVals[seqId] = recompui_get_input_value_float(musicMenu.tracks[seqId]->trackCol.volume.slider) * 127.0f / 100.0f;
-        recompui_close_context(musicMenuContext);
-    }
-    if (has_music_menu_been_opened)
-    {
-        f32 cur_volume = gActiveSeqs[SEQ_PLAYER_BGM_MAIN].volCur;
-        cur_volume *= volumeVals[gActiveSeqs[SEQ_PLAYER_BGM_MAIN].seqId] / 127.0f;
-        AUDIOCMD_SEQPLAYER_FADE_VOLUME_SCALE(SEQ_PLAYER_BGM_MAIN, cur_volume);
+        int seqId = gAudioCtx.seqPlayers[playerIdx].seqId;
+        
+        if (seqId >= NA_BGM_TERMINA_FIELD && seqId < NA_BGM_MAX)
+        {
+            if (is_music_menu_open)
+            {
+                recompui_open_context(musicMenuContext);
+                volumeVals[seqId] = recompui_get_input_value_float(musicMenu.tracks[seqId]->trackCol.volume.slider) * 127.0f / 100.0f;
+                recompui_close_context(musicMenuContext);
+            }
+            if (has_music_menu_been_opened)
+            {
+                f32 cur_volume = gActiveSeqs[playerIdx].volCur;
+                cur_volume *= volumeVals[gActiveSeqs[playerIdx].seqId] / 127.0f;
+                AUDIOCMD_SEQPLAYER_FADE_VOLUME_SCALE(playerIdx, cur_volume);
+            }
+        }
     }
 }
 
@@ -425,6 +539,8 @@ RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState
     // log_debug("questPageRoll: %f\n", play->pauseCtx.questPageRoll);
     // log_debug("roll: %f\n", play->pauseCtx.roll);
 
+    thisPlay = play;
+
     Input* input = CONTROLLER1(&play->state);
     PauseContext* pauseCtx = &play->pauseCtx;
     
@@ -434,6 +550,7 @@ RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState
             switch (pauseCtx->savePromptState)
             {
                 case PAUSE_MUSICMENU_STATE_APPEARING:
+                        Audio_SetPauseState(false);
                         pauseCtx->questPageRoll -= 78.5f;
                         sPauseCursorLeftX -= TRUNCF_BINANG(sPauseCursorLeftMoveOffsetX / 4);
                         sPauseCursorRightX -= TRUNCF_BINANG(sPauseCursorRightMoveOffsetX / 4);
@@ -444,6 +561,7 @@ RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState
                         }
                     break;
                 case PAUSE_MUSICMENU_STATE_IDLE:
+                    Audio_SetPauseState(false);
                     if (!is_music_menu_open)
                     {
                         recompui_show_context(musicMenuContext);
@@ -470,6 +588,7 @@ RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState
                     }
                     break;
                 case PAUSE_MUSICMENU_STATE_CLOSING:
+                        Audio_SetPauseState(true);
                         pauseCtx->questPageRoll += 78.5f;
                         sPauseCursorLeftX += TRUNCF_BINANG(sPauseCursorLeftMoveOffsetX / 4);
                         sPauseCursorRightX += TRUNCF_BINANG(sPauseCursorRightMoveOffsetX / 4);
@@ -483,10 +602,25 @@ RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState
     }
 }
 
-extern f32 sPauseMenuVerticalOffset;
-extern TexturePtr sMapPageBgTextures[];
-PlayState* thisPlay;
-GraphicsContext* thisGfxCtx;
+extern u8 sAudioPauseState;
+
+RECOMP_HOOK_RETURN("KaleidoScope_Update") void turn_off_mute_behavior()
+{
+    PauseContext* pauseCtx = &thisPlay->pauseCtx;
+
+    if (pauseCtx->state == PAUSE_STATE_SAVEPROMPT)
+    {
+        AUDIOCMD_GLOBAL_UNMUTE(AUDIOCMD_ALL_SEQPLAYERS, false);
+    }
+    else if (pauseCtx->state)
+    {
+        AUDIOCMD_GLOBAL_MUTE(AUDIOCMD_ALL_SEQPLAYERS);
+    }
+    else
+    {
+        AUDIOCMD_GLOBAL_UNMUTE(AUDIOCMD_ALL_SEQPLAYERS, false);
+    }
+}
 
 extern Gfx* KaleidoScope_DrawPageSections(Gfx* gfx, Vtx* vertices, TexturePtr* textures);
 
