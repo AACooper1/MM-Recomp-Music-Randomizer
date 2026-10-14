@@ -131,6 +131,7 @@ typedef struct MusicMenu_t {
 } MusicMenu;
 
 MusicMenu musicMenu;
+bool isBankUnused[0xFF];
 
 MusicMenu_Track_Element music_menu_create_row(cTrack* slot, RecompuiResource parent);
 MusicMenu_Slot_Column music_menu_create_slot_column(cTrack* slot, RecompuiResource parent);

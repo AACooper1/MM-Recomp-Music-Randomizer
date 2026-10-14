@@ -42,6 +42,137 @@ RECOMP_DECLARE_EVENT(music_menu_close(PlayState* play));
 
 extern bool should_skip_song_title_display[0x7F];
 
+void replace_track_internal(int slotIdx, int trackId)
+{
+    bool seqPlayersToRestart[SEQ_PLAYER_MAX];
+    for (int i = 0; i < SEQ_PLAYER_MAX; i++)
+    {
+        seqPlayersToRestart[i] = 0;
+    }
+    
+    cTrack* slot = &randomized[slotIdx];
+    cTrack oldTrack;
+    Lib_MemCpy(&oldTrack, slot, sizeof(cTrack));
+
+    for (int playerIdx = 0; playerIdx < SEQ_PLAYER_MAX; playerIdx++)
+    {
+        if (gAudioCtx.seqPlayers[playerIdx].seqId == slotIdx)
+        {
+            logger.noheader.dev("Restarting sequence\n");
+            AudioScript_SequencePlayerDisable(&gAudioCtx.seqPlayers[playerIdx]);
+            AudioHeap_DiscardFont(randomized[slotIdx].bankNo);
+            seqPlayersToRestart[playerIdx] = true;
+        }
+    }
+    Lib_MemSet(slot, 0, sizeof(cTrack));
+
+    fetch_randomized_track(slotIdx, &randomized[slotIdx]);
+    logger.debug("Preparing track %s...\n", randomized[slotIdx].name);
+
+    if (randomized[slotIdx].type == VANILLA)
+    {
+        randomized[slotIdx].seq.id += 0x100;
+        for (int i = 0; i < 16; i++) { randomized[slotIdx].formmask.states[i] = 0xFFFF; }
+        randomized[slotIdx].formmask.cumulativeStates = 0xFFFF;
+        replace_vanilla(slotIdx);
+    }
+    else
+    {
+        populate_custom_track(&randomized[slotIdx]);
+        logger.debug("Track %s prepared!\n", &randomized[slotIdx].name);
+        replace_custom(slotIdx);
+    }
+
+    if (randomized[slotIdx].bankNo >= 0xFF)
+    {
+        for (int i = 0; i < 0xFF; i++)
+        {
+            if (isBankUnused[i])
+            {
+                AudioApi_ReplaceSoundFont(i, &gAudioCtx.soundFontTable->entries[randomized[slotIdx].bankNo]);
+                AudioApi_ReplaceSequenceFont(slotIdx, 0, i);
+                logger.dev("Moved bank %x to %x!\n", randomized[slotIdx].bankNo, i);
+                randomized[slotIdx].bankNo = i;
+                isBankUnused[i] = false;
+                break;
+            }
+        }
+    }
+    else
+    {
+        logger.dev("Bank1 %x\n", randomized[slotIdx].bankNo);
+    }
+
+    for (int playerIdx = 0; playerIdx < SEQ_PLAYER_MAX; playerIdx++)
+    {
+        if (seqPlayersToRestart[playerIdx])
+        {
+            logger.debug("Restarting player idx %i\n", playerIdx);
+
+            recompui_close_context(musicMenuContext);
+            AudioLoad_SyncInitSeqPlayer(playerIdx, slotIdx, 0);
+            recompui_open_context(musicMenuContext);
+
+            AudioSeq_StartSequence(playerIdx, slotIdx, 0, 0);
+            
+            bool seqIsUnused = true;
+            bool bankIsUnused = true;
+            int soundIsUnused[MAX_SOUNDS];
+            Lib_MemSet(soundIsUnused, true, MAX_SOUNDS);
+
+            for (int i = 0; i < NA_BGM_MAX; i++)
+            {
+                if (oldTrack.hasSeq)
+                {
+                    if (randomized[i].seq.id == oldTrack.seq.id)
+                    {
+                        seqIsUnused = false;
+                        break;
+                    }
+                }
+                if (oldTrack.hasBank)
+                {
+                    isBankUnused[oldTrack.bankNo] = true;
+                    if (randomized[i].bank.id == oldTrack.bank.id)
+                    {
+                        bankIsUnused = false;
+                        isBankUnused[oldTrack.bankNo] = false;
+                        break;
+                    }
+                }
+                for (int s = 0; s < oldTrack.numSounds; s++)
+                {
+                    for (int t = 0; t < NA_BGM_MAX; t++)
+                    {
+                        for (int u = 0; u < randomized[t].numSounds; t++)
+                        {
+                            if (randomized[t].sounds[u].id == oldTrack.sounds[s].id)
+                            {
+                                soundIsUnused[s] = false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (seqIsUnused && oldTrack.hasSeq)
+            {
+                recomp_free(oldTrack.seq.data);
+            }
+            if (bankIsUnused && oldTrack.hasBank)
+            {
+                recomp_free(oldTrack.bank.data);
+            }
+
+            for (int i = 0; i < oldTrack.numSounds; i++)
+            {
+                recomp_free(oldTrack.sounds[i].data);
+            }
+        }
+        seqPlayersToRestart[playerIdx] = false;
+    }
+}
+
 void music_menu_create_slot_settings(RecompuiResource resouce, const RecompuiEventData* event, void* userdata)
 {
     // Not implemented
@@ -64,107 +195,19 @@ void music_menu_create_track_settings(RecompuiResource resouce, const RecompuiEv
 }
 
 void music_menu_reroll_slot(RecompuiResource resouce, const RecompuiEventData* event, void* userdata)
-{
-    bool seqPlayersToRestart[SEQ_PLAYER_MAX];
-    char* oldBankData = 0;
-    int oldBankNo;
-    char* oldSeqData = 0;
-    char* oldSoundData[MAX_SOUNDS];
-    int oldNumSounds = 0;
-    
-    for (int i = 0; i < SEQ_PLAYER_MAX; i++)
-    {
-        seqPlayersToRestart[i] = 0;
-    }
-    
+{    
     if (event->type == UI_EVENT_CLICK)
-    {    
-        tryAgain: // Goto Considered Harmful
+    {
         int slotIdx = *(int*)userdata;
         int newId = reroll_slot(slotIdx);
 
         logger.dev("Called reroll_slot on slot %i and got %i!\n", slotIdx, newId);
 
-        for (int playerIdx = 0; playerIdx < SEQ_PLAYER_MAX; playerIdx++)
-        {
-            if (gAudioCtx.seqPlayers[playerIdx].seqId == slotIdx)
-            {
-                logger.noheader.dev("Restarting sequence\n");
-                AudioScript_SequencePlayerDisable(&gAudioCtx.seqPlayers[playerIdx]);
-                AudioHeap_DiscardFont(randomized[slotIdx].bankNo);
-                seqPlayersToRestart[playerIdx] = true;
-            }
-        }
-
-        cTrack* oldTrack = &randomized[slotIdx];
-        if (oldTrack->hasSeq)
-        {
-            oldSeqData = oldTrack->seq.data;
-        }
-        if (oldTrack->hasBank)
-        {
-            oldBankNo = oldTrack->bankNo;
-            oldBankData = oldTrack->bank.data;
-        }
-        oldNumSounds = oldTrack->numSounds;
-        for (int i = 0; i < oldTrack->numSounds; i++)
-        {
-            oldSoundData[i] = oldTrack->sounds[i].data;
-        }
-        Lib_MemSet(oldTrack, 0, sizeof(cTrack));
-
-        fetch_randomized_track(slotIdx, &randomized[slotIdx]);
-        logger.debug("Preparing track %s...\n", randomized[slotIdx].name);
-        if (randomized[slotIdx].type == VANILLA)
-        {
-            randomized[slotIdx].seq.id += 0x100;
-            for (int i = 0; i < 16; i++) { randomized[slotIdx].formmask.states[i] = 0xFFFF; }
-            randomized[slotIdx].formmask.cumulativeStates = 0xFFFF;
-            replace_vanilla(slotIdx);
-        }
-        else
-        {
-            populate_custom_track(&randomized[slotIdx]);
-            logger.debug("Track %s prepared!\n", &randomized[slotIdx].name);
-            replace_custom(slotIdx);
-        }
-
-        for (int playerIdx = 0; playerIdx < SEQ_PLAYER_MAX; playerIdx++)
-        {
-            if (seqPlayersToRestart[playerIdx])
-            {
-                logger.debug("Restarting player idx %i\n", playerIdx);
-
-                recompui_close_context(musicMenuContext);
-                AudioLoad_SyncInitSeqPlayer(playerIdx, slotIdx, 0);
-                recompui_open_context(musicMenuContext);
-
-                AudioSeq_StartSequence(playerIdx, slotIdx, 0, 0);
-                
-                if (oldSeqData)
-                {
-                    recomp_free(oldSeqData);
-                }
-                if (oldBankData)
-                {
-                    logger.dev("Freeing bank %x\n", oldBankNo);
-                    recomp_free(oldBankData);
-                    logger.noheader.dev("Bank %x freed!\n", oldBankNo);
-                }
-
-                for (int i = 0; i < oldNumSounds; i++)
-                {
-                    recomp_free(oldSoundData[i]);
-                }
-                seqPlayersToRestart[playerIdx] = false;
-            }
-        }
+        replace_track_internal(slotIdx, newId);
 
         logger.dev("Setting text...\n");
         recompui_set_text(musicMenu.tracks[slotIdx]->trackCol.label, randomized[slotIdx].name);
         logger.dev("Set text to %s!\n", randomized[slotIdx].name);
-        // print_bytes(&logger, randomized[slotIdx].seq.data, randomized[slotIdx].seq.size);
-        // print_bytes(&logger, gAudioCtx.seqPlayers->seqData, randomized[slotIdx].seq.size);
     }
 
     return;
