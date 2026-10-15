@@ -221,6 +221,11 @@ RECOMP_DLL_FUNC(reroll_slot)
     RECOMP_RETURN(int, result);
 }
 
+RECOMP_DLL_FUNC(save_seed)
+{
+    RECOMP_RETURN(int, seed->save_seed());
+}
+
 int read_oot_audiobin()
 {
     db->threadMsg->update("Checking for OoT AudioBin");
