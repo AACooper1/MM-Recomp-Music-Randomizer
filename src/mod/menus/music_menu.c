@@ -83,26 +83,6 @@ void replace_track_internal(int slotIdx, int trackId)
         replace_custom(slotIdx);
     }
 
-    if (randomized[slotIdx].bankNo >= 0xFF)
-    {
-        for (int i = 0; i < 0xFF; i++)
-        {
-            if (isBankUnused[i])
-            {
-                AudioApi_ReplaceSoundFont(i, &gAudioCtx.soundFontTable->entries[randomized[slotIdx].bankNo]);
-                AudioApi_ReplaceSequenceFont(slotIdx, 0, i);
-                logger.dev("Moved bank %x to %x!\n", randomized[slotIdx].bankNo, i);
-                randomized[slotIdx].bankNo = i;
-                isBankUnused[i] = false;
-                break;
-            }
-        }
-    }
-    else
-    {
-        logger.dev("Bank1 %x\n", randomized[slotIdx].bankNo);
-    }
-
     for (int playerIdx = 0; playerIdx < SEQ_PLAYER_MAX; playerIdx++)
     {
         if (seqPlayersToRestart[playerIdx])
@@ -144,7 +124,7 @@ void replace_track_internal(int slotIdx, int trackId)
                 {
                     for (int t = 0; t < NA_BGM_MAX; t++)
                     {
-                        for (int u = 0; u < randomized[t].numSounds; t++)
+                        for (int u = 0; u < randomized[t].numSounds; u++)
                         {
                             if (randomized[t].sounds[u].id == oldTrack.sounds[s].id)
                             {
