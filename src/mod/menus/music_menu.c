@@ -60,6 +60,19 @@ void save_and_close(RecompuiResource resource, const RecompuiEventData* event, v
     }
 }
 
+void discard_and_close(RecompuiResource resource, const RecompuiEventData* event, void* userdata)
+{
+    if (event->type == UI_EVENT_CLICK)
+    {
+        logger.dev("PlayState: %p", userdata);
+        recompui_set_display(musicMenu.trackTable, DISPLAY_TABLE);
+        recompui_set_display(musicMenu.save_changes._base.container, DISPLAY_NONE);
+        music_menu_close((PlayState*)userdata);
+        is_music_menu_open = false;
+        is_save_dialog_open = false;
+    }
+}
+
 void create_save_changes_dialog(PlayState* play)
 {
     MusicMenu_Save_changes save_changes = musicMenu.save_changes;
@@ -67,17 +80,30 @@ void create_save_changes_dialog(PlayState* play)
     recompui_open_context(musicMenuContext);
 
     save_changes._base.container = recompui_create_element(musicMenuContext, musicMenu._base.container);
+
+    recompui_set_width(save_changes._base.container, 0.90f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
+    recompui_set_height(save_changes._base.container, 0.533f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
+    recompui_set_background_color(save_changes._base.container, &black);
+    recompui_set_display(save_changes._base.container, DISPLAY_BLOCK);
+    recompui_set_position(save_changes._base.container, POSITION_ABSOLUTE);
     
     recompui_set_display(musicMenu.trackTable, DISPLAY_NONE);
+
+    recompui_create_label(musicMenuContext, save_changes._base.container, "You have unsaved changes. Save?", LABELSTYLE_LARGE);
+    
     save_changes.save_button = recompui_create_button(musicMenuContext, save_changes._base.container, "Save", BUTTONSTYLE_PRIMARY);
     logger.dev("PlayState is at %p", play);
     recompui_register_callback(save_changes.save_button, save_and_close, play);
 
-    recompui_set_width(save_changes.save_button, 100.0f, UNIT_PERCENT);
-    recompui_set_height(save_changes.save_button, 100.0f, UNIT_PERCENT);
+    save_changes.save_button = recompui_create_button(musicMenuContext, save_changes._base.container, "Discard", BUTTONSTYLE_PRIMARY);
+    recompui_register_callback(save_changes.save_button, discard_and_close, play);
 
-    recompui_set_align_items(musicMenu._base.container, ALIGN_ITEMS_CENTER);
-    recompui_set_justify_content(musicMenu._base.container, JUSTIFY_CONTENT_CENTER);
+    recompui_set_width(save_changes.save_button, 10.0f, UNIT_PERCENT);
+    recompui_set_height(save_changes.save_button, 10.0f, UNIT_PERCENT);
+
+    recompui_set_align_items(save_changes._base.container, ALIGN_ITEMS_CENTER);
+    recompui_set_justify_content(save_changes._base.container, JUSTIFY_CONTENT_CENTER);
+
 
     recompui_close_context(musicMenuContext);
 
