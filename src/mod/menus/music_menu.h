@@ -4,7 +4,6 @@
 
 RECOMP_IMPORT(".", int reroll_slot(int slotIdx));
 RECOMP_IMPORT(".", void fetch_randomized_track(int slotIdx, cTrack* modTrack));
-RECOMP_IMPORT(".", int save_seed());
 
 extern void populate_custom_track(cTrack* track);
 extern void replace_custom(int i);
@@ -113,14 +112,6 @@ typedef struct MusicMenu_Table_Header_t {
     const char text[2][16];
 } MusicMenu_Table_Header;
 
-typedef struct MusicMenu_Save_Changes_t {
-    MusicMenu_Resource _base;
-
-    RecompuiResource cover;
-    RecompuiResource save_button;
-    RecompuiResource discard_button;
-} MusicMenu_Save_changes;
-
 typedef struct MusicMenu_t {
     MusicMenu_Resource _base;
 
@@ -131,8 +122,6 @@ typedef struct MusicMenu_t {
 
     RecompuiResource nowPlaying;
 
-    MusicMenu_Save_changes save_changes;
-
     RecompuiColor bg_color;
     RecompuiColor modal_color;
     RecompuiColor border_color;
@@ -141,12 +130,8 @@ typedef struct MusicMenu_t {
     bool shown;
 } MusicMenu;
 
-#define MUSIC_MENU_CLOSE false
-#define MUSIC_MENU_RETURN true
-
 MusicMenu musicMenu;
-bool changes;
-bool close_or_return;
+bool isBankUnused[0xFF];
 
 MusicMenu_Track_Element music_menu_create_row(cTrack* slot, RecompuiResource parent);
 MusicMenu_Slot_Column music_menu_create_slot_column(cTrack* slot, RecompuiResource parent);
