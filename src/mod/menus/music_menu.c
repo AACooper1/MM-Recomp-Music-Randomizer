@@ -9,8 +9,6 @@ extern s16 sQuestVtxRectTop[];
 extern s16 sQuestVtxWidths[];
 extern s16 sQuestVtxHeights[];
 
-extern f32 D_8082B90C;
-
 extern u8 sAudioPauseState;
 
 extern f32 sPauseMenuVerticalOffset;
@@ -24,7 +22,6 @@ u16 seqArgs;
 float volumeVals[NA_BGM_MAX] = {100.0f};
 
 bool is_music_menu_open = false;
-bool is_save_dialog_open = false;
 bool has_music_menu_been_opened = false;
 
 RECOMP_IMPORT("magemods_audio_api", s32 AudioApi_GetActiveSeqId(u8 seqPlayerIndex));
@@ -42,120 +39,8 @@ RECOMP_HOOK("KaleidoScope_UpdateCursorSize") void insert_music_buttons(PlayState
 RECOMP_DECLARE_EVENT(music_buttons_interact(u16 cursor, PlayState* play));
 RECOMP_DECLARE_EVENT(music_menu_open(PlayState* play));
 RECOMP_DECLARE_EVENT(music_menu_close(PlayState* play));
-RECOMP_DECLARE_EVENT(music_menu_check_save(PlayState* play));
 
 extern bool should_skip_song_title_display[0x7F];
-
-void save_and_close(RecompuiResource resource, const RecompuiEventData* event, void* userdata)
-{
-    if (event->type == UI_EVENT_CLICK)
-    {
-        save_seed();
-        logger.dev("PlayState: %p", userdata);
-        recompui_set_display(musicMenu.trackTable, DISPLAY_TABLE);
-        recompui_set_display(musicMenu.save_changes._base.container, DISPLAY_NONE);
-        music_menu_close((PlayState*)userdata);
-        is_music_menu_open = false;
-        is_save_dialog_open = false;
-    }
-}
-
-void discard_and_close(RecompuiResource resource, const RecompuiEventData* event, void* userdata)
-{
-    if (event->type == UI_EVENT_CLICK)
-    {
-        logger.dev("PlayState: %p", userdata);
-        recompui_set_display(musicMenu.trackTable, DISPLAY_TABLE);
-        recompui_set_display(musicMenu.save_changes._base.container, DISPLAY_NONE);
-        music_menu_close((PlayState*)userdata);
-        is_music_menu_open = false;
-        is_save_dialog_open = false;
-    }
-}
-
-void create_save_changes_dialog(PlayState* play)
-{
-    MusicMenu_Save_changes save_changes = musicMenu.save_changes;
-
-    recompui_open_context(musicMenuContext);
-
-    save_changes._base.container = recompui_create_element(musicMenuContext, musicMenu._base.container);
-
-    recompui_set_width(save_changes._base.container, 0.90f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
-    recompui_set_height(save_changes._base.container, 0.533f * RECOMPUI_TOTAL_HEIGHT, UNIT_DP);
-    recompui_set_background_color(save_changes._base.container, &black);
-    recompui_set_display(save_changes._base.container, DISPLAY_BLOCK);
-    recompui_set_position(save_changes._base.container, POSITION_ABSOLUTE);
-    
-    recompui_set_display(musicMenu.trackTable, DISPLAY_NONE);
-
-    recompui_create_label(musicMenuContext, save_changes._base.container, "You have unsaved changes. Save?", LABELSTYLE_LARGE);
-    
-    save_changes.save_button = recompui_create_button(musicMenuContext, save_changes._base.container, "Save", BUTTONSTYLE_PRIMARY);
-    logger.dev("PlayState is at %p", play);
-    recompui_register_callback(save_changes.save_button, save_and_close, play);
-
-    save_changes.save_button = recompui_create_button(musicMenuContext, save_changes._base.container, "Discard", BUTTONSTYLE_PRIMARY);
-    recompui_register_callback(save_changes.save_button, discard_and_close, play);
-
-    recompui_set_width(save_changes.save_button, 10.0f, UNIT_PERCENT);
-    recompui_set_height(save_changes.save_button, 10.0f, UNIT_PERCENT);
-
-    recompui_set_align_items(save_changes._base.container, ALIGN_ITEMS_CENTER);
-    recompui_set_justify_content(save_changes._base.container, JUSTIFY_CONTENT_CENTER);
-
-
-    recompui_close_context(musicMenuContext);
-
-    musicMenu.save_changes = save_changes;
-}
-
-
-
-RECOMP_CALLBACK(".", music_menu_check_save) void prompt_save_changes(PlayState* play)
-{
-    if (changes)
-    {
-        is_save_dialog_open = true;
-        create_save_changes_dialog(play);
-    }
-    else
-    {
-        music_menu_close(play);
-    }
-    return;
-}
-
-RECOMP_CALLBACK(".", music_menu_close) void music_menu_close_impl(PlayState* play)
-{
-    PauseContext* pauseCtx = &play->pauseCtx;
-    logger.noheader.dev(" um");
-
-    logger.noheader.dev(", the PlayState is %p", play);
-
-    if (close_or_return) {
-        logger.noheader.dev("!");
-        Interface_SetAButtonDoAction(play, DO_ACTION_NONE);
-        pauseCtx->savePromptState = PAUSE_MUSICMENU_STATE_CLOSING;
-        D_8082B90C = pauseCtx->questPageRoll;
-        Audio_PlaySfx(NA_SE_SY_DECIDE);
-        recompui_hide_context(musicMenuContext);
-        is_music_menu_open = false;
-    }
-    else
-    {
-        logger.noheader.dev("...");
-        Interface_SetAButtonDoAction(play, DO_ACTION_NONE);
-        pauseCtx->state = PAUSE_STATE_UNPAUSE_SETUP;
-        sPauseMenuVerticalOffset = -6240.0f;
-        Audio_PlaySfx_PauseMenuOpenOrClose(SFX_PAUSE_MENU_CLOSE);
-        pauseCtx->mainState = PAUSE_MAIN_STATE_IDLE;
-        recompui_hide_context(musicMenuContext);
-        is_music_menu_open = false;
-    }
-    logger.dev("Closed!\n");
-    changes = false;
-}
 
 void replace_track_internal(int slotIdx, int trackId)
 {
@@ -227,9 +112,11 @@ void replace_track_internal(int slotIdx, int trackId)
                 }
                 if (oldTrack.hasBank)
                 {
+                    isBankUnused[oldTrack.bankNo] = true;
                     if (randomized[i].bank.id == oldTrack.bank.id)
                     {
                         bankIsUnused = false;
+                        isBankUnused[oldTrack.bankNo] = false;
                         break;
                     }
                 }
@@ -288,11 +175,7 @@ void music_menu_create_track_settings(RecompuiResource resouce, const RecompuiEv
 }
 
 void music_menu_reroll_slot(RecompuiResource resouce, const RecompuiEventData* event, void* userdata)
-{
-    if (is_save_dialog_open)
-    {
-        return;
-    }
+{    
     if (event->type == UI_EVENT_CLICK)
     {
         int slotIdx = *(int*)userdata;
@@ -305,8 +188,6 @@ void music_menu_reroll_slot(RecompuiResource resouce, const RecompuiEventData* e
         logger.dev("Setting text...\n");
         recompui_set_text(musicMenu.tracks[slotIdx]->trackCol.label, randomized[slotIdx].name);
         logger.dev("Set text to %s!\n", randomized[slotIdx].name);
-
-        changes = true;
     }
 
     return;
@@ -593,6 +474,11 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(
         Lib_MemCpy(musicMenu.tracks[i], &row, sizeof(MusicMenu_Track_Element));
     }
 
+    // recompui_set_border_color(musicMenu.tracks[NA_BGM_TERMINA_FIELD]->slotCol.cell.container, &aBlue);
+    // recompui_set_border_width(musicMenu.tracks[NA_BGM_TERMINA_FIELD]->slotCol.cell.container, 10.0f, UNIT_DP);
+    // recompui_set_border_color(musicMenu.tracks[NA_BGM_TERMINA_FIELD]->_base.container, &red);
+    // recompui_set_border_width(musicMenu.tracks[NA_BGM_TERMINA_FIELD]->_base.container, 10.0f, UNIT_DP);
+
     recompui_close_context(musicMenuContext);
 }
 
@@ -616,6 +502,20 @@ RECOMP_HOOK_RETURN("AudioSeq_UpdateActiveSequences") void update_volume()
                 cur_volume *= volumeVals[gActiveSeqs[playerIdx].seqId] / 127.0f;
                 AUDIOCMD_SEQPLAYER_FADE_VOLUME_SCALE(playerIdx, cur_volume);
             }
+        }
+    }
+}
+
+RECOMP_HOOK("KaleidoScope_UpdateQuestCursor") void check_music_menu_close(PlayState* play)
+{
+    if (is_music_menu_open)
+    {
+        if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->press.button, BTN_B))
+        {
+            Audio_PlaySfx(NA_SE_SY_DECIDE);
+            recompui_hide_context(musicMenuContext);
+            music_menu_close(play);
+            is_music_menu_open = false;
         }
     }
 }
@@ -648,6 +548,7 @@ RECOMP_CALLBACK(".", music_buttons_interact) void on_music_buttons_interact(u16 
     }
 }
 
+extern f32 D_8082B90C;
 extern s16 sPauseCursorLeftX;
 extern s16 sPauseCursorRightX;
 
@@ -691,20 +592,22 @@ RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState
                         music_menu_open(play);
                     }
 
-                    if (is_save_dialog_open)
-                    {
-
-                    }
-                    else if (CHECK_BTN_ALL(input->press.button, BTN_B)) {
-                        close_or_return = MUSIC_MENU_RETURN;
-                        music_menu_check_save(play);
+                    if (CHECK_BTN_ALL(input->press.button, BTN_B)) {
+                        Interface_SetAButtonDoAction(play, DO_ACTION_NONE);
+                        pauseCtx->savePromptState = PAUSE_MUSICMENU_STATE_CLOSING;
+                        D_8082B90C = pauseCtx->questPageRoll;
                     }
                     else if (CHECK_BTN_ALL(input->press.button, BTN_START))
                     {
-                        close_or_return = MUSIC_MENU_CLOSE;
-                        music_menu_check_save(play);
+                        Interface_SetAButtonDoAction(play, DO_ACTION_NONE);
+                        pauseCtx->state = PAUSE_STATE_UNPAUSE_SETUP;
+                        sPauseMenuVerticalOffset = -6240.0f;
+                        Audio_PlaySfx_PauseMenuOpenOrClose(SFX_PAUSE_MENU_CLOSE);
+                        pauseCtx->mainState = PAUSE_MAIN_STATE_IDLE;
+                        recompui_hide_context(musicMenuContext);
+                        music_menu_close(play);
+                        is_music_menu_open = false;
                     }
-
                     break;
                 case PAUSE_MUSICMENU_STATE_CLOSING:
                         Audio_SetPauseState(true);
