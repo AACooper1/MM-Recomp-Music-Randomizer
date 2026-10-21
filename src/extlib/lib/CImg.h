@@ -71732,6 +71732,10 @@ namespace cil = cimg_library;
 
 #endif
 
+#ifdef ERROR
+#undef ERROR
+#endif
+
 // Local Variables:
 // mode: c++
 // End:

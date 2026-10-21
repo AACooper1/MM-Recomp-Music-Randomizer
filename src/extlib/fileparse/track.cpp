@@ -503,3 +503,4 @@ void Track::parse_categories(const std::vector<int>& categories)
     }
     (*this->categories)[id] = true;
 }
+
