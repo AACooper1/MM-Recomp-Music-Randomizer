@@ -10,6 +10,7 @@
 
 #include "common.hpp"
 #include "lib/sqlite3.h"
+#include "lib/CImg.h"
 #include "table.hpp"
 
 namespace fs = std::filesystem;
