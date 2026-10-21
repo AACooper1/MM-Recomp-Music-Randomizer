@@ -42,6 +42,11 @@ RECOMP_DECLARE_EVENT(music_menu_close(PlayState* play));
 
 extern bool should_skip_song_title_display[0x7F];
 
+RECOMP_CALLBACK(".", music_menu_close) void save_on_close()
+{
+    save_seed();
+}
+
 void replace_track_internal(int slotIdx, int trackId)
 {
     bool seqPlayersToRestart[SEQ_PLAYER_MAX];
