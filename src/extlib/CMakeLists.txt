@@ -19,6 +19,7 @@ target_sources(${TARGET_NAME} PUBLIC
     "fileparse/audiofile.cpp"
     "fileparse/track.cpp"
     "fileparse/formmask.cpp"
+    "fileparse/image.cpp"
     
     "seed/seed.cpp"
     "seed/songforce_songtest.cpp"

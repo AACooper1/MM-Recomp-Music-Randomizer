@@ -7,3 +7,9 @@
 [submodule "N64Recomp"]
 	path = N64Recomp
 	url = https://github.com/N64Recomp/N64Recomp
+[submodule "src/extlib/lib/libpng"]
+	path = src/extlib/lib/libpng
+	url = https://github.com/pnggroup/libpng.git
+[submodule "src/extlib/lib/zlib"]
+	path = src/extlib/lib/zlib
+	url = https://github.com/madler/zlib.git

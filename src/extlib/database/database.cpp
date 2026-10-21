@@ -155,6 +155,17 @@ void Database::add_if_not_in_db()
         {
             continue;
         }
+        else if (entry.path().extension() == ".png")
+        {
+            try
+            {
+                parse_image(entry.path());
+            }
+            catch(std::exception& e)
+            {
+                
+            }
+        }
         try
         {
             std::stringstream updateMsg;
