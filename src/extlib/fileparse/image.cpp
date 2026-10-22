@@ -26,8 +26,21 @@ void parse_image(fs::path path)
 
     CImgDisplay disp(canvas, fname);
     disp.move(100, 100);
-    disp.wait(20);
-    disp.close();
 
-    
+    cImgPixel RGBA32Data[64][64];
+
+    for (int y = 0; y < canvas.height(); y++)
+    {
+        for (int x = 0; x < canvas.width(); x++)
+        {
+            int r = image(x, y, 0);
+            int g = image(x, y, 1);
+            int b = image(x, y, 2);
+            int a = image(x, y, 3);
+
+            RGBA32Data[y][x] = cImgPixel(x, y, r, g, b, a);
+        }
+    }
+
+    disp.close();    
 }
