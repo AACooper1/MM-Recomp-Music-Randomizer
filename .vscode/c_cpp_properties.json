@@ -16,7 +16,8 @@
                 "${workspaceFolder}/mm-decomp/src",
                 "${workspaceFolder}/offline_build",
                 "${workspaceFolder}/assets_extracted",
-                "${workspaceFolder}/assets_extracted/assets"
+                "${workspaceFolder}/assets_extracted/assets",
+                "${workspaceFolder}/"
             ],
             "defines": [
                 "F3DEX_GBI_2",

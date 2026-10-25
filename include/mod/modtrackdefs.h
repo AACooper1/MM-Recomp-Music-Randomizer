@@ -74,6 +74,8 @@ typedef struct cTrack_t
     int hasBank;
     int numSounds;
 
+    unsigned char image[64 * 64];
+
     cFormMask formmask;
     cSequence seq;
     cBank bank;

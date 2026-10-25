@@ -1,6 +1,6 @@
 #include "image.hpp"
 
-void parse_image(fs::path path)
+void Image::parse()
 {
     cimg::exception_mode(1);
     std::string p_str = path.string();
@@ -24,23 +24,39 @@ void parse_image(fs::path path)
     std::string fname_str = path.parent_path().filename().string();
     const char* fname = fname_str.c_str();
 
-    CImgDisplay disp(canvas, fname);
-    disp.move(100, 100);
-
-    cImgPixel RGBA32Data[64][64];
-
     for (int y = 0; y < canvas.height(); y++)
     {
         for (int x = 0; x < canvas.width(); x++)
         {
-            int r = image(x, y, 0);
-            int g = image(x, y, 1);
-            int b = image(x, y, 2);
-            int a = image(x, y, 3);
+            int r = canvas(x, y, 0);                                // Always present
+            int g = canvas.spectrum() >= 3 ? canvas(x, y, 1) : r;   // 1 or 2 = greyscale
+            int b = canvas.spectrum() >= 3 ? canvas(x, y, 2) : r;   // 1 or 2 = greyscale
+            int a = canvas.spectrum() == 2 || canvas.spectrum() == 4 ? canvas(x, y, 3) : 0xFF;  // 2 = greyscale with alpha, 4 = rgba
 
-            RGBA32Data[y][x] = cImgPixel(x, y, r, g, b, a);
+            pixels[y][x] = cImgPixel(x, y, r, g, b, a);
         }
     }
 
-    disp.close();    
+    pixels_to_rgba32();
+
+    return;
+}
+
+void Image::pixels_to_rgba32()
+{
+    for (int y = 0; y < 64; y++)
+    {
+        for (int x = 0; x < 64; x+=2)
+        {
+            u32 px1 = pixels[y][x].r << 24 | pixels[y][x].g << 16 | pixels[y][x].b << 8 | pixels[y][x].a;
+            u32 px2 = pixels[y][x + 1].r << 24 | pixels[y][x + 1].g << 16 | pixels[y][x + 1].b << 8 | pixels[y][x + 1].a;
+            u64 px = (long long)px1 << 32 | px2;
+            rgba32[y][x / 2] = px;
+            
+            for (int i = 7; i >= 0; i--)
+            {
+                data.push_back(px >> i * 8 & 0xFF);
+            }
+        }
+    }
 }

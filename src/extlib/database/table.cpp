@@ -158,9 +158,13 @@ template<typename T> std::shared_ptr<T> Table<T>::select(std::string q)
         obj = std::make_shared<T>();
         create_from_statement(statement, obj);
     }
+    else if (statement.step() == SQLITE_DONE)
+    {
+        logger.debug << "Did not find " << name << " entry where " << query << ".";
+    }
     else
     {
-        logger.error << "Could not create" << name << " from statement: " << db->lastErrMsg << std::endl;
+        logger.error << "Could not create " << name << " from statement: " << db->get_last_errmsg() << std::endl;
     }
 
     return obj;
@@ -227,3 +231,4 @@ template class Table<Track>;
 template class Table<Sequence>;
 template class Table<Bank>;
 template class Table<Sound>;
+template class Table<Image>;

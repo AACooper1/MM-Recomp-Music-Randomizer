@@ -23,6 +23,21 @@ struct cImgPixel {
     cImgPixel() : x(0), y(0), r(0), g(0), b(0), a(0) {}
 };
 
-void parse_image(fs::path path);
+class Image {
+    public:
+        Image(fs::path path) : path(path) { }
+        Image() {}
+
+        fs::path path;
+        long long timestamp;
+        void parse();
+        u64 rgba32[64][32];
+        std::vector<char> data;
+
+        int databaseIndex = 0;
+    private:
+        void pixels_to_rgba32();
+        cImgPixel pixels[64][64];
+};
 
 #endif

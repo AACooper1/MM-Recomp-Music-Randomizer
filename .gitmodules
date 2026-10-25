@@ -13,3 +13,9 @@
 [submodule "src/extlib/lib/zlib"]
 	path = src/extlib/lib/zlib
 	url = https://github.com/madler/zlib.git
+[submodule "lib/libjpeg"]
+	path = lib/libjpeg
+	url = https://github.com/winlibs/libjpeg.git
+[submodule "lib/libjpeg-turbo"]
+	path = lib/libjpeg-turbo
+	url = https://github.com/libjpeg-turbo/libjpeg-turbo.git

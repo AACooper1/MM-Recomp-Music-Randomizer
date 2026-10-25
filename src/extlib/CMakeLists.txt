@@ -11,6 +11,7 @@ target_sources(${TARGET_NAME} PUBLIC
     "database/sequencetable.cpp"
     "database/banktable.cpp"
     "database/soundtable.cpp"
+    "database/imagetable.cpp"
     "database/relationtable.cpp"
     
     "fileparse/audiofile.cpp"

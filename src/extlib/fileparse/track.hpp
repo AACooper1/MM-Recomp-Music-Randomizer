@@ -9,6 +9,7 @@
 
 #include "audiofile.hpp"
 #include "formmask.hpp"
+#include "image.hpp"
 
 #include "lib/miniz.h"
 
@@ -79,8 +80,11 @@ class Track
         std::vector<int> soundIds;
         std::vector<std::shared_ptr<Sound>> sounds;
 
+        int imgId = 0;
+        std::shared_ptr<Image> image = nullptr;
+
     private:
-    bool read_from_zseq();
+        bool read_from_zseq();
         bool read_from_mmrs();
         bool read_from_ootrs();
         bool read_from_streamed() {return false;};

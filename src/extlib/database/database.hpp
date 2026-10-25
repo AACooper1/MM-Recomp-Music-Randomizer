@@ -108,6 +108,7 @@ class Database : public std::enable_shared_from_this<Database>
         int exec(std::string query);
 
         fs::path get_db_dir() { return dbPath.parent_path(); }
+        std::string get_last_errmsg() { return sqlite3_errmsg(db.get()); }
 
         void set_last_rc(int rc);
         int get_last_rc() { return lastRC; };
@@ -131,10 +132,12 @@ class Database : public std::enable_shared_from_this<Database>
         fs::path dbPath;
         fs::path musicPath;
 
+        void get_images();
         void add_if_not_in_db();
         void remove_if_not_in_music_dir();
+        void link_images();
 
-        bool check_if_in_db(fs::directory_entry entry);
+        bool check_if_in_table(fs::directory_entry entry, std::string table);
 
         void init_tables();
         void report_error();
@@ -146,6 +149,7 @@ struct RelationTables
     std::unique_ptr<TrackToSequenceTable> track_to_seq;
     std::unique_ptr<TrackToBankTable> track_to_bank;
     std::unique_ptr<TrackToSoundTable> track_to_sound;
+    std::unique_ptr<TrackToImageTable> track_to_image;
     std::unique_ptr<OoTBankToBankTable> oot_bank_to_bank;
     std::unique_ptr<OoTBankToSoundTable> oot_bank_to_sound;
 };
@@ -156,6 +160,7 @@ struct dbTables
     std::unique_ptr<SequenceTable> seq;
     std::unique_ptr<BankTable> bank;
     std::unique_ptr<SoundTable> sound;
+    std::unique_ptr<ImageTable> image;
 
     RelationTables relation;
 
