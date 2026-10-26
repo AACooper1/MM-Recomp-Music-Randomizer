@@ -204,14 +204,17 @@ MusicMenu_Album_Art music_menu_create_album_art(RecompuiResource parent, cTrack*
 
     image._base.parent = parent;
     image._base.container = recompui_create_element(musicMenuContext, parent);
-    recompui_set_min_width(image._base.container, 64.0f, UNIT_DP);
-    recompui_set_max_width(image._base.container, 64.0f, UNIT_DP);
-    recompui_set_height(image._base.container, 64.0f, UNIT_DP);
+    recompui_set_min_width(image._base.container, 67.0f, UNIT_DP);
+    recompui_set_max_width(image._base.container, 67.0f, UNIT_DP);
+    recompui_set_height(image._base.container, 67.0f, UNIT_DP);
     recompui_set_border_width(image._base.container, 3.0f, UNIT_DP);
 
     if (track->hasImage && track->image.data)
     {
         image.imageContainer = recompui_create_element(musicMenuContext, image._base.container);
+        recompui_set_min_width(image.imageContainer, 64.0f, UNIT_DP);
+        recompui_set_max_width(image.imageContainer, 64.0f, UNIT_DP);
+        recompui_set_height(image.imageContainer, 64.0f, UNIT_DP);
 
         image.imageHandle = recompui_create_texture_rgba32(track->image.data, 64, 64);
         image.image = recompui_create_imageview(musicMenuContext, image.imageContainer, image.imageHandle);

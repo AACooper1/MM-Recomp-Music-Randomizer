@@ -351,7 +351,17 @@ RECOMP_DLL_FUNC(fetch_image)
     int size = RECOMP_ARG(int, 2);
     
     char* image = db->tables->image->entries[id]->data.data();
-    logger.dev << db->tables->image->entries[id]->data.size();
 
-    copy_into_mod_ram(dst, image, size);
+    for (int i = 0; i < size; i++)
+    {
+        dst[i] = image[i];
+    }
+
+    auto* ptr = reinterpret_cast<uint32_t*>(dst);
+    size_t num_pairs = db->tables->image->entries[id]->data.size() / 8;
+
+    for (size_t i = 0; i < num_pairs; ++i) {
+        std::swap(ptr[2 * i], ptr[2 * i + 1]);
+    }
+
 }
