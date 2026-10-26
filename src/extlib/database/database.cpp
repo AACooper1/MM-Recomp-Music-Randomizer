@@ -502,6 +502,7 @@ int Database::load_all_tracks()
         }
 
         track->seqId = tables->relation.track_to_seq->select(id);
+        track->imgId = tables->relation.track_to_image->select(id);
         
         Statement statement = tables->relation.track_to_sound->select_iter(id);
         while (statement.step() == SQLITE_ROW)
@@ -520,6 +521,7 @@ int Database::load_all_songs()
     tables->seq->load_entries();
     tables->bank->load_entries();
     tables->sound->load_entries();
+    tables->image->load_entries();
 
    return tables->track->entries.size();
 }
@@ -544,6 +546,11 @@ int Database::prepare_track(int id)
         {
             tables->sound->load_entry(track->soundIds[i]);
             track->sounds.push_back(tables->sound->entries[track->soundIds[i]]);
+        }
+        if (track->imgId > 0)
+        {
+            tables->image->load_entry(track->imgId);
+            track->image = tables->image->entries[track->imgId];
         }
         track->is_prepared = true;
         logger.debug << "Track " << track->name << " prepared!" << std::endl;
@@ -610,7 +617,7 @@ void Database::link_images()
             _statement.bind_text(absPath.string());
 
             int imgId = _statement.exec_and_return_id();
-            if (imgId)
+            if (imgId > 0)
             {
                 tables->relation.track_to_image->insert(trackId, imgId);
                 break;

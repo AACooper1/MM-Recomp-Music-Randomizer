@@ -198,6 +198,28 @@ void music_menu_reroll_slot(RecompuiResource resouce, const RecompuiEventData* e
     return;
 }
 
+MusicMenu_Album_Art music_menu_create_album_art(RecompuiResource parent, cTrack* track)
+{
+    MusicMenu_Album_Art image;
+
+    image._base.parent = parent;
+    image._base.container = recompui_create_element(musicMenuContext, parent);
+    recompui_set_min_width(image._base.container, 64.0f, UNIT_DP);
+    recompui_set_max_width(image._base.container, 64.0f, UNIT_DP);
+    recompui_set_height(image._base.container, 64.0f, UNIT_DP);
+    recompui_set_border_width(image._base.container, 3.0f, UNIT_DP);
+
+    if (track->hasImage && track->image.data)
+    {
+        image.imageContainer = recompui_create_element(musicMenuContext, image._base.container);
+
+        image.imageHandle = recompui_create_texture_rgba32(track->image.data, 64, 64);
+        image.image = recompui_create_imageview(musicMenuContext, image.imageContainer, image.imageHandle);
+    }
+
+    return image;
+}
+
 void music_menu_init_icons()
 {
     settingsIcon = recompui_create_texture_rgba32(settingsIconData, BUTTON_WIDTH, BUTTON_HEIGHT);
@@ -335,11 +357,7 @@ MusicMenu_Track_Column music_menu_create_track_column(cTrack* slot, RecompuiReso
     recompui_set_border_width(column._base.container, 2.0f, UNIT_DP);
     recompui_set_padding_left(column._base.container, 20.0f, UNIT_DP);
     
-    column.albumArt._base.container = recompui_create_element(musicMenuContext, column._base.container);
-    recompui_set_min_width(column.albumArt._base.container, 64.0f, UNIT_DP);
-    recompui_set_max_width(column.albumArt._base.container, 64.0f, UNIT_DP);
-    recompui_set_height(column.albumArt._base.container, 64.0f, UNIT_DP);
-    recompui_set_border_width(column.albumArt._base.container, 3.0f, UNIT_DP);
+    column.albumArt = music_menu_create_album_art(column._base.container, slot);
 
     column.name = slot->name;
     column.titleContainer = recompui_create_element(musicMenuContext, column._base.container);

@@ -118,6 +118,7 @@ void prepare_tracks()
     for (int i = 2; i < NUM_SONG_SLOTS; i++)
     {
         fetch_randomized_track(i, &randomized[i]);
+        logger.dev("Sizeof cTrack (mod): %i\n", sizeof(cTrack));
         logger.debug("Preparing track %s...\n", randomized[i].name);
         if (randomized[i].type == VANILLA)
         {
@@ -137,7 +138,6 @@ void prepare_tracks()
 
 void populate_custom_track(cTrack* track)
 {
-    logger.dev("...\n");
     if (track->hasSeq)
     {
         track->seq.data = recomp_alloc(track->seq.size);
@@ -157,7 +157,11 @@ void populate_custom_track(cTrack* track)
         track->sounds[s].data = recomp_alloc(track->sounds[s].size);
         fetch_sound(track->sounds[s].id, track->sounds[s].data, track->sounds[s].size);
     }
-    logger.noheader.dev("...\n");
+    if (track->hasImage)
+    {
+        track->image.data = recomp_alloc(64 * 32 * sizeof(u64));
+        fetch_image(track->image.id, track->image.data, 64 * 32 * sizeof(u64));
+    }
 }
 
 AudioTableEntry* create_seq_entry_from_track(cTrack* track)

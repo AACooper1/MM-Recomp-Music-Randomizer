@@ -25,7 +25,7 @@ struct cImgPixel {
 
 class Image {
     public:
-        Image(fs::path path) : path(path) { }
+        Image(fs::path path) : path(path) { timestamp =  std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(path).time_since_epoch()).count(); }
         Image() {}
 
         fs::path path;

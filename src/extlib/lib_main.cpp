@@ -203,6 +203,12 @@ void prepare_custom_track(std::shared_ptr<Track> extlibTrack, cTrack* modTrack)
         modTrack->formmask.states[i] = extlibTrack->formmask.states[i ^ 1];
     }
     modTrack->formmask.pad[0] = extlibTrack->formmask.cumulativeStates;
+
+    if (extlibTrack->imgId > 0)
+    {
+        modTrack->hasImage = true;
+        modTrack->image.id = extlibTrack->imgId;
+    }
 }
 
 RECOMP_DLL_FUNC(reroll_slot)
@@ -302,6 +308,7 @@ RECOMP_DLL_FUNC(fetch_randomized_track)
     {
         prepare_vanilla_track(extlibTrack, modTrack);
     }
+    logger.dev << "Sizeof cTrack (extlib): " << sizeof(cTrack) << std::endl;
 }
 
 RECOMP_DLL_FUNC(fetch_seq)
@@ -335,4 +342,16 @@ RECOMP_DLL_FUNC(fetch_sound)
     char* sound = db->tables->sound->entries[id]->data->data();
 
     copy_into_mod_ram(dst, sound, size);
+}
+
+RECOMP_DLL_FUNC(fetch_image)
+{
+    int id = RECOMP_ARG(int, 0);
+    char* dst = RECOMP_ARG(char*, 1);
+    int size = RECOMP_ARG(int, 2);
+    
+    char* image = db->tables->image->entries[id]->data.data();
+    logger.dev << db->tables->image->entries[id]->data.size();
+
+    copy_into_mod_ram(dst, image, size);
 }

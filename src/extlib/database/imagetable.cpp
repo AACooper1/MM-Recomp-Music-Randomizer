@@ -37,9 +37,16 @@ template<> int ImageTable::insert(std::shared_ptr<Image> entry)
     }
 
     if (!entry->path.empty())
+    {
         statement.bind_text(entry->path.parent_path().string());
+        statement.bind_int64(entry->timestamp);
+    }
     else
+    {
         statement.bind_text("");
+        statement.bind_int64(0);
+    }
+
     statement.bind_blob(entry->rgba32, sizeof(u64) * 64 * 32);
     statement.bind_blob(entry->rgba32, sizeof(u64) * 64 * 32);
 
