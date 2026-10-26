@@ -84,11 +84,11 @@ typedef struct cTrack_t
     int hasBank;
     int numSounds;
     int hasImage;
+
+    cFormMask formmask;
     #ifndef __cplusplus 
     u32 pad;
     #endif
-
-    cFormMask formmask;
     cSequence seq;
     cBank bank;
     cSound sounds[MAX_SOUNDS];
