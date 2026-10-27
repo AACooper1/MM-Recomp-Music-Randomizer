@@ -99,15 +99,15 @@ bool Database::check_if_in_table(fs::directory_entry entry, std::string table)
 {
     Statement statement(db);
 
-    std::string query = "SELECT * FROM ? WHERE filename = ? AND modified = ?;";
+    std::string query = "SELECT * FROM " + table + " WHERE filename = ? AND modified = ?;";
 
     statement.prepare(query);
 
-    statement.bind_text(table);
     statement.bind_text(fs::relative(entry.path(), musicPath).string());
     statement.bind_int64(std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(entry.path()).time_since_epoch()).count());
 
-    if (statement.step() == SQLITE_ROW) return true;
+    int res = statement.step();
+    if (res == SQLITE_ROW) return true;
     else return false;
 }
 
@@ -141,6 +141,7 @@ int Database::update_from_music_dir()
     add_if_not_in_db();
     remove_if_not_in_music_dir();
     link_images();
+    remove_unused_images();
 
     logger.debug << "Finished update_from_music_dir" << std::endl;
 
@@ -455,6 +456,7 @@ bool Database::remove_song(int id)
             return false;
         }
     }
+    returnedId = tables->relation.track_to_image->remove(id);
     
     Statement statement = tables->relation.track_to_sound->remove_iter(id);
     while ((returnedId = statement.exec_and_return_id()) > 0)
@@ -607,11 +609,16 @@ void Database::link_images()
         int trackId = statement.column_int(0);
         fs::path currPath = statement.column_text(2);
 
+        if (tables->relation.track_to_image->select(trackId) >= 0)
+        {
+            continue;
+        }
+
         while (!(currPath = currPath.parent_path()).filename().empty())
         {
             fs::path absPath = fs::absolute(musicPath / currPath);
             Statement _statement(db);
-            std::string query = "SELECT * FROM image WHERE filepath = ?;";
+            std::string query = "SELECT * FROM image WHERE filename = ?;";
             _statement.prepare(query);
 
             _statement.bind_text(absPath.string());
@@ -623,5 +630,50 @@ void Database::link_images()
                 break;
             }
         }
+
+        // Run it one more time so we get the top level music folder too
+
+        if (currPath.filename().empty())
+        {
+            logger.dev("Hello search for me in the um");
+            Statement _statement(db);
+            std::string query = "SELECT * FROM image WHERE filename = ?;";
+            _statement.prepare(query);
+
+            _statement.bind_text(musicPath.string());
+
+            int imgId = _statement.exec_and_return_id();
+            if (imgId > 0)
+            {
+                tables->relation.track_to_image->insert(trackId, imgId);
+            }
+        }
+    }
+}
+
+void Database::remove_unused_images()
+{
+    Statement statement = tables->image->select_iter();
+    
+    while(statement.step() == SQLITE_ROW)
+    {
+        int id = statement.column_int(0);
+        fs::path path = statement.column_text(1);
+        long long modified = statement.column_int64(2);
+        fs::path fullPath = musicPath / path / "logo.png";
+
+        if (fs::exists(fullPath))
+        {
+            if (std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(fullPath).time_since_epoch()).count() == modified)
+            {
+                continue;
+            }
+        }
+
+        tables->image->remove(id);
+
+        int returnedId;
+        Statement substatement = tables->relation.track_to_image->remove_iter_inv(id);
+        while ((returnedId = statement.exec_and_return_id()) > 0);
     }
 }

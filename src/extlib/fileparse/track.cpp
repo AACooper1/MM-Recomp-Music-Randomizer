@@ -213,6 +213,11 @@ bool Track::read_from_mmrs()
             formmask.parse_file(*filebuffer);
             formmask.is_default = false;
         }
+        else if (filename.ends_with(".png"))
+        {
+            image = std::make_shared<Image>(filebuffer);
+            image->parse();
+        }
     }
 
     if (!sequence && type != TrackType::STREAMED)

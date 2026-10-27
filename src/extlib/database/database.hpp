@@ -136,6 +136,7 @@ class Database : public std::enable_shared_from_this<Database>
         void add_if_not_in_db();
         void remove_if_not_in_music_dir();
         void link_images();
+        void remove_unused_images();
 
         bool check_if_in_table(fs::directory_entry entry, std::string table);
 

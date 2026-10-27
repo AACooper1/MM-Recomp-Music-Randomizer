@@ -26,13 +26,15 @@ struct cImgPixel {
 class Image {
     public:
         Image(fs::path path) : path(path) { timestamp =  std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(path).time_since_epoch()).count(); }
+        Image(std::shared_ptr<std::vector<char>> raw) { raw_file = raw; }
         Image() {}
 
-        fs::path path;
+        fs::path path = "";
         long long timestamp;
         void parse();
         u64 rgba32[64][32];
         std::vector<char> data;
+        std::shared_ptr<std::vector<char>> raw_file;
 
         int databaseIndex = 0;
     private:

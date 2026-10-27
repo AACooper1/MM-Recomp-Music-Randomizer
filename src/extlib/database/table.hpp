@@ -89,10 +89,12 @@ class RelationTable
 
         int insert(int id_1, int id_2);
         int select(int id);
+        int select_inverse(int id);
         int remove(int id);
         
         Statement select_iter(int id);
         Statement remove_iter(int id);
+        Statement remove_iter_inv(int it);
 
         void link_entries();
 

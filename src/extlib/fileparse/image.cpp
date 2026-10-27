@@ -1,11 +1,24 @@
+#ifndef cimg_display
+#define cimg_display 0
+#endif
+#include "lib/CImg.h"
 #include "image.hpp"
 
 void Image::parse()
 {
     cimg::exception_mode(1);
-    std::string p_str = path.string();
-    const char* p = p_str.c_str();
-    CImg<unsigned char> image(p);
+
+    CImg<unsigned char> image;
+    if (!path.empty())
+    {
+        std::string p_str = path.string();
+        const char* p = p_str.c_str();
+        image.load(p);
+    }
+    else
+    {
+        image.load(raw_file->data());
+    }
 
     int target_width = std::min(image.width() * 64 / image.height(), 64);
     int target_height = std::min(image.height() * 64 / image.width(), 64);

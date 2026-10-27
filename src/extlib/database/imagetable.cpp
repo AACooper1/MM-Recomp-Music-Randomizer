@@ -6,7 +6,7 @@ template<> ImageTable::Table(std::shared_ptr<Database> db): db(db), name("image"
     std::string query = 
         "CREATE TABLE IF NOT EXISTS image (                  "
         "id INTEGER PRIMARY KEY AUTOINCREMENT,               "
-        "filepath TEXT UNIQUE,                               "
+        "filename TEXT UNIQUE,                               "
         "modified BIGINT,                                    "
         "data BLOB                                           "
     ");";
@@ -20,12 +20,12 @@ template<> int ImageTable::insert(std::shared_ptr<Image> entry)
 
     std::string query = 
         "INSERT INTO " + name + " ( \
-             filepath,              \
+             filename,              \
              modified,              \
              data                   \
         )                           \
         VALUES (?, ?, ?)            \
-        ON CONFLICT (filepath) DO   \
+        ON CONFLICT (filename) DO   \
         UPDATE SET                  \
         data=?                      \
         RETURNING id                \
