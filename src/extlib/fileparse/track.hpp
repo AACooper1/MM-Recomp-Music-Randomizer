@@ -80,7 +80,7 @@ class Track
         std::vector<int> soundIds;
         std::vector<std::shared_ptr<Sound>> sounds;
 
-        int imgId = 0;
+        int imageId = 0;
         std::shared_ptr<Image> image = nullptr;
 
     private:

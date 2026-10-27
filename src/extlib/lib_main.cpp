@@ -204,10 +204,10 @@ void prepare_custom_track(std::shared_ptr<Track> extlibTrack, cTrack* modTrack)
     }
     modTrack->formmask.pad[0] = extlibTrack->formmask.cumulativeStates;
 
-    if (extlibTrack->imgId > 0)
+    if (extlibTrack->imageId > 0)
     {
         modTrack->hasImage = true;
-        modTrack->image.id = extlibTrack->imgId;
+        modTrack->image.id = extlibTrack->imageId;
     }
 }
 

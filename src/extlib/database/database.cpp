@@ -387,6 +387,21 @@ bool Database::add_song(std::shared_ptr<Track>& track)
             else return false;
         }
     }
+    if (track->image)
+    {
+        track->imageId = tables->relation.track_to_image->select(trackNo);
+        if (track->imageId > 0)
+        {
+            int imageId = tables->image->insert(track->image);
+            if (tables->relation.track_to_image->remove(trackNo)) { return false; };
+            if (tables->relation.track_to_image->insert(trackNo, imageId)) { return false; };
+        }
+        else
+        {
+            int imageId = tables->image->insert(track->image);
+            if (tables->relation.track_to_image->insert(trackNo, imageId)) { return false; };
+        }
+    }
 
     if (track->type == TrackType::OOTRS && track->bank)
     {
@@ -504,7 +519,7 @@ int Database::load_all_tracks()
         }
 
         track->seqId = tables->relation.track_to_seq->select(id);
-        track->imgId = tables->relation.track_to_image->select(id);
+        track->imageId = tables->relation.track_to_image->select(id);
         
         Statement statement = tables->relation.track_to_sound->select_iter(id);
         while (statement.step() == SQLITE_ROW)
@@ -549,10 +564,10 @@ int Database::prepare_track(int id)
             tables->sound->load_entry(track->soundIds[i]);
             track->sounds.push_back(tables->sound->entries[track->soundIds[i]]);
         }
-        if (track->imgId > 0)
+        if (track->imageId > 0)
         {
-            tables->image->load_entry(track->imgId);
-            track->image = tables->image->entries[track->imgId];
+            tables->image->load_entry(track->imageId);
+            track->image = tables->image->entries[track->imageId];
         }
         track->is_prepared = true;
         logger.debug << "Track " << track->name << " prepared!" << std::endl;
@@ -623,10 +638,10 @@ void Database::link_images()
 
             _statement.bind_text(absPath.string());
 
-            int imgId = _statement.exec_and_return_id();
-            if (imgId > 0)
+            int imageId = _statement.exec_and_return_id();
+            if (imageId > 0)
             {
-                tables->relation.track_to_image->insert(trackId, imgId);
+                tables->relation.track_to_image->insert(trackId, imageId);
                 break;
             }
         }
@@ -642,10 +657,10 @@ void Database::link_images()
 
             _statement.bind_text(musicPath.string());
 
-            int imgId = _statement.exec_and_return_id();
-            if (imgId > 0)
+            int imageId = _statement.exec_and_return_id();
+            if (imageId > 0)
             {
-                tables->relation.track_to_image->insert(trackId, imgId);
+                tables->relation.track_to_image->insert(trackId, imageId);
             }
         }
     }

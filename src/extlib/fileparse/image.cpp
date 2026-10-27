@@ -2,6 +2,12 @@
 #define cimg_display 0
 #endif
 #include "lib/CImg.h"
+
+#ifndef STB_IMAGE_IMPLEMENTATION
+    #define STB_IMAGE_IMPLEMENTATION
+    #include "lib/stb_image.h"
+#endif
+
 #include "image.hpp"
 
 void Image::parse()
@@ -17,7 +23,17 @@ void Image::parse()
     }
     else
     {
-        image.load(raw_file->data());
+        int width, height, channels;
+        unsigned char* img_data = stbi_load_from_memory(
+            (const unsigned char*)(raw_file->data()), 
+            (int)(raw_file->size()),
+            &width, &height, &channels, 0
+        );
+
+        std::vector<char> raw_data(raw_file->size());
+        std::memcpy(raw_data.data(), raw_file->data(), raw_file->size());
+
+        image.assign(raw_data.data(), width, height, 1, channels, 'cxyz');
     }
 
     int target_width = std::min(image.width() * 64 / image.height(), 64);
