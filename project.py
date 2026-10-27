@@ -127,7 +127,7 @@ elif platform.system() == "Darwin":
         "https://ziglang.org/download/0.14.1/zig-aarch64-macos-0.14.1.tar.xz",
         binaries_dir.joinpath("zig_macos")
     )
-    zig_dir_path = binaries_dir.joinpath("zig_linux/zig-aarch64-macos-0.14.1")
+    zig_dir_path = binaries_dir.joinpath("zig_macos/zig-aarch64-macos-0.14.1")
     
     add_archive_download_and_extract(
         "llvm",
