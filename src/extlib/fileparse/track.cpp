@@ -51,8 +51,7 @@ bool Track::read_from_file()
         logger.error << "Error: " << path.string() << "does not exist!" << std::endl;
     }
     
-    const auto time = fs::last_write_time(path).time_since_epoch();
-    this->timestamp = std::chrono::duration_cast<std::chrono::seconds>(time).count();
+    this->timestamp = get_modified_time_u64(path);
     
     if (type == TrackType::ZSEQ)
     {

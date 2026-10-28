@@ -136,6 +136,9 @@ void prepare_tracks()
     }
 }
 
+extern u64 vanillaIconData[];
+extern u64 noImageIconData[];
+
 void populate_custom_track(cTrack* track)
 {
     if (track->hasSeq)
@@ -161,6 +164,7 @@ void populate_custom_track(cTrack* track)
     {
         track->image.data = recomp_alloc(64 * 32 * sizeof(u64));
         fetch_image(track->image.id, track->image.data, 64 * 32 * sizeof(u64));
+        logger.dev("Track %s has image. Allocating...\n", track->name);
     }
 }
 

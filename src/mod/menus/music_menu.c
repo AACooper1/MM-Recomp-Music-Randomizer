@@ -193,6 +193,14 @@ void music_menu_reroll_slot(RecompuiResource resouce, const RecompuiEventData* e
         logger.dev("Setting text...\n");
         recompui_set_text(musicMenu.tracks[slotIdx]->trackCol.label, randomized[slotIdx].name);
         logger.dev("Set text to %s!\n", randomized[slotIdx].name);
+
+        if (randomized[slotIdx].hasImage)
+        {
+            recompui_destroy_texture(musicMenu.tracks[slotIdx]->trackCol.albumArt.imageHandle);
+            recompui_destroy_element(musicMenu.tracks[slotIdx]->trackCol.albumArt.imageContainer, musicMenu.tracks[slotIdx]->trackCol.albumArt.image);
+            musicMenu.tracks[slotIdx]->trackCol.albumArt.imageHandle = recompui_create_texture_rgba32(randomized[slotIdx].image.data, 64, 64);
+            musicMenu.tracks[slotIdx]->trackCol.albumArt.image = recompui_create_imageview(musicMenuContext, musicMenu.tracks[slotIdx]->trackCol.albumArt.imageContainer, musicMenu.tracks[slotIdx]->trackCol.albumArt.imageHandle);
+        }
     }
 
     return;
@@ -204,21 +212,31 @@ MusicMenu_Album_Art music_menu_create_album_art(RecompuiResource parent, cTrack*
 
     image._base.parent = parent;
     image._base.container = recompui_create_element(musicMenuContext, parent);
-    recompui_set_min_width(image._base.container, 67.0f, UNIT_DP);
-    recompui_set_max_width(image._base.container, 67.0f, UNIT_DP);
-    recompui_set_height(image._base.container, 67.0f, UNIT_DP);
+    recompui_set_min_width(image._base.container, 75.0f, UNIT_DP);
+    recompui_set_max_width(image._base.container, 75.0f, UNIT_DP);
+    recompui_set_height(image._base.container, 75.0f, UNIT_DP);
     recompui_set_border_width(image._base.container, 3.0f, UNIT_DP);
+    recompui_set_padding(image._base.container, 2.0f, UNIT_DP);
+
+    image.imageContainer = recompui_create_element(musicMenuContext, image._base.container);
+    recompui_set_min_width(image.imageContainer, 64.0f, UNIT_DP);
+    recompui_set_max_width(image.imageContainer, 64.0f, UNIT_DP);
+    recompui_set_height(image.imageContainer, 64.0f, UNIT_DP);
 
     if (track->hasImage && track->image.data)
     {
-        image.imageContainer = recompui_create_element(musicMenuContext, image._base.container);
-        recompui_set_min_width(image.imageContainer, 64.0f, UNIT_DP);
-        recompui_set_max_width(image.imageContainer, 64.0f, UNIT_DP);
-        recompui_set_height(image.imageContainer, 64.0f, UNIT_DP);
-
         image.imageHandle = recompui_create_texture_rgba32(track->image.data, 64, 64);
-        image.image = recompui_create_imageview(musicMenuContext, image.imageContainer, image.imageHandle);
     }
+    else if (track->type == VANILLA)
+    {
+        image.imageHandle = recompui_create_texture_rgba32(vanillaIconData, 64, 64);
+    }
+    else
+    {
+        image.imageHandle = recompui_create_texture_rgba32(noImageIconData, 64, 64);
+    }
+
+        image.image = recompui_create_imageview(musicMenuContext, image.imageContainer, image.imageHandle);
 
     return image;
 }

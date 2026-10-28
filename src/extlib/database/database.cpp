@@ -95,7 +95,7 @@ int Database::exec(std::string query)
     return rc;
 }
 
-bool Database::check_if_in_table(fs::directory_entry entry, std::string table)
+bool Database::check_if_in_table(fs::path path, std::string table)
 {
     Statement statement(db);
 
@@ -103,8 +103,8 @@ bool Database::check_if_in_table(fs::directory_entry entry, std::string table)
 
     statement.prepare(query);
 
-    statement.bind_text(fs::relative(entry.path(), musicPath).string());
-    statement.bind_int64(std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(entry.path()).time_since_epoch()).count());
+    statement.bind_text(path.string());
+    statement.bind_int64(get_modified_time_u64(path));
 
     int res = statement.step();
     if (res == SQLITE_ROW) return true;
@@ -168,11 +168,11 @@ void Database::get_images()
         {
             try
             {
-                if (check_if_in_table(entry, "image"))
+                if (check_if_in_table(entry.path().parent_path(), "image"))
                 {
                     logger.debug("Found matching image for file {0} with modification time {1}, skipping!\n",
                         entry.path().filename().string(), 
-                        fs::last_write_time(entry.path()).time_since_epoch().count()
+                        get_modified_time_u64(entry.path())
                     );
                     logger.debug.disable_header();
                     continue;
@@ -187,6 +187,10 @@ void Database::get_images()
                         logger.error << "File " << std::string(u8filepath.begin(), u8filepath.end()) << " was not a true PNG!" << std::endl;
                         continue;
                     }
+
+                    std::stringstream updateMsg;
+                    updateMsg << "Reading image\n" << entry.path().parent_path().filename() / entry.path().filename();
+                    threadMsg->update(updateMsg.str());
 
                     std::shared_ptr<Image> image = std::make_shared<Image>(entry.path());
                     image->parse();
@@ -224,11 +228,11 @@ void Database::add_if_not_in_db()
             updateMsg << "Reading file\n" << entry.path().filename();
             threadMsg->update(updateMsg.str());
 
-            if (check_if_in_table(entry, "track"))
+            if (check_if_in_table(entry.path(), "track"))
             {
                 logger.debug("Found matching entry for file {0} with modification time {1}, skipping!\n",
                     entry.path().filename().string(), 
-                    fs::last_write_time(entry.path()).time_since_epoch().count()
+                    get_modified_time_u64(entry.path())
                 );
                 logger.debug.disable_header();
                 continue;
@@ -333,7 +337,7 @@ void Database::remove_if_not_in_music_dir()
 
         if (fs::exists(fullPath))
         {
-            if (std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(fullPath).time_since_epoch()).count() == modified)
+            if (get_modified_time_u64(fullPath) == modified)
             {
                 continue;
             }
@@ -345,7 +349,7 @@ void Database::remove_if_not_in_music_dir()
 
 bool Database::add_song(std::shared_ptr<Track>& track)
 {
-    track->path = fs::relative(track->path, musicPath);
+    track->path = track->path, musicPath;
     int trackNo = tables->track->insert(track);
 
     if (trackNo < 0)
@@ -567,7 +571,15 @@ int Database::prepare_track(int id)
         if (track->imageId > 0)
         {
             tables->image->load_entry(track->imageId);
-            track->image = tables->image->entries[track->imageId];
+            if (tables->image->entries[track->imageId])
+            {
+                track->image = tables->image->entries[track->imageId];
+            }
+            else
+            {
+                track->imageId = 0;
+                tables->relation.track_to_image->remove(id);
+            }
         }
         track->is_prepared = true;
         logger.debug << "Track " << track->name << " prepared!" << std::endl;
@@ -650,7 +662,6 @@ void Database::link_images()
 
         if (currPath.filename().empty())
         {
-            logger.dev("Hello search for me in the um");
             Statement _statement(db);
             std::string query = "SELECT * FROM image WHERE filename = ?;";
             _statement.prepare(query);
@@ -679,7 +690,7 @@ void Database::remove_unused_images()
 
         if (fs::exists(fullPath))
         {
-            if (std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(fullPath).time_since_epoch()).count() == modified)
+            if (get_modified_time_u64(fullPath.parent_path()) == modified)
             {
                 continue;
             }

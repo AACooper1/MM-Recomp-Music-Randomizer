@@ -80,7 +80,6 @@ typedef struct cTrack_t
     int slotIdx;
 
     int hasSeq;
-    // int hasFormMask;
     int hasBank;
     int numSounds;
     int hasImage;

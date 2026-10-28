@@ -27,6 +27,7 @@ template<> int ImageTable::insert(std::shared_ptr<Image> entry)
         VALUES (?, ?, ?)            \
         ON CONFLICT (filename) DO   \
         UPDATE SET                  \
+        modified=?,                 \
         data=?                      \
         RETURNING id                \
         ";
@@ -46,8 +47,10 @@ template<> int ImageTable::insert(std::shared_ptr<Image> entry)
         statement.bind_text("");
         statement.bind_int64(0);
     }
-
+    
     statement.bind_blob(entry->rgba32, sizeof(u64) * 64 * 32);
+
+    statement.bind_int64(entry->timestamp);
     statement.bind_blob(entry->rgba32, sizeof(u64) * 64 * 32);
 
     int dbIdx = statement.exec_and_return_id();

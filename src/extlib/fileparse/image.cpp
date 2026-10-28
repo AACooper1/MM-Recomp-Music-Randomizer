@@ -30,10 +30,11 @@ void Image::parse()
             &width, &height, &channels, 0
         );
 
-        std::vector<char> raw_data(raw_file->size());
+        std::vector<unsigned char> raw_data(raw_file->size());
         std::memcpy(raw_data.data(), raw_file->data(), raw_file->size());
 
-        image.assign(raw_data.data(), width, height, 1, channels, 'cxyz');
+        image.assign(img_data, width, height, 1, channels, false);
+        image.permute_axes("cxyz");
     }
 
     int target_width = std::min(image.width() * 64 / image.height(), 64);
@@ -60,7 +61,8 @@ void Image::parse()
             int r = canvas(x, y, 0);                                // Always present
             int g = canvas.spectrum() >= 3 ? canvas(x, y, 1) : r;   // 1 or 2 = greyscale
             int b = canvas.spectrum() >= 3 ? canvas(x, y, 2) : r;   // 1 or 2 = greyscale
-            int a = canvas.spectrum() == 2 || canvas.spectrum() == 4 ? canvas(x, y, 3) : 0xFF;  // 2 = greyscale with alpha, 4 = rgba
+            int a = canvas.spectrum() == 4 ? canvas(x, y, 3) : 0xFF;  // 4 = rgba
+                a = canvas.spectrum() == 2 ? canvas(x, y, 1) : 0xFF;  // 2 = greyscale with alpha
 
             pixels[y][x] = cImgPixel(x, y, r, g, b, a);
         }

@@ -1,7 +1,10 @@
 #include <vector>
 #include <string>
+#include <filesystem>
 
 #include "util.hpp"
+
+namespace fs = std::filesystem;
 
 std::vector<std::string> split_string(const std::string& s, const std::string& delims)
 {
@@ -26,6 +29,15 @@ std::vector<std::string> split_string(const std::string& s, const std::string& d
         }
     }
     return tokens;
+}
+
+long long get_modified_time_u64(fs::path path)
+{
+    std::filesystem::file_time_type lwt = fs::last_write_time(path);
+    auto sys_time = std::chrono::clock_cast<std::chrono::system_clock>(lwt);
+    std::filesystem::_File_time_clock::duration tse = sys_time.time_since_epoch();
+    std::chrono::seconds dc = std::chrono::duration_cast<std::chrono::seconds>(tse);
+    return dc.count(); 
 }
 
 RECOMP_DLL_FUNC(get_current_time)
