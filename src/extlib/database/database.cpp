@@ -475,7 +475,17 @@ bool Database::remove_song(int id)
             return false;
         }
     }
-    returnedId = tables->relation.track_to_image->remove(id);
+    if ((returnedId = tables->relation.track_to_image->remove(id)))
+    {
+        std::shared_ptr<Image> returnedImg;
+        if ((returnedImg = tables->image->select(returnedId)))
+        {
+            if (returnedImg->path.empty())
+            {
+                tables->image->remove(returnedImg->databaseIndex);
+            }
+        }
+    }
     
     Statement statement = tables->relation.track_to_sound->remove_iter(id);
     while ((returnedId = statement.exec_and_return_id()) > 0)
@@ -694,6 +704,10 @@ void Database::remove_unused_images()
             {
                 continue;
             }
+        }
+        else if (path.empty())
+        {
+            continue;
         }
 
         tables->image->remove(id);

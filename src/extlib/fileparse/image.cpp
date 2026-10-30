@@ -33,8 +33,11 @@ void Image::parse()
         std::vector<unsigned char> raw_data(raw_file->size());
         std::memcpy(raw_data.data(), raw_file->data(), raw_file->size());
 
-        image.assign(img_data, width, height, 1, channels, false);
-        image.permute_axes("cxyz");
+        // Fake-permute the axes for assignment, then real-permutethem back. 
+        // Will convert RGBARGBARGBA... to RRR...GGG...BBB...AAA...
+        image.assign(img_data, channels, width, height, 1, false);
+        image.permute_axes("yzcx");
+        stbi_image_free(img_data);
     }
 
     int target_width = std::min(image.width() * 64 / image.height(), 64);

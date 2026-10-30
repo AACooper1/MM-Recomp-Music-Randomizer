@@ -34,8 +34,13 @@ std::vector<std::string> split_string(const std::string& s, const std::string& d
 long long get_modified_time_u64(fs::path path)
 {
     std::filesystem::file_time_type lwt = fs::last_write_time(path);
-    auto sys_time = std::chrono::clock_cast<std::chrono::system_clock>(lwt);
-    std::filesystem::_File_time_clock::duration tse = sys_time.time_since_epoch();
+    #ifdef __APPLE__
+        auto sys_time = std::chrono::time_point_cast<std::chrono::system_clock::duration>(lwt);
+        auto tse = sys_time.time_since_epoch();
+    #else
+        auto sys_time = std::chrono::clock_cast<std::chrono::system_clock>(lwt);
+        std::filesystem::_File_time_clock::duration tse = sys_time.time_since_epoch();
+    #endif
     std::chrono::seconds dc = std::chrono::duration_cast<std::chrono::seconds>(tse);
     return dc.count(); 
 }
