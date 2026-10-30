@@ -295,6 +295,11 @@ bool Track::read_from_ootrs()
         {
             parse_meta(*filebuffer);
         }
+        else if (filename.ends_with(".png"))
+        {
+            image = std::make_shared<Image>(filebuffer);
+            image->parse();
+        }
     }
 
     for (int i = 0; i < sounds.size(); i++)
