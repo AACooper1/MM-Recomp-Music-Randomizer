@@ -51,8 +51,7 @@ bool Track::read_from_file()
         logger.error << "Error: " << path.string() << "does not exist!" << std::endl;
     }
     
-    const auto time = fs::last_write_time(path).time_since_epoch();
-    this->timestamp = std::chrono::duration_cast<std::chrono::seconds>(time).count();
+    this->timestamp = get_modified_time_u64(path);
     
     if (type == TrackType::ZSEQ)
     {
@@ -213,6 +212,11 @@ bool Track::read_from_mmrs()
             formmask.parse_file(*filebuffer);
             formmask.is_default = false;
         }
+        else if (filename.ends_with(".png"))
+        {
+            image = std::make_shared<Image>(filebuffer);
+            image->parse();
+        }
     }
 
     if (!sequence && type != TrackType::STREAMED)
@@ -290,6 +294,11 @@ bool Track::read_from_ootrs()
         else if(filename.ends_with(".meta"))
         {
             parse_meta(*filebuffer);
+        }
+        else if (filename.ends_with(".png"))
+        {
+            image = std::make_shared<Image>(filebuffer);
+            image->parse();
         }
     }
 
@@ -503,3 +512,4 @@ void Track::parse_categories(const std::vector<int>& categories)
     }
     (*this->categories)[id] = true;
 }
+

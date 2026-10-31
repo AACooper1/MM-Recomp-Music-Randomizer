@@ -62,6 +62,30 @@ int RelationTable::select(int id)
     }
 }
 
+int RelationTable::select_inverse(int id)
+{
+    Statement statement(get_sqlite());
+
+    std::string query = std::format(
+        "SELECT * FROM {0} WHERE {1} = {2};",
+        name, col2, id
+    );
+
+    if (statement.prepare(query))
+    {
+        return -2;
+    }
+
+    if (statement.step() == SQLITE_ROW)
+    {
+        return statement.column_int(0);
+    }
+    else
+    {
+        return -1;
+    }
+}
+
 Statement RelationTable::select_iter(int id)
 {
     Statement statement(get_sqlite());
@@ -120,6 +144,16 @@ Statement RelationTable::remove_iter(int id)
     Statement statement(get_sqlite());
 
     std::string query = std::format(("DELETE FROM {0} WHERE {1}={2} RETURNING {3};"), name, col1, id, col2);
+
+    statement.prepare(query);
+    return statement;
+}
+
+Statement RelationTable::remove_iter_inv(int id)
+{
+    Statement statement(get_sqlite());
+
+    std::string query = std::format(("DELETE FROM {0} WHERE {1}={2} RETURNING {3};"), name, col2, id, col1);
 
     statement.prepare(query);
     return statement;

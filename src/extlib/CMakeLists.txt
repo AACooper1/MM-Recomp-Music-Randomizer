@@ -1,7 +1,4 @@
 target_sources(${TARGET_NAME} PUBLIC
-    "lib/sqlite3.c"
-    "lib/miniz.c"
-
     "lib_main.cpp"
 
     "util/logging.cpp"
@@ -14,11 +11,13 @@ target_sources(${TARGET_NAME} PUBLIC
     "database/sequencetable.cpp"
     "database/banktable.cpp"
     "database/soundtable.cpp"
+    "database/imagetable.cpp"
     "database/relationtable.cpp"
     
     "fileparse/audiofile.cpp"
     "fileparse/track.cpp"
     "fileparse/formmask.cpp"
+    "fileparse/image.cpp"
     
     "seed/seed.cpp"
     "seed/songforce_songtest.cpp"

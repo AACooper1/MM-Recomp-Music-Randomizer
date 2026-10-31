@@ -61,8 +61,9 @@ typedef struct MusicMenu_Icon_Button_t {
         typedef struct MusicMenu_Album_Art_t {
             MusicMenu_Resource _base;
 
+            RecompuiResource imageContainer;
             RecompuiResource image;
-            char* imageData; // 64*64
+            RecompuiTextureHandle imageHandle;
         } MusicMenu_Album_Art;
 
         typedef struct MusicMenu_Volume_t {
@@ -138,6 +139,7 @@ MusicMenu_Track_Element music_menu_create_row(cTrack* slot, RecompuiResource par
 MusicMenu_Slot_Column music_menu_create_slot_column(cTrack* slot, RecompuiResource parent);
 MusicMenu_Icon_Button music_menu_create_icon_button(RecompuiTextureHandle icon, RecompuiResource parent, unsigned long width, unsigned long height, void (*callback)(RecompuiResource, const RecompuiEventData*, void*));
 MusicMenu_Volume music_menu_create_volume(RecompuiResource parent, cTrack* track);
+MusicMenu_Album_Art music_menu_create_album_art(RecompuiResource parent, cTrack* track);
 
 #include "overlays/kaleido_scope/ovl_kaleido_scope/z_kaleido_scope.h"
 

@@ -8,6 +8,7 @@ RECOMP_IMPORT(".", void fetch_randomized_track(int slotIdx, cTrack* modTrack));
 RECOMP_IMPORT(".", void fetch_seq(int id, char* dst, size_t size));
 RECOMP_IMPORT(".", void fetch_bank(int id, char* dst, size_t size));
 RECOMP_IMPORT(".", void fetch_sound(int id, char* dst, size_t size));
+RECOMP_IMPORT(".", void fetch_image(int id, char* dst, size_t size));
 
 RECOMP_IMPORT(".", u32 get_current_time());
 

@@ -61,6 +61,16 @@ typedef struct cSound_t
     #endif
 } cSound;
 
+typedef struct cImage_t
+{
+    u32 id;
+    u32 size;
+    char* data;
+    #ifndef __cplusplus 
+    u32 pad;
+    #endif
+} cImage;
+
 typedef struct cTrack_t
 {
     cTrackType type;
@@ -70,14 +80,18 @@ typedef struct cTrack_t
     int slotIdx;
 
     int hasSeq;
-    // int hasFormMask;
     int hasBank;
     int numSounds;
+    int hasImage;
 
     cFormMask formmask;
+    #ifndef __cplusplus 
+    u32 pad;
+    #endif
     cSequence seq;
     cBank bank;
     cSound sounds[MAX_SOUNDS];
+    cImage image;
 } cTrack;
 
 #endif

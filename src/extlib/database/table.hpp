@@ -70,6 +70,10 @@ using SoundTable = Table<Sound>;
 template<> SoundTable::Table(std::shared_ptr<Database> db);
 template<> int SoundTable::insert(std::shared_ptr<Sound> entry);
 
+using ImageTable = Table<Image>;
+template<> ImageTable::Table(std::shared_ptr<Database> db);
+template<> int ImageTable::insert(std::shared_ptr<Image> entry);
+
 struct Relation
 {
     int id_1;
@@ -85,10 +89,12 @@ class RelationTable
 
         int insert(int id_1, int id_2);
         int select(int id);
+        int select_inverse(int id);
         int remove(int id);
         
         Statement select_iter(int id);
         Statement remove_iter(int id);
+        Statement remove_iter_inv(int it);
 
         void link_entries();
 
@@ -132,6 +138,13 @@ class SlotToTrackTable : public RelationTable
     public:
         SlotToTrackTable(std::shared_ptr<Database> db, std::string name):
         RelationTable(db, name) { col1 = "slotId"; col2 = "trackId"; init(); }
+};
+
+class TrackToImageTable : public RelationTable
+{
+    public:
+        TrackToImageTable(std::shared_ptr<Database> db, std::string name):
+        RelationTable(db, name) { col1 = "trackId"; col2 = "imageId"; init(); }
 };
 
 class OoTBankToBankTable : public RelationTable

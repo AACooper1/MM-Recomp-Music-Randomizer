@@ -95,18 +95,19 @@ int Database::exec(std::string query)
     return rc;
 }
 
-bool Database::check_if_in_db(fs::directory_entry entry)
+bool Database::check_if_in_table(fs::path path, std::string table)
 {
     Statement statement(db);
 
-    std::string query = "SELECT * FROM track WHERE filename = ? AND modified = ?;";
+    std::string query = "SELECT * FROM " + table + " WHERE filename = ? AND modified = ?;";
 
     statement.prepare(query);
 
-    statement.bind_text(fs::relative(entry.path(), musicPath).string());
-    statement.bind_int64(std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(entry.path()).time_since_epoch()).count());
+    statement.bind_text(path.string());
+    statement.bind_int64(get_modified_time_u64(path));
 
-    if (statement.step() == SQLITE_ROW) return true;
+    int res = statement.step();
+    if (res == SQLITE_ROW) return true;
     else return false;
 }
 
@@ -116,12 +117,16 @@ void Database::init_tables()
     tables->seq = std::make_unique<SequenceTable>(shared_from_this());
     tables->bank = std::make_unique<BankTable>(shared_from_this());
     tables->sound = std::make_unique<SoundTable>(shared_from_this());
+    tables->image = std::make_unique<ImageTable>(shared_from_this());
 
     tables->relation.track_to_seq = std::make_unique<TrackToSequenceTable>(shared_from_this(), "track_to_seq");
     tables->relation.track_to_bank = std::make_unique<TrackToBankTable>(shared_from_this(), "track_to_bank");
     tables->relation.track_to_sound = std::make_unique<TrackToSoundTable>(shared_from_this(), "track_to_sound");
+    tables->relation.track_to_image = std::make_unique<TrackToImageTable>(shared_from_this(), "track_to_image");
+
     tables->relation.oot_bank_to_bank = std::make_unique<OoTBankToBankTable>(shared_from_this(), "oot_bank_to_bank");
     tables->relation.oot_bank_to_sound = std::make_unique<OoTBankToSoundTable>(shared_from_this(), "oot_bank_to_sound");
+
 }
 
 int Database::update_from_music_dir()
@@ -132,12 +137,74 @@ int Database::update_from_music_dir()
         return 2;
     }
 
+    get_images();
     add_if_not_in_db();
     remove_if_not_in_music_dir();
+    link_images();
+    remove_unused_images();
 
     logger.debug << "Finished update_from_music_dir" << std::endl;
 
     return 0;
+}
+
+void Database::get_images()
+{
+    std::stringstream updateMsg;
+    updateMsg << "Reading images";
+    threadMsg->update(updateMsg.str());
+
+    for (const fs::directory_entry entry: fs::recursive_directory_iterator(musicPath))
+    {
+        if (fs::is_directory(entry.path()))
+        {
+            continue;
+        }
+        else if (entry.path().extension().string().ends_with("_ignore"))
+        {
+            continue;
+        }
+        else if (entry.path().filename() == "logo.png")
+        {
+            try
+            {
+                if (check_if_in_table(entry.path().parent_path(), "image"))
+                {
+                    logger.debug("Found matching image for file {0} with modification time {1}, skipping!\n",
+                        entry.path().filename().string(), 
+                        get_modified_time_u64(entry.path())
+                    );
+                    logger.debug.disable_header();
+                    continue;
+                }
+                    // Make sure actually PNG before expensive read
+                    std::ifstream filecheck(entry.path(), std::ios::binary);
+                    std::vector<char> buffer(1);
+                    filecheck.read(buffer.data(), 1);
+                    if ((u8)buffer[0] != 0x89)
+                    {
+                        std::u8string u8filepath = entry.path().filename().u8string();
+                        logger.error << "File " << std::string(u8filepath.begin(), u8filepath.end()) << " was not a true PNG!" << std::endl;
+                        continue;
+                    }
+
+                    std::stringstream updateMsg;
+                    updateMsg << "Reading image\n" << entry.path().parent_path().filename() / entry.path().filename();
+                    threadMsg->update(updateMsg.str());
+
+                    std::shared_ptr<Image> image = std::make_shared<Image>(entry.path());
+                    image->parse();
+
+                    tables->image->insert(image);
+            }
+            catch(std::exception& e)
+            {
+                std::stringstream updateMsg;
+                std::u8string u8filepath = entry.path().filename().u8string();
+                updateMsg << "Could not parse image " << std::string(u8filepath.begin(), u8filepath.end()) << ":\n" << e.what();
+            }
+        }
+    }
 }
 
 void Database::add_if_not_in_db()
@@ -161,11 +228,11 @@ void Database::add_if_not_in_db()
             updateMsg << "Reading file\n" << entry.path().filename();
             threadMsg->update(updateMsg.str());
 
-            if (check_if_in_db(entry))
+            if (check_if_in_table(entry.path(), "track"))
             {
                 logger.debug("Found matching entry for file {0} with modification time {1}, skipping!\n",
                     entry.path().filename().string(), 
-                    fs::last_write_time(entry.path()).time_since_epoch().count()
+                    get_modified_time_u64(entry.path())
                 );
                 logger.debug.disable_header();
                 continue;
@@ -270,7 +337,7 @@ void Database::remove_if_not_in_music_dir()
 
         if (fs::exists(fullPath))
         {
-            if (std::chrono::duration_cast<std::chrono::seconds>(fs::last_write_time(fullPath).time_since_epoch()).count() == modified)
+            if (get_modified_time_u64(fullPath) == modified)
             {
                 continue;
             }
@@ -282,7 +349,7 @@ void Database::remove_if_not_in_music_dir()
 
 bool Database::add_song(std::shared_ptr<Track>& track)
 {
-    track->path = fs::relative(track->path, musicPath);
+    track->path = track->path, musicPath;
     int trackNo = tables->track->insert(track);
 
     if (trackNo < 0)
@@ -322,6 +389,21 @@ bool Database::add_song(std::shared_ptr<Track>& track)
                 tables->relation.track_to_bank->insert(trackNo, track->bankId);
             }
             else return false;
+        }
+    }
+    if (track->image)
+    {
+        track->imageId = tables->relation.track_to_image->select(trackNo);
+        if (track->imageId > 0)
+        {
+            int imageId = tables->image->insert(track->image);
+            if (tables->relation.track_to_image->remove(trackNo)) { return false; };
+            if (tables->relation.track_to_image->insert(trackNo, imageId)) { return false; };
+        }
+        else
+        {
+            int imageId = tables->image->insert(track->image);
+            if (tables->relation.track_to_image->insert(trackNo, imageId)) { return false; };
         }
     }
 
@@ -393,6 +475,17 @@ bool Database::remove_song(int id)
             return false;
         }
     }
+    if ((returnedId = tables->relation.track_to_image->remove(id)))
+    {
+        std::shared_ptr<Image> returnedImg;
+        if ((returnedImg = tables->image->select(returnedId)))
+        {
+            if (returnedImg->path.empty())
+            {
+                tables->image->remove(returnedImg->databaseIndex);
+            }
+        }
+    }
     
     Statement statement = tables->relation.track_to_sound->remove_iter(id);
     while ((returnedId = statement.exec_and_return_id()) > 0)
@@ -440,6 +533,7 @@ int Database::load_all_tracks()
         }
 
         track->seqId = tables->relation.track_to_seq->select(id);
+        track->imageId = tables->relation.track_to_image->select(id);
         
         Statement statement = tables->relation.track_to_sound->select_iter(id);
         while (statement.step() == SQLITE_ROW)
@@ -458,6 +552,7 @@ int Database::load_all_songs()
     tables->seq->load_entries();
     tables->bank->load_entries();
     tables->sound->load_entries();
+    tables->image->load_entries();
 
    return tables->track->entries.size();
 }
@@ -482,6 +577,19 @@ int Database::prepare_track(int id)
         {
             tables->sound->load_entry(track->soundIds[i]);
             track->sounds.push_back(tables->sound->entries[track->soundIds[i]]);
+        }
+        if (track->imageId > 0)
+        {
+            tables->image->load_entry(track->imageId);
+            if (tables->image->entries[track->imageId])
+            {
+                track->image = tables->image->entries[track->imageId];
+            }
+            else
+            {
+                track->imageId = 0;
+                tables->relation.track_to_image->remove(id);
+            }
         }
         track->is_prepared = true;
         logger.debug << "Track " << track->name << " prepared!" << std::endl;
@@ -526,4 +634,86 @@ int Database::add_oot_banks(OoTAudioHandler* audioHandler)
     }
 
     return 0;
+}
+
+void Database::link_images()
+{
+    threadMsg->update("Linking images");
+    Statement statement = tables->track->select_iter();
+
+    while(statement.step() == SQLITE_ROW)
+    {
+        int trackId = statement.column_int(0);
+        fs::path currPath = statement.column_text(2);
+
+        if (tables->relation.track_to_image->select(trackId) >= 0)
+        {
+            continue;
+        }
+
+        while (!(currPath = currPath.parent_path()).filename().empty())
+        {
+            fs::path absPath = fs::absolute(musicPath / currPath);
+            Statement _statement(db);
+            std::string query = "SELECT * FROM image WHERE filename = ?;";
+            _statement.prepare(query);
+
+            _statement.bind_text(absPath.string());
+
+            int imageId = _statement.exec_and_return_id();
+            if (imageId > 0)
+            {
+                tables->relation.track_to_image->insert(trackId, imageId);
+                break;
+            }
+        }
+
+        // Run it one more time so we get the top level music folder too
+
+        if (currPath.filename().empty())
+        {
+            Statement _statement(db);
+            std::string query = "SELECT * FROM image WHERE filename = ?;";
+            _statement.prepare(query);
+
+            _statement.bind_text(musicPath.string());
+
+            int imageId = _statement.exec_and_return_id();
+            if (imageId > 0)
+            {
+                tables->relation.track_to_image->insert(trackId, imageId);
+            }
+        }
+    }
+}
+
+void Database::remove_unused_images()
+{
+    Statement statement = tables->image->select_iter();
+    
+    while(statement.step() == SQLITE_ROW)
+    {
+        int id = statement.column_int(0);
+        fs::path path = statement.column_text(1);
+        long long modified = statement.column_int64(2);
+        fs::path fullPath = musicPath / path / "logo.png";
+
+        if (fs::exists(fullPath))
+        {
+            if (get_modified_time_u64(fullPath.parent_path()) == modified)
+            {
+                continue;
+            }
+        }
+        else if (path.empty())
+        {
+            continue;
+        }
+
+        tables->image->remove(id);
+
+        int returnedId;
+        Statement substatement = tables->relation.track_to_image->remove_iter_inv(id);
+        while ((returnedId = statement.exec_and_return_id()) > 0);
+    }
 }

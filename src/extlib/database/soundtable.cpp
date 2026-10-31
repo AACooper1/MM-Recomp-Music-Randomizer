@@ -19,7 +19,7 @@ template <> int SoundTable::insert(std::shared_ptr<Sound> entry)
     Statement statement(get_sqlite());
 
     std::string query = 
-        "INSERT INTO " +  name + " (            \
+        "INSERT INTO " +  name + " (    \
             size,                       \
             foreignKey,                 \
             data                        \
