@@ -15,6 +15,7 @@
 
 #include "seed/category.hpp"
 #include "ootrs/ootrs.hpp"
+#include "fileparse/config.hpp"
 
 namespace fs = std::filesystem;
 
@@ -27,9 +28,6 @@ enum class TrackType
     ZSEQ,
     STREAMED
 };
-
-extern std::unordered_map<std::string, std::vector<SongSlotID>> OoTBGMGroupsToCategories;
-extern std::unordered_map<std::string, std::vector<SongSlotID>> OoTFanfareGroupsToCategories;
 
 class Track
 {
@@ -44,9 +42,8 @@ class Track
             this->id = id;
             this->timestamp = 954494531;
 
-            this->categories = std::make_unique<std::vector<char>>();
-            this->categories->resize(0x200);
-            parse_categories(categories);
+            this->config = std::make_shared<Config>(id);
+            this->config->parse_categories(categories);
 
             type = TrackType::VANILLA;
         }
@@ -54,7 +51,7 @@ class Track
 
         bool read_from_file();
         bool is_fanfare() 
-            {return ((*categories)[FANFARE] || (*categories)[AREA_CLEAR] || (*categories)[GAME_OVER] || _is_fanfare); }
+            {return ((*config->categories)[FANFARE] || (*config->categories)[AREA_CLEAR] || (*config->categories)[GAME_OVER] || _is_fanfare); }
         
         bool fix_oot_custom_bank(OoTAudioHandler* ootAudioHandler);
 
@@ -66,7 +63,6 @@ class Track
         fs::path path;
         long long int timestamp;
         std::string name;
-        std::unique_ptr<std::vector<char>> categories;
         unsigned short bankNo = 0;
         TrackType type;
         FormMask formmask;
@@ -83,6 +79,8 @@ class Track
         int imageId = 0;
         std::shared_ptr<Image> image = nullptr;
 
+        std::shared_ptr<Config> config;
+
     private:
         bool read_from_zseq();
         bool read_from_mmrs();
@@ -90,12 +88,8 @@ class Track
         bool read_from_streamed() {return false;};
 
         bool _is_fanfare;
-
-        void parse_categories(std::vector<char>& filebuffer);
-        void parse_categories(const std::vector<int>& categories);
         
         bool parse_meta(std::vector<char>& filebuffer);
-        void parse_oot_categories(std::string categories_raw);
         
         mz_zip_archive archive;
 };

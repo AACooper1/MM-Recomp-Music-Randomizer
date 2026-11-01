@@ -86,7 +86,18 @@ void Seed::randomize_slot(int i)
 
     std::ranges::shuffle(songSlots[i].availableTracks, rng);
 
-    int trackId = songSlots[i].availableTracks[0];
+    std::vector<int> weights;
+
+    for (int t = 0; t < songSlots[i].availableTracks.size(); t++)
+    {
+        int trackId = songSlots[i].availableTracks[t];
+        weights.push_back(tracks[trackId]->config->weight);
+    }
+
+    std::discrete_distribution<> dist(weights.begin(), weights.end());
+    int randIdx = dist(rng);
+
+    int trackId = songSlots[i].availableTracks[randIdx];
 
     // If a pointer randomizes to itself, the game crashes. Handle this for File Select.
     if (i == 0x18 && trackId ==  -0x128)
@@ -139,6 +150,7 @@ void Seed::populate_track_table()
             if (track->name.contains("songforce"))
             {
                 songforceTracks.insert(id);
+                track->config->is_songforce = true;
             }
             idx++;
         }
@@ -149,7 +161,20 @@ void Seed::link_slots_to_vanilla()
 {
     for (int i = 0; i < vanillaTracks.size(); i++)
     {
-        songSlots[vanillaTracks[i]->id - 0x100].vanillaTrack = vanillaTracks[i];
+        std::shared_ptr<Track> track = songSlots[vanillaTracks[i]->id - 0x100].vanillaTrack = vanillaTracks[i];
+        
+        db->tables->config->load_entry(track->id * -1);
+        if (db->tables->config->entries[track->id * -1])
+        {
+            track->config = db->tables->config->entries[track->id * -1];
+        }
+        else
+        {
+            track->config = std::make_shared<Config>(track->id * -1);
+            track->config->parse_categories(songSlots[vanillaTracks[i]->id - 0x100].categories);
+            db->tables->config->insert(track->config);
+            db->tables->config->load_entry(track->id * -1);
+        }
     }
 }
 
@@ -161,7 +186,7 @@ void Seed::prepare_song_slots()
     {
         for (int j = 0; j < 0x200; j++)
         {
-            if ((*track->categories)[j])
+            if ((*track->config->categories)[j])
             {
                 categories[j].trackList.push_back(id);
             }
@@ -241,7 +266,7 @@ int Seed::load_seed(fs::path savePath)
                 for (int j = 0; j < songSlots[i].categories.size(); j++)
                 {
                     int category = songSlots[i].categories[j];
-                    if ((*tracks[trackId]->categories)[category])
+                    if ((*tracks[trackId]->config->categories)[category])
                     {
                         can_go_in_slot = true;
                         break;

@@ -74,6 +74,10 @@ using ImageTable = Table<Image>;
 template<> ImageTable::Table(std::shared_ptr<Database> db);
 template<> int ImageTable::insert(std::shared_ptr<Image> entry);
 
+using ConfigTable = Table<Config>;
+template<> ConfigTable::Table(std::shared_ptr<Database> db);
+template<> int ConfigTable::insert(std::shared_ptr<Config> entry);
+
 struct Relation
 {
     int id_1;

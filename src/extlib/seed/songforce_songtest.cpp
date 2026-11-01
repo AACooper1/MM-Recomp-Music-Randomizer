@@ -61,6 +61,7 @@ void Seed::apply_songtest()
                     logger.info << "\t " << songSlots[i].name << " --> " << track->name << std::endl;
                 }
             }
+            track->config->is_songtest = true;
             logger.info.enable_header();
 
             prepare_tracks();

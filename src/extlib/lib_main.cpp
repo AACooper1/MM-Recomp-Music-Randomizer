@@ -227,6 +227,17 @@ RECOMP_DLL_FUNC(reroll_slot)
     RECOMP_RETURN(int, result);
 }
 
+RECOMP_DLL_FUNC(save_volume)
+{
+    float value = RECOMP_ARG(float, 0);
+    int slotIdx = RECOMP_ARG(int, 1);
+
+    
+    logger.dev << "Saving slot " << slotIdx << " volume at " << value << "!" << std::endl;
+
+    
+}
+
 RECOMP_DLL_FUNC(save_seed)
 {
     RECOMP_RETURN(int, seed->save_seed());

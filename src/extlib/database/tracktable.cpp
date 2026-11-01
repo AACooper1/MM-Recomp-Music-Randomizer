@@ -10,7 +10,6 @@ template<> TrackTable::Table(std::shared_ptr<Database> db) : db(db), name("track
             filename TEXT UNIQUE,                    \
             modified BIGINT,                         \
             songName TEXT,                           \
-            categories BLOB,                         \
             bankNo INTEGER,                          \
             formMask BLOB                            \
         );";
@@ -28,16 +27,14 @@ template<> int TrackTable::insert(std::shared_ptr<Track> entry)
             type,                       \
             modified,                   \
             songName,                   \
-            categories,                 \
             bankNo,                     \
             formMask                    \
         )                               \
-        VALUES (?, ?, ?, ?, ?, ?, ?)    \
+        VALUES (?, ?, ?, ?, ?, ?)       \
         ON CONFLICT (filename) DO       \
         UPDATE SET                      \
             modified=?,                 \
             songName=?,                 \
-            categories=?,               \
             bankNo=?,                   \
             formMask=?                  \
         RETURNING id;";
@@ -51,13 +48,11 @@ template<> int TrackTable::insert(std::shared_ptr<Track> entry)
     statement.bind_int((int)entry->type);
     statement.bind_int64(entry->timestamp);
     statement.bind_text(entry->name);
-    statement.bind_blob_vec(*entry->categories);
     statement.bind_int(entry->bankNo);
     statement.bind_blob(&entry->formmask.states, sizeof(FormMask));
 
     statement.bind_int64(entry->timestamp);
     statement.bind_text(entry->name);
-    statement.bind_blob_vec(*entry->categories);
     statement.bind_int(entry->bankNo);
     statement.bind_blob(&entry->formmask.states, sizeof(FormMask));
 
@@ -75,10 +70,9 @@ template<> void TrackTable::create_from_statement(Statement& statement, std::sha
         obj->path = statement.column_text(2);
         obj->timestamp = statement.column_int64(3);
         obj->name = statement.column_text(4);
-        *obj->categories = statement.column_blob(5);
-        obj->bankNo = statement.column_int(6);
+        obj->bankNo = statement.column_int(5);
 
-        std::vector<char> formmask_temp = statement.column_blob(7);
+        std::vector<char> formmask_temp = statement.column_blob(6);
         std::memcpy(obj->formmask.states, formmask_temp.data(), sizeof(short) * 16);
         std::memcpy(&obj->formmask.cumulativeStates, formmask_temp.data() + sizeof(short) * 16, sizeof(short));
         obj->id = obj->databaseIndex + 0x100;

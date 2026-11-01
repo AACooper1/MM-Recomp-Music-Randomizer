@@ -12,12 +12,14 @@ target_sources(${TARGET_NAME} PUBLIC
     "database/banktable.cpp"
     "database/soundtable.cpp"
     "database/imagetable.cpp"
+    "database/configtable.cpp"
     "database/relationtable.cpp"
     
     "fileparse/audiofile.cpp"
     "fileparse/track.cpp"
     "fileparse/formmask.cpp"
     "fileparse/image.cpp"
+    "fileparse/config.cpp"
     
     "seed/seed.cpp"
     "seed/songforce_songtest.cpp"

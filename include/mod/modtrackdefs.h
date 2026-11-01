@@ -24,74 +24,75 @@ typedef enum cTrackType_t
 
 typedef struct cFormMask_t
 {
-    u16 states[16];
-    u16 cumulativeStates;
-    u16 pad[3]; /* Necessary because otherwise there is a misalignment LMAO */
-} cFormMask;
+    /* 0x00 */ u16 states[16];
+    /* 0x20 */ u16 cumulativeStates;
+    /* 0x22 */ u16 pad[3]; /* Necessary because otherwise there is a misalignment LMAO */
+} cFormMask; // size = 0x28
 
 typedef struct cSequence_t
 {
-    u32 id;
-    u32 size;
-    char* data;
-    #ifndef __cplusplus 
-    u32 pad;
-    #endif
-} cSequence;
+    /* 0x00 */ u32 id;
+    /* 0x04 */ u32 size;
+    /* 0x08 */ char* data;
+        #ifndef __cplusplus 
+    /* 0x0C */ u32 pad;
+        #endif
+} cSequence; // size = 0x10
 
 typedef struct cBank_t
 {
-    int id;
-    u32 size;
-    char header[8];
-    char* data;
-    #ifndef __cplusplus 
-    u32 pad;
-    #endif
-} cBank;
+    /* 0x00 */ int id;
+    /* 0x04 */ u32 size;
+    /* 0x08 */ char header[8];
+    /* 0x10 */ char* data;
+        #ifndef __cplusplus 
+    /* 0x14 */ u32 pad;
+        #endif
+} cBank; // size = 0x18
 
 typedef struct cSound_t
 {
-    int id;
-    u32 size;
-    u32 sampleAddr;
-    char* data;
-    #ifndef __cplusplus 
-    u64 pad;
-    #endif
-} cSound;
+    /* 0x00 */ int id;
+    /* 0x04 */ u32 size;
+    /* 0x08 */ u32 sampleAddr;
+    /* 0x0C */ char* data;
+        #ifndef __cplusplus 
+    /* 0x10 */ u64 pad;  // Why did I make this u64?
+        #endif
+} cSound; // size = 0x18
 
 typedef struct cImage_t
 {
-    u32 id;
-    u32 size;
-    char* data;
-    #ifndef __cplusplus 
-    u32 pad;
-    #endif
-} cImage;
+    /* 0x00 */ u32 id;
+    /* 0x04 */ u32 size;
+    /* 0x08 */ char* data;
+        #ifndef __cplusplus 
+    /* 0x0C */ u32 pad;
+        #endif
+} cImage; // size = 0x10
 
 typedef struct cTrack_t
 {
-    cTrackType type;
-    char name[256];
-    char slotName[256];
-    int bankNo;
-    int slotIdx;
+/* 0x000 */ cTrackType type;
+/* 0x004 */ char name[0x100];
+/* 0x104 */ char slotName[0x100];
+/* 0x204 */ int bankNo;
+/* 0x208 */ int slotIdx;
 
-    int hasSeq;
-    int hasBank;
-    int numSounds;
-    int hasImage;
+/* 0x20C */ int hasSeq;
+/* 0x210 */ int hasBank;
+/* 0x214 */ int numSounds;
+/* 0x218 */ int hasImage;
+/* 0x21C */ float volume;
 
-    cFormMask formmask;
-    #ifndef __cplusplus 
-    u32 pad;
-    #endif
-    cSequence seq;
-    cBank bank;
-    cSound sounds[MAX_SOUNDS];
-    cImage image;
-} cTrack;
+/* 0x220 */ cFormMask formmask;
+    // #ifndef __cplusplus 
+    // u32 pad;
+    // #endif
+/* 0x248 */ cSequence seq;
+/* 0x258 */ cBank bank;
+/* 0x270 */ cSound sounds[MAX_SOUNDS];
+/* 0x870 */ cImage image;
+} cTrack; // size = 0x87C
 
 #endif

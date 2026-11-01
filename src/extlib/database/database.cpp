@@ -118,6 +118,7 @@ void Database::init_tables()
     tables->bank = std::make_unique<BankTable>(shared_from_this());
     tables->sound = std::make_unique<SoundTable>(shared_from_this());
     tables->image = std::make_unique<ImageTable>(shared_from_this());
+    tables->config = std::make_unique<ConfigTable>(shared_from_this());
 
     tables->relation.track_to_seq = std::make_unique<TrackToSequenceTable>(shared_from_this(), "track_to_seq");
     tables->relation.track_to_bank = std::make_unique<TrackToBankTable>(shared_from_this(), "track_to_bank");
@@ -406,6 +407,14 @@ bool Database::add_song(std::shared_ptr<Track>& track)
             if (tables->relation.track_to_image->insert(trackNo, imageId)) { return false; };
         }
     }
+    
+    track->config->trackId = track->databaseIndex;
+    int configId;
+    if (configId = tables->config->insert(track->config) != track->databaseIndex)
+    {
+        logger.error << "Config insert returned " << configId << "!" << std::endl;
+        return false;
+    }
 
     if (track->type == TrackType::OOTRS && track->bank)
     {
@@ -497,6 +506,13 @@ bool Database::remove_song(int id)
         }
     }
 
+    int configId;
+    if (configId = tables->config->remove(id) < 0)
+    {
+        logger.warning << "Could not remove config entry for track " << id << ", got " << configId << "!" << std::endl;
+        return false;
+    }
+
     return true;
 }
 
@@ -540,6 +556,8 @@ int Database::load_all_tracks()
         {
             track->soundIds.push_back(statement.column_int(1));
         }
+
+        track->config = tables->config->select(id);
     }
 
     return tables->track->entries.size();
@@ -553,6 +571,7 @@ int Database::load_all_songs()
     tables->bank->load_entries();
     tables->sound->load_entries();
     tables->image->load_entries();
+    tables->config->load_entries();
 
    return tables->track->entries.size();
 }
@@ -591,6 +610,18 @@ int Database::prepare_track(int id)
                 tables->relation.track_to_image->remove(id);
             }
         }
+
+        tables->config->load_entry(track->databaseIndex);
+        if (tables->config->entries[track->id])
+        {
+            track->config = tables->config->entries[track->id];
+        }
+        else
+        {
+            logger.error << "Track " << id << " had no config!" << std::endl;
+            return false;
+        }
+        
         track->is_prepared = true;
         logger.debug << "Track " << track->name << " prepared!" << std::endl;
         return true;

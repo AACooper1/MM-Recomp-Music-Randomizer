@@ -160,7 +160,7 @@ template<typename T> std::shared_ptr<T> Table<T>::select(std::string q)
     }
     else if (statement.step() == SQLITE_DONE)
     {
-        logger.debug << "Did not find " << name << " entry where " << query << ".";
+        logger.debug << "Did not find " << name << " entry where " << q << ".";
     }
     else
     {
@@ -232,3 +232,4 @@ template class Table<Sequence>;
 template class Table<Bank>;
 template class Table<Sound>;
 template class Table<Image>;
+template class Table<Config>;

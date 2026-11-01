@@ -44,6 +44,8 @@ struct Statement
         { i++; return sqlite3_bind_int64(statement, i, value); }
     int bind_text(std::string text)
         { i++; return sqlite3_bind_text(statement, i, text.c_str(), text.length(), SQLITE_TRANSIENT); }
+    int bind_double(double value)
+        {i++; return sqlite3_bind_double(statement, i, value); }
 
     std::string column_text(int col)
         { return reinterpret_cast<const char*>(sqlite3_column_text(statement, col)); }
@@ -65,6 +67,8 @@ struct Statement
 
             return retvec;
         }
+    double column_double(int col)
+        { return sqlite3_column_double(statement, col); }
     
     
     int exec_and_return_id()
@@ -162,6 +166,7 @@ struct dbTables
     std::unique_ptr<BankTable> bank;
     std::unique_ptr<SoundTable> sound;
     std::unique_ptr<ImageTable> image;
+    std::unique_ptr<ConfigTable> config;
 
     RelationTables relation;
 

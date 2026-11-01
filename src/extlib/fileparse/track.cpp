@@ -4,8 +4,6 @@ Track::Track(fs::path path)
 {
     databaseIndex = 0;
     this->path = path;
-    categories = std::make_unique<std::vector<char>>();
-    categories->resize(0x200);
     name = path.stem().string();
 
     if (path.extension() == ".mmrs")
@@ -28,13 +26,14 @@ Track::Track(fs::path path)
     sequence = nullptr;
     bank = nullptr;
     bankNo = 0;
+
+    config = std::make_shared<Config>();
 }
 
 Track::Track()
 {
     databaseIndex = 0;
     path = "";
-    categories = std::make_unique<std::vector<char>>(0x200, false);
     name = "";
     bankNo = 0;
 
@@ -112,7 +111,7 @@ bool Track::read_from_zseq()
 
     std::vector<char> _categories;
     _categories.assign(split_filename[2].begin(), split_filename[2].end());
-    parse_categories(_categories);
+    config->parse_categories(_categories);
 
     std::ifstream zseq_file(path, std::ios::binary);
     if (!zseq_file.is_open())
@@ -205,7 +204,7 @@ bool Track::read_from_mmrs()
         }
         else if (filename == "categories.txt")
         {
-            parse_categories(*filebuffer);
+            config->parse_categories(*filebuffer);
         }
         else if (filename.ends_with(".formmask"))
         {
@@ -363,7 +362,7 @@ bool Track::parse_meta(std::vector<char>& filebuffer)
         {
             metaCategories += lines[i] + '\n';
         }
-        parse_oot_categories(metaCategories);
+        config->parse_oot_categories(metaCategories);
 
         for (int i = 2; i < lines.size(); i++)
         {
@@ -416,100 +415,3 @@ bool Track::fix_oot_custom_bank(OoTAudioHandler* ootAudioHandler)
 
     return true;
 }
-
-void Track::parse_oot_categories(std::string metaCategories)
-{
-    _is_fanfare = metaCategories.contains("fanfare") || metaCategories.contains("Fanfare");
-
-    if (metaCategories.length() == 0 || metaCategories == "bgm" || metaCategories == "bgm\n")
-    {
-          (*this->categories)[FIELD]
-        = (*this->categories)[TOWN]
-        = (*this->categories)[DUNGEON]
-        = (*this->categories)[INDOORS]
-        = (*this->categories)[MINIGAME]
-        = true;
-        return;
-    }
-    else if (metaCategories == "fanfare" || metaCategories == "fanfare\n")
-    {
-          (*this->categories)[FANFARE]
-        = (*this->categories)[GAME_OVER]
-        = (*this->categories)[AREA_CLEAR]
-        = true;
-        return;
-    }
-    else
-    {
-        std::vector<std::string> cats = split_string(metaCategories, ",\n");
-
-        for (int i = 0; i < cats.size(); i++)
-        {
-            if (OoTBGMGroupsToCategories.contains(cats[i]))
-            {
-                std::vector<SongSlotID>& this_category = OoTBGMGroupsToCategories.at(cats[i]);
-                for(int c = 0; c < this_category.size(); c++)
-                {
-                    (*this->categories)[(int)this_category[c]] = true;
-                }
-            }
-        }
-    }
-}
-
-void Track::parse_categories(std::vector<char>& filebuffer)
-{
-    if (type == TrackType::OOTRS)
-    {
-        logger.error << "Tried to use parse_categories instead of parse_meta for OOTRS?!?!" << std::endl;
-    }
-    std::string cats_txt(filebuffer.begin(), filebuffer.end());
-
-    std::vector<std::string> categories = split_string(cats_txt, ",-");
-
-    for (int i = 0; i < categories.size(); i++)
-    {
-        int cat = -1;
-        try 
-        {
-            cat = std::stoi(categories[i], 0, 16);
-            if (cat == 0x10) { cat = 10; }  // Special handling for these two, as MMR handles
-            if (cat == 0x16) {cat = 16; }   // song slots in base 16 but categories in base 10
-        }
-        catch (const std::exception& e) 
-        {
-            logger.error << "Could not parse int for category \"" << categories[i] << "\" in track " << name << std:: endl;
-            continue;
-        }
-
-        if (cat < 0x200)
-        {
-            (*this->categories)[cat] = true;
-        }
-        else
-        {
-            logger.warning << "Track " << name << "had category " << cat << ", which is not allowed." << std::endl;
-        }
-    }
-
-    return;
-}
-
-
-/* Used for vanilla tracks */
-void Track::parse_categories(const std::vector<int>& categories)
-{
-    for (int i = 0; i < categories.size(); i++)
-    {
-        if (categories[i] < 0x200)
-        {
-            (*this->categories)[categories[i]] = true;
-        }
-        else
-        {
-            logger.warning << "Vanila track " << name << "had category " << categories[i] << ", which is not allowed." << std::endl;
-        }
-    }
-    (*this->categories)[id] = true;
-}
-

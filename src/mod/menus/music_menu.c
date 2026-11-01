@@ -45,6 +45,15 @@ extern bool should_skip_song_title_display[0x7F];
 RECOMP_CALLBACK(".", music_menu_close) void save_on_close()
 {
     save_seed();
+
+    for (int i = NA_BGM_TERMINA_FIELD; i < NA_BGM_MAX; i++)
+    {
+        if (volumeVals[i] != randomized[i].volume)
+        {
+            randomized[i].volume = volumeVals[i];
+        }
+        
+    }
 }
 
 void replace_track_internal(int slotIdx, int trackId)
@@ -442,7 +451,7 @@ MusicMenu_Track_Element music_menu_create_row(cTrack* slot, RecompuiResource par
 
 RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(cTrack* randomized)
 {
-    for (int i = 0; i < NA_BGM_MAX; i++)
+    for (int i = NA_BGM_TERMINA_FIELD; i < NA_BGM_MAX; i++)
     {
         volumeVals[i] = 100.0f;
     }
