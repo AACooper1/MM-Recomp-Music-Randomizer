@@ -19,7 +19,7 @@ GraphicsContext* thisGfxCtx;
 s32 seqId;
 u16 seqArgs;
 
-float volumeVals[NA_BGM_MAX] = {100.0f};
+float volumeVals[NA_BGM_MAX];
 
 bool is_music_menu_open = false;
 bool has_music_menu_been_opened = false;
@@ -48,11 +48,15 @@ RECOMP_CALLBACK(".", music_menu_close) void save_on_close()
 
     for (int i = NA_BGM_TERMINA_FIELD; i < NA_BGM_MAX; i++)
     {
-        if (volumeVals[i] != randomized[i].volume)
+        if (volumeVals[i] != config[i].volume)
         {
-            randomized[i].volume = volumeVals[i];
+            modified[i] = true;
+            config[i].volume = volumeVals[i];
         }
-        
+        if (modified[i])
+        {
+            save_config;
+        }
     }
 }
 
@@ -453,7 +457,8 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(
 {
     for (int i = NA_BGM_TERMINA_FIELD; i < NA_BGM_MAX; i++)
     {
-        volumeVals[i] = 100.0f;
+        fetch_config(i, &config[i]);
+        volumeVals[i] = config[i].volume;
     }
 
     const float body_padding = 64.0f;

@@ -8,8 +8,8 @@ static const char* track_source_options[] = {"Any", "Vanilla only", "Custom only
 
 StartMenu_Option music_rando_startup_options[OPTIONS_MAX] = 
 {
-    {"Randomization", randomization_options, 2, 0, &config.randomization_off},
-    {"Use Tracks", track_source_options, 3, 0, &config.track_types},
+    {"Randomization", randomization_options, 2, 0, &seedSettings.randomization_off},
+    {"Use Tracks", track_source_options, 3, 0, &seedSettings.track_types},
     // {"Morning Song", morning_song_options, 2, 0, &config.disable_randomize_suns_song},
     
     {NULL, NULL, 0} // Sentinel

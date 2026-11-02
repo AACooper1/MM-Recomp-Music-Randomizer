@@ -20,11 +20,11 @@ typedef struct StartMenu_Option_t {
     unsigned long* config_value;
 } StartMenu_Option;
 
-typedef struct MusicRando_Config_t {
+typedef struct MusicRando_SeedSettings_t {
     unsigned long randomization_off;
     unsigned long track_types;
     // unsigned long disable_randomize_suns_song;
-} MusicRando_Config;
+} MusicRando_SeedSettings;
 
 typedef struct StartMenu_Option_Element_t {
     RecompuiResource container;
@@ -60,7 +60,7 @@ GameState* gState;
 bool game_started;
 extern bool is_existing_seed;
 
-extern MusicRando_Config config;
+extern MusicRando_SeedSettings seedSettings;
 
 // MM Functions
 extern void ConsoleLogo_Main(GameState* thisx);

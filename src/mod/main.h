@@ -20,13 +20,13 @@ RECOMP_DECLARE_EVENT(music_rando_launch_menu());
 RECOMP_DECLARE_EVENT(music_rando_seed_prepared(cTrack* randomizedAddr));
 RECOMP_DECLARE_EVENT(music_rando_randomization_complete(cTrack* randomizedAddr));
 
-typedef struct MusicRando_Config_t {
+typedef struct MusicRando_SeedSettings_t {
     unsigned long randomization_off;
     unsigned long track_types;
     // unsigned long disable_randomize_suns_song;
-} MusicRando_Config;
+} MusicRando_SeedSettings;
 
-MusicRando_Config config;
+MusicRando_SeedSettings seedSettings;
 
 GameState* playCtx;
 

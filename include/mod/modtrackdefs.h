@@ -73,26 +73,37 @@ typedef struct cImage_t
 
 typedef struct cTrack_t
 {
-/* 0x000 */ cTrackType type;
-/* 0x004 */ char name[0x100];
-/* 0x104 */ char slotName[0x100];
-/* 0x204 */ int bankNo;
-/* 0x208 */ int slotIdx;
+    /* 0x000 */ cTrackType type;
+    /* 0x004 */ char name[0x100];
+    /* 0x104 */ char slotName[0x100];
+    /* 0x204 */ int bankNo;
+    /* 0x208 */ int slotIdx;
 
-/* 0x20C */ int hasSeq;
-/* 0x210 */ int hasBank;
-/* 0x214 */ int numSounds;
-/* 0x218 */ int hasImage;
-/* 0x21C */ float volume;
+    /* 0x20C */ int hasSeq;
+    /* 0x210 */ int hasBank;
+    /* 0x214 */ int numSounds;
+    /* 0x218 */ int hasImage;
 
-/* 0x220 */ cFormMask formmask;
-    // #ifndef __cplusplus 
-    // u32 pad;
-    // #endif
-/* 0x248 */ cSequence seq;
-/* 0x258 */ cBank bank;
-/* 0x270 */ cSound sounds[MAX_SOUNDS];
-/* 0x870 */ cImage image;
+    /* 0x21C */ cFormMask formmask;
+        #ifndef __cplusplus
+    /* 0x244 */ u32 pad;
+        #endif
+    /* 0x248 */ cSequence seq;
+    /* 0x258 */ cBank bank;
+    /* 0x270 */ cSound sounds[MAX_SOUNDS];
+    /* 0x870 */ cImage image;
 } cTrack; // size = 0x87C
+
+typedef struct cConfig_t
+{
+    /* 0x000 */ int id;
+    /* 0x004 */ bool categories[0x200];
+    /* 0x204 */ float volume;
+    /* 0x208 */ float weight;
+    /* 0x20C */ u8 is_songforce;
+    /* 0x20D */ u8 pad1[3];
+    /* 0x210 */ u8 is_songtest;
+    /* 0x211 */ u8 pad2[3];
+} cConfig; // size = 0x214
 
 #endif

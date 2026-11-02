@@ -48,10 +48,10 @@ RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_see
     int randoSeed;
     randoSeed = get_current_time();
 
-    config.track_types = 3 - config.track_types;
-    bool use_custom = config.track_types & 1;
-    bool use_vanilla = config.track_types & 2;
-    if (config.randomization_off) { use_custom = use_vanilla = false; }
+    seedSettings.track_types = 3 - seedSettings.track_types;
+    bool use_custom = seedSettings.track_types & 1;
+    bool use_vanilla = seedSettings.track_types & 2;
+    if (seedSettings.randomization_off) { use_custom = use_vanilla = false; }
 
     if (!prepare_seed(randoSeed, savePath, use_custom, use_vanilla))
     {
@@ -59,7 +59,7 @@ RECOMP_CALLBACK(".", music_rando_begin_randomization) void music_rando_ready_see
         recomp_free(savePath);
         return;
     }
-    if (config.randomization_off)
+    if (seedSettings.randomization_off)
     {
         logger.debug("Randomization off. Aborting music rando.\n");
         return;

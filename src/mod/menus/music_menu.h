@@ -5,6 +5,8 @@
 RECOMP_IMPORT(".", int reroll_slot(int slotIdx));
 RECOMP_IMPORT(".", void fetch_randomized_track(int slotIdx, cTrack* modTrack));
 RECOMP_IMPORT(".", int save_seed());
+RECOMP_IMPORT(".", int save_config());
+RECOMP_IMPORT(".", int fetch_config(int slotIdx, cConfig* config));
 
 extern void populate_custom_track(cTrack* track);
 extern void replace_custom(int i);
@@ -134,6 +136,9 @@ typedef struct MusicMenu_t {
 
 MusicMenu musicMenu;
 bool isBankUnused[0xFF];
+bool modified[NA_BGM_MAX];
+
+cConfig config[NA_BGM_MAX];
 
 MusicMenu_Track_Element music_menu_create_row(cTrack* slot, RecompuiResource parent);
 MusicMenu_Slot_Column music_menu_create_slot_column(cTrack* slot, RecompuiResource parent);

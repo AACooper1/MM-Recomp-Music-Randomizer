@@ -227,15 +227,13 @@ RECOMP_DLL_FUNC(reroll_slot)
     RECOMP_RETURN(int, result);
 }
 
-RECOMP_DLL_FUNC(save_volume)
+RECOMP_DLL_FUNC(save_config)
 {
-    float value = RECOMP_ARG(float, 0);
-    int slotIdx = RECOMP_ARG(int, 1);
+    int slotIdx = RECOMP_ARG(int, 0);
+    cConfig* config = RECOMP_ARG(cConfig*, 1);
 
-    
-    logger.dev << "Saving slot " << slotIdx << " volume at " << value << "!" << std::endl;
 
-    
+    logger.dev << "Saving slot " << slotIdx << " config!" << std::endl;   
 }
 
 RECOMP_DLL_FUNC(save_seed)
@@ -320,6 +318,26 @@ RECOMP_DLL_FUNC(fetch_randomized_track)
         prepare_vanilla_track(extlibTrack, modTrack);
     }
     logger.dev << "Sizeof cTrack (extlib): " << sizeof(cTrack) << std::endl;
+}
+
+RECOMP_DLL_FUNC(fetch_config)
+{
+    int slotIdx = RECOMP_ARG(int, 0);
+    cConfig* modConfig = RECOMP_ARG(cConfig*, 1);
+
+    std::shared_ptr<Config> extlibConfig = seed->randomized[slotIdx]->config;
+
+    modConfig->id = slotIdx;
+
+    for (int i = 0; i < 200; i++)
+    {
+        modConfig->categories[i] = extlibConfig->categories->at(i ^ 3);
+    }
+
+    modConfig->volume = extlibConfig->volume;
+    modConfig->weight = extlibConfig->weight;
+    modConfig->pad1[2] = extlibConfig->is_songforce;    // Endian nonsense
+    modConfig->pad2[2] = extlibConfig->is_songtest;     // Kill Jonathan Swift
 }
 
 RECOMP_DLL_FUNC(fetch_seq)

@@ -19,8 +19,8 @@ class Config {
         float volume = 100.0f;
         float weight = 1.0f;
 
-        bool is_songtest = false;
-        bool is_songforce = false;
+        u8 is_songtest = false;
+        u8 is_songforce = false;
 
         void parse_categories(std::vector<char>& filebuffer);
         void parse_categories(const std::vector<int>& categories); // Vanilla track overload
