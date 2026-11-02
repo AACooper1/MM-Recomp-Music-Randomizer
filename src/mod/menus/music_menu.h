@@ -5,7 +5,7 @@
 RECOMP_IMPORT(".", int reroll_slot(int slotIdx));
 RECOMP_IMPORT(".", void fetch_randomized_track(int slotIdx, cTrack* modTrack));
 RECOMP_IMPORT(".", int save_seed());
-RECOMP_IMPORT(".", int save_config());
+RECOMP_IMPORT(".", int save_config(int slotIdx, cConfig* modConfig));
 RECOMP_IMPORT(".", int fetch_config(int slotIdx, cConfig* config));
 
 extern void populate_custom_track(cTrack* track);

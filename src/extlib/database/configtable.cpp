@@ -78,7 +78,7 @@ template<> int ConfigTable::update(int id, std::shared_ptr<Config> entry)
         "UPDATE config          \
          SET                    \
             categories = ?,     \
-            volume = ?          \
+            volume = ?,         \
             weight = ?,         \
             is_songforce = ?,   \
             is_songtest = ?     \
@@ -98,4 +98,8 @@ template<> int ConfigTable::update(int id, std::shared_ptr<Config> entry)
     statement.bind_int(entry->is_songtest);
 
     statement.bind_int(entry->trackId);
+
+    int dbIdx = statement.exec_and_return_id();
+
+    return dbIdx;
 }

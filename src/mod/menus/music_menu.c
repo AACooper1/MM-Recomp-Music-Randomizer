@@ -48,16 +48,38 @@ RECOMP_CALLBACK(".", music_menu_close) void save_on_close()
 
     for (int i = NA_BGM_TERMINA_FIELD; i < NA_BGM_MAX; i++)
     {
+        if (should_skip_song_title_display[i]) continue;
+
+        recompui_open_context(musicMenuContext);
+        volumeVals[i] = recompui_get_input_value_float(musicMenu.tracks[i]->trackCol.volume.slider);
+        recompui_close_context(musicMenuContext);
         if (volumeVals[i] != config[i].volume)
         {
+            logger.dev("Volume value for slot %i was %f (previously %f)!\n", i, volumeVals[i], config[i].volume);
             modified[i] = true;
             config[i].volume = volumeVals[i];
         }
         if (modified[i])
         {
-            save_config;
+            save_config(i, &config[i]);
+            modified[i] = false;
+            logger.debug("Saved new settings!\n");
+            for (int j = NA_BGM_TERMINA_FIELD; j < NA_BGM_MAX; j++)
+            {
+                if (should_skip_song_title_display[j] || i == j) continue;
+                if (config[j].id == config[i].id)
+                {
+                    recompui_open_context(musicMenuContext);
+                        recompui_destroy_element(musicMenu.tracks[j]->trackCol.volume._base.container, musicMenu.tracks[j]->trackCol.volume.slider);
+                        musicMenu.tracks[j]->trackCol.volume.slider = recompui_create_slider(musicMenuContext, musicMenu.tracks[j]->trackCol.volume._base.container, SLIDERTYPE_PERCENT, 0.0f, 200.0f, 1.0f, recompui_get_input_value_float(musicMenu.tracks[i]->trackCol.volume.slider));
+                        recompui_set_width(musicMenu.tracks[j]->trackCol.volume.slider, 100.0f, UNIT_PERCENT);
+                    recompui_close_context(musicMenuContext);
+                }
+            }
         }
     }
+
+    logger.debug("Finished?");
 }
 
 void replace_track_internal(int slotIdx, int trackId)
@@ -284,7 +306,7 @@ MusicMenu_Volume music_menu_create_volume(RecompuiResource parent, cTrack* track
 
     volume.icon = recompui_create_imageview(musicMenuContext, volume.iconContainer, speakerIcon);
 
-    volume.slider = recompui_create_slider(musicMenuContext, volume._base.container, SLIDERTYPE_PERCENT, 0.0f, 200.0f, 1.0f, 100.0f);
+    volume.slider = recompui_create_slider(musicMenuContext, volume._base.container, SLIDERTYPE_PERCENT, 0.0f, 200.0f, 1.0f, config[track->slotIdx].volume);
     if (track->slotIdx == NA_BGM_TERMINA_FIELD)
     {
         recomp_printf("Created slider at %p.\n", volume.slider);

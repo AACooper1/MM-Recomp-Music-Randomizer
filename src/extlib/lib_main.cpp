@@ -230,10 +230,25 @@ RECOMP_DLL_FUNC(reroll_slot)
 RECOMP_DLL_FUNC(save_config)
 {
     int slotIdx = RECOMP_ARG(int, 0);
-    cConfig* config = RECOMP_ARG(cConfig*, 1);
+    cConfig* modConfig = RECOMP_ARG(cConfig*, 1);
 
+    std::shared_ptr<Config> extlibConfig = seed->randomized[slotIdx]->config;
+    
+    for (int i = 0; i < 0x200; i++)
+    {
+        extlibConfig->categories->at(i) = modConfig->categories[i ^ 3];
+    }
+
+    extlibConfig->volume = modConfig->volume;
+    extlibConfig->weight = modConfig->weight;
+    extlibConfig->is_songforce = modConfig->pad1[2];
+    extlibConfig->is_songtest = modConfig->pad2[2];
 
     logger.dev << "Saving slot " << slotIdx << " config!" << std::endl;   
+
+    int rc = db->tables->config->update(seed->randomized[slotIdx]->id, extlibConfig);
+
+    RECOMP_RETURN(int, rc);
 }
 
 RECOMP_DLL_FUNC(save_seed)
@@ -334,6 +349,7 @@ RECOMP_DLL_FUNC(fetch_config)
         modConfig->categories[i] = extlibConfig->categories->at(i ^ 3);
     }
 
+    modConfig->id = extlibConfig->trackId;
     modConfig->volume = extlibConfig->volume;
     modConfig->weight = extlibConfig->weight;
     modConfig->pad1[2] = extlibConfig->is_songforce;    // Endian nonsense
