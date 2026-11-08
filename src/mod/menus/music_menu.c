@@ -236,32 +236,38 @@ void music_menu_reroll_slot(RecompuiResource resource, const RecompuiEventData* 
 
 void music_menu_toggle_button_on_click(RecompuiResource resource, const RecompuiEventData* event, void* userdata)
 {
+    MusicMenu_Toggle_Button* button = (MusicMenu_Toggle_Button*)userdata;
+
     if (event->type == UI_EVENT_CLICK)
     {
-        logger.dev ("Clicked category!\n");
-
-        MusicMenu_Toggle_Button* button = (MusicMenu_Toggle_Button*)userdata;
-
-        logger.noheader.dev("Assigned button! %p\n", button);
         if (button->enabled)
         {
             recompui_set_opacity(button->icon, 0.0f);
-            logger.noheader.dev("Set opacity!\n");
         }
         else
         {
             recompui_set_opacity(button->icon, 1.0f);
-            logger.noheader.dev("Set opacity!\n");
         }
 
         button->enabled = ~button->enabled;
-        logger.noheader.dev("Negated enabled!\n");
     }
 }
 
 void music_menu_toggle_category(RecompuiResource resource, const RecompuiEventData* event, void* userdata)
 {
-    // Not implemented
+    cConfig* config = (cConfig*)userdata;
+    int catIdx = *(int*)userdata + 1;
+    if (event->type == UI_EVENT_CLICK)
+    {
+        if (config->categories[catIdx])
+        {
+            config->categories[catIdx] = false;
+        }
+        else
+        {
+            config->categories[catIdx] = true;
+        }
+    }
     return;
 }
 
@@ -385,6 +391,15 @@ MusicMenu_Track_Settings music_menu_create_track_settings(RecompuiResource paren
     for (int i = 0; i < 12; i++)
     {
         settings.categories.categories[i] = music_menu_create_toggle_button(checkIcon, settings.categories._base.container, CategoryNames[i], BUTTON_WIDTH_SMALL, BUTTON_HEIGHT_SMALL, music_menu_toggle_category);
+        
+        int trackId = track->slotIdx;
+        int catIdx = i == 11 ? 16 : i;
+
+        if (config[trackId].categories[catIdx])
+        {
+            settings.categories.categories[i].enabled = true;
+            recompui_set_opacity(settings.categories.categories[i].icon, 1.0f);
+        }
     }
 
     return settings;
@@ -431,16 +446,20 @@ MusicMenu_Toggle_Button music_menu_create_toggle_button(RecompuiTextureHandle ic
     recompui_set_flex_direction(button._base.container, FLEX_DIRECTION_COLUMN);
     recompui_set_display(button._base.container, DISPLAY_FLEX);
     recompui_set_align_items(button._base.container, ALIGN_ITEMS_CENTER);
+    recompui_set_justify_content(button._base.container, JUSTIFY_CONTENT_CENTER);
 
     recompui_set_min_width(button._base.container, width + 20, UNIT_DP);
     recompui_set_width(button._base.container, width + 20, UNIT_DP);
 
     button.label = recompui_create_label(musicMenuContext, button._base.container, label, LABELSTYLE_SMALL);
     recompui_set_font_size(button.label, 13.0f, UNIT_DP);
+    recompui_set_line_height(button.label, 11.0f, UNIT_DP);
+    recompui_set_height(button.label, 27.0f, UNIT_DP);
 
     button.buttonContainer = recompui_create_element(musicMenuContext, button._base.container);
     button.button = recompui_create_button(musicMenuContext, button.buttonContainer, "", BUTTONSTYLE_SECONDARY);
     recompui_set_opacity(button.button, 0.0f);
+    recompui_set_position(button.button, POSITION_ABSOLUTE);
 
     recompui_set_min_width(button.buttonContainer, width + 2, UNIT_DP);
     recompui_set_width(button.buttonContainer, width + 2, UNIT_DP);
@@ -454,7 +473,6 @@ MusicMenu_Toggle_Button music_menu_create_toggle_button(RecompuiTextureHandle ic
     recompui_set_border_radius(button.button, 0.0f, UNIT_DP);
     
     button.icon = recompui_create_imageview(musicMenuContext, button.buttonContainer, icon);
-    recompui_set_padding(button.icon, 2.0f, UNIT_DP);
     recompui_set_opacity(button.icon, 0.0f);
 
     button.callback = callback;
@@ -717,7 +735,7 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(
 
     recompui_close_context(musicMenuContext);
 
-    recompui_show_context(musicMenuContext);
+    // recompui_show_context(musicMenuContext);
 }
 
 RECOMP_HOOK_RETURN("AudioSeq_UpdateActiveSequences") void update_volume()
