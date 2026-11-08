@@ -238,17 +238,24 @@ void music_menu_toggle_button_on_click(RecompuiResource resource, const Recompui
 {
     if (event->type == UI_EVENT_CLICK)
     {
+        logger.dev ("Clicked category!\n");
+
         MusicMenu_Toggle_Button* button = (MusicMenu_Toggle_Button*)userdata;
+
+        logger.noheader.dev("Assigned button! %p\n", button);
         if (button->enabled)
         {
             recompui_set_opacity(button->icon, 0.0f);
+            logger.noheader.dev("Set opacity!\n");
         }
         else
         {
             recompui_set_opacity(button->icon, 1.0f);
+            logger.noheader.dev("Set opacity!\n");
         }
 
         button->enabled = ~button->enabled;
+        logger.noheader.dev("Negated enabled!\n");
     }
 }
 
@@ -378,14 +385,8 @@ MusicMenu_Track_Settings music_menu_create_track_settings(RecompuiResource paren
     for (int i = 0; i < 12; i++)
     {
         settings.categories.categories[i] = music_menu_create_toggle_button(checkIcon, settings.categories._base.container, CategoryNames[i], BUTTON_WIDTH_SMALL, BUTTON_HEIGHT_SMALL, music_menu_toggle_category);
-        
-        // Check mark visibility
-        int buttonIndices[2] = {track->slotIdx, i};
-        recompui_register_callback(settings.categories.categories[i].button, settings.categories.categories[i].callback, buttonIndices);
-        
-        // Settings toggle
-        recompui_register_callback(settings.categories.categories[i].button, settings.categories.categories[i].callback, 0);
     }
+
     return settings;
 }
 
@@ -439,7 +440,7 @@ MusicMenu_Toggle_Button music_menu_create_toggle_button(RecompuiTextureHandle ic
 
     button.buttonContainer = recompui_create_element(musicMenuContext, button._base.container);
     button.button = recompui_create_button(musicMenuContext, button.buttonContainer, "", BUTTONSTYLE_SECONDARY);
-    // recompui_set_opacity(button.button, 0.0f);
+    recompui_set_opacity(button.button, 0.0f);
 
     recompui_set_min_width(button.buttonContainer, width + 2, UNIT_DP);
     recompui_set_width(button.buttonContainer, width + 2, UNIT_DP);
@@ -701,6 +702,12 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(
 
         musicMenu.tracks[i] = recomp_alloc(sizeof(MusicMenu_Track_Element));
         Lib_MemCpy(musicMenu.tracks[i], &row, sizeof(MusicMenu_Track_Element));
+
+        // Have to do this down here because of the memcpy stuff
+        for (int j = 0; j < 12; j++)
+        {
+            recompui_register_callback(musicMenu.tracks[i]->trackSettings.categories.categories[j].button, music_menu_toggle_button_on_click, &(musicMenu.tracks[i]->trackSettings.categories.categories[j]));
+        }
     }
 
     // recompui_set_border_color(musicMenu.tracks[NA_BGM_TERMINA_FIELD]->slotCol.cell.container, &aBlue);

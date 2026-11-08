@@ -56,7 +56,7 @@ typedef struct MusicMenu_Toggle_Button_t {
     RecompuiResource button;
     RecompuiResource icon;
 
-    bool enabled;
+    u32 enabled;
     void (*callback)(RecompuiResource, const RecompuiEventData*, void*);
 } MusicMenu_Toggle_Button;
 
@@ -100,7 +100,7 @@ typedef struct MusicMenu_Toggle_Button_t {
             MusicMenu_Toggle_Button songtest;
             MusicMenu_Toggle_Button songforce;
 
-            bool visible;
+            u32 visible;
         } MusicMenu_Track_Settings;
 
         typedef struct MusicMenu_Album_Art_t {
