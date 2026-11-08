@@ -78,8 +78,6 @@ RECOMP_CALLBACK(".", music_menu_close) void save_on_close()
             }
         }
     }
-
-    logger.debug("Finished?");
 }
 
 void replace_track_internal(int slotIdx, int trackId)
@@ -209,12 +207,7 @@ void music_menu_create_edit_title(RecompuiResource resouce, const RecompuiEventD
     return;
 }
 
-void music_menu_create_track_settings(RecompuiResource resouce, const RecompuiEventData* event, void* userdata)
-{
-    return;
-}
-
-void music_menu_reroll_slot(RecompuiResource resouce, const RecompuiEventData* event, void* userdata)
+void music_menu_reroll_slot(RecompuiResource resource, const RecompuiEventData* event, void* userdata)
 {    
     if (event->type == UI_EVENT_CLICK)
     {
@@ -238,6 +231,30 @@ void music_menu_reroll_slot(RecompuiResource resouce, const RecompuiEventData* e
         }
     }
 
+    return;
+}
+
+void music_menu_toggle_button_on_click(RecompuiResource resource, const RecompuiEventData* event, void* userdata)
+{
+    if (event->type == UI_EVENT_CLICK)
+    {
+        MusicMenu_Toggle_Button* button = (MusicMenu_Toggle_Button*)userdata;
+        if (button->enabled)
+        {
+            recompui_set_opacity(button->icon, 0.0f);
+        }
+        else
+        {
+            recompui_set_opacity(button->icon, 1.0f);
+        }
+
+        button->enabled = ~button->enabled;
+    }
+}
+
+void music_menu_toggle_category(RecompuiResource resource, const RecompuiEventData* event, void* userdata)
+{
+    // Not implemented
     return;
 }
 
@@ -283,6 +300,93 @@ void music_menu_init_icons()
     pencilIcon = recompui_create_texture_rgba32(pencilIconData, BUTTON_WIDTH_SMALL, BUTTON_HEIGHT_SMALL);
     dieIcon = recompui_create_texture_rgba32(dieIconData, BUTTON_WIDTH, BUTTON_HEIGHT);
     speakerIcon = recompui_create_texture_rgba32(speakerIconData, BUTTON_WIDTH, BUTTON_HEIGHT);
+    checkIcon = recompui_create_texture_rgba32(checkIconData, BUTTON_WIDTH_SMALL, BUTTON_HEIGHT_SMALL);
+}
+
+void music_menu_open_or_close_track_settings(RecompuiResource resource, const RecompuiEventData* event, void* userdata)
+{
+    if (event->type == UI_EVENT_CLICK)
+    {
+        logger.dev("Pressed track settings button!\n");
+        int idx = *(int*)userdata;
+
+        for (int i = 0; i < NA_BGM_MAX; i++)
+        {
+            if (should_skip_song_title_display[i] || i == idx)
+            {
+                continue;
+            }
+            else
+            {
+                MusicMenu_Track_Settings* settings = &musicMenu.tracks[i]->trackSettings;
+                if (settings->visible)
+                {
+                    recompui_set_display(settings->cell.container, DISPLAY_NONE);
+                    settings->visible = false;
+                }
+            }
+        }
+
+        MusicMenu_Track_Settings* settings = &musicMenu.tracks[idx]->trackSettings;
+        if (musicMenu.tracks[idx]->trackSettings.visible)
+        {
+            recompui_set_display(settings->cell.container, DISPLAY_NONE);
+            settings->visible = false;
+        }
+        else
+        {
+            recompui_set_display(settings->cell.container, DISPLAY_TABLE_CELL);
+            settings->visible = true;
+        }
+    }
+}
+
+MusicMenu_Track_Settings music_menu_create_track_settings(RecompuiResource parent, cTrack* track)
+{
+    MusicMenu_Track_Settings settings;
+    settings.dummyCell = recompui_create_element(musicMenuContext, parent);
+    recompui_set_display(settings.dummyCell, DISPLAY_TABLE_CELL);
+    settings.cell.parent = parent;
+    settings.cell.container = recompui_create_element(musicMenuContext, parent);
+    recompui_set_display(settings.cell.container, DISPLAY_NONE);
+
+    settings._base.parent = settings.cell.container;
+    settings._base.container = recompui_create_element(musicMenuContext, settings.cell.container);
+    settings.visible = false;
+
+    recompui_set_display(settings._base.container, DISPLAY_FLEX);
+    recompui_set_flex_direction(settings._base.container, FLEX_DIRECTION_COLUMN);
+
+    settings.categories._base.parent = settings._base.container;
+    settings.categories._base.container = recompui_create_element(musicMenuContext, settings._base.container);
+    recompui_set_display(settings.categories._base.container, DISPLAY_FLEX);
+    recompui_set_flex_direction(settings.categories._base.container, FLEX_DIRECTION_ROW);
+
+    settings.categories.label = recompui_create_label(musicMenuContext, settings.categories._base.container, "Categories", LABELSTYLE_SMALL);
+    recompui_set_justify_content(settings.categories._base.container, JUSTIFY_CONTENT_SPACE_AROUND);
+    recompui_set_align_items(settings.categories._base.container, ALIGN_ITEMS_CENTER);
+
+    recompui_set_width(settings.cell.container, 100.0f, UNIT_PERCENT);
+    recompui_set_width(settings._base.container, 100.0f, UNIT_PERCENT);
+    recompui_set_width(settings.categories._base.container, 90.0f, UNIT_PERCENT);
+
+    recompui_set_height(settings.cell.container, 15.0f, UNIT_PERCENT);
+    recompui_set_height(settings._base.container, 100.0f, UNIT_PERCENT);
+
+    recompui_set_border_width(settings.cell.container, 2.0f, UNIT_DP);
+
+    for (int i = 0; i < 12; i++)
+    {
+        settings.categories.categories[i] = music_menu_create_toggle_button(checkIcon, settings.categories._base.container, CategoryNames[i], BUTTON_WIDTH_SMALL, BUTTON_HEIGHT_SMALL, music_menu_toggle_category);
+        
+        // Check mark visibility
+        int buttonIndices[2] = {track->slotIdx, i};
+        recompui_register_callback(settings.categories.categories[i].button, settings.categories.categories[i].callback, buttonIndices);
+        
+        // Settings toggle
+        recompui_register_callback(settings.categories.categories[i].button, settings.categories.categories[i].callback, 0);
+    }
+    return settings;
 }
 
 MusicMenu_Volume music_menu_create_volume(RecompuiResource parent, cTrack* track)
@@ -316,11 +420,53 @@ MusicMenu_Volume music_menu_create_volume(RecompuiResource parent, cTrack* track
     return volume;
 }
 
+MusicMenu_Toggle_Button music_menu_create_toggle_button(RecompuiTextureHandle icon, RecompuiResource parent, const char* label, unsigned long width, unsigned long height, void (*callback)(RecompuiResource, const RecompuiEventData*, void*))
+{
+    MusicMenu_Toggle_Button button;
+    button._base.parent = parent;
+    button._base.container = recompui_create_element(musicMenuContext, parent);
+    
+    recompui_set_position(button._base.container, POSITION_RELATIVE);
+    recompui_set_flex_direction(button._base.container, FLEX_DIRECTION_COLUMN);
+    recompui_set_display(button._base.container, DISPLAY_FLEX);
+    recompui_set_align_items(button._base.container, ALIGN_ITEMS_CENTER);
+
+    recompui_set_min_width(button._base.container, width + 20, UNIT_DP);
+    recompui_set_width(button._base.container, width + 20, UNIT_DP);
+
+    button.label = recompui_create_label(musicMenuContext, button._base.container, label, LABELSTYLE_SMALL);
+    recompui_set_font_size(button.label, 13.0f, UNIT_DP);
+
+    button.buttonContainer = recompui_create_element(musicMenuContext, button._base.container);
+    button.button = recompui_create_button(musicMenuContext, button.buttonContainer, "", BUTTONSTYLE_SECONDARY);
+    // recompui_set_opacity(button.button, 0.0f);
+
+    recompui_set_min_width(button.buttonContainer, width + 2, UNIT_DP);
+    recompui_set_width(button.buttonContainer, width + 2, UNIT_DP);
+
+    recompui_set_height(button.buttonContainer, height + 2, UNIT_DP);
+    recompui_set_border_width(button.buttonContainer, 1.0f, UNIT_DP);
+    
+    recompui_set_padding(button.button, 0.0f, UNIT_DP);
+    recompui_set_width(button.button, width, UNIT_DP);
+    recompui_set_height(button.button, height, UNIT_DP);
+    recompui_set_border_radius(button.button, 0.0f, UNIT_DP);
+    
+    button.icon = recompui_create_imageview(musicMenuContext, button.buttonContainer, icon);
+    recompui_set_padding(button.icon, 2.0f, UNIT_DP);
+    recompui_set_opacity(button.icon, 0.0f);
+
+    button.callback = callback;
+
+    return button;
+}
+
 MusicMenu_Icon_Button music_menu_create_icon_button(RecompuiTextureHandle icon, RecompuiResource parent, unsigned long width, unsigned long height, void (*callback)(RecompuiResource, const RecompuiEventData*, void*))
 {
     MusicMenu_Icon_Button button;
     button._base.parent = parent;
     button._base.container = recompui_create_element(musicMenuContext, parent);
+
     recompui_set_position(button._base.container, POSITION_RELATIVE);
     button.button = recompui_create_button(musicMenuContext, button._base.container, "", BUTTONSTYLE_SECONDARY);
     recompui_set_opacity(button.button, 0.0f);
@@ -441,9 +587,10 @@ MusicMenu_Track_Column music_menu_create_track_column(cTrack* slot, RecompuiReso
     recompui_set_height(column.buttonsContainer, 100.0f, UNIT_PERCENT);
     recompui_set_margin_left_auto(column.buttonsContainer);
 
-    column.trackSettings = music_menu_create_icon_button(settingsIcon, column.buttonsContainer, BUTTON_WIDTH, BUTTON_HEIGHT, music_menu_create_track_settings);
-    recompui_set_border_left_width(column.trackSettings._base.container, 2.0f, UNIT_DP);
-    recompui_set_border_bottom_width(column.trackSettings._base.container, 1.0f, UNIT_DP);
+    column.trackSettingsButton = music_menu_create_icon_button(settingsIcon, column.buttonsContainer, BUTTON_WIDTH, BUTTON_HEIGHT, music_menu_open_or_close_track_settings);
+    recompui_set_border_left_width(column.trackSettingsButton._base.container, 2.0f, UNIT_DP);
+    recompui_set_border_bottom_width(column.trackSettingsButton._base.container, 1.0f, UNIT_DP);
+    recompui_register_callback(column.trackSettingsButton.button, music_menu_open_or_close_track_settings, &slot->slotIdx);
 
     column.rerollSlot = music_menu_create_icon_button(dieIcon, column.buttonsContainer, BUTTON_WIDTH, BUTTON_HEIGHT, music_menu_reroll_slot);
     recompui_register_callback(column.rerollSlot.button, column.rerollSlot.callback, &slot->slotIdx);
@@ -459,6 +606,7 @@ MusicMenu_Track_Element music_menu_create_row(cTrack* slot, RecompuiResource par
     MusicMenu_Track_Element row; 
     row._base.parent = parent;
     row._base.container = recompui_create_element(musicMenuContext, parent);
+    row.track = slot;
 
     recompui_set_width(row._base.container, 100.0f, UNIT_PERCENT);
 
@@ -549,6 +697,7 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(
             continue;
         }
         MusicMenu_Track_Element row = music_menu_create_row(&randomized[i], musicMenu.trackTable);
+        row.trackSettings = music_menu_create_track_settings(musicMenu.trackTable, row.track);
 
         musicMenu.tracks[i] = recomp_alloc(sizeof(MusicMenu_Track_Element));
         Lib_MemCpy(musicMenu.tracks[i], &row, sizeof(MusicMenu_Track_Element));
@@ -560,6 +709,8 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(
     // recompui_set_border_width(musicMenu.tracks[NA_BGM_TERMINA_FIELD]->_base.container, 10.0f, UNIT_DP);
 
     recompui_close_context(musicMenuContext);
+
+    recompui_show_context(musicMenuContext);
 }
 
 RECOMP_HOOK_RETURN("AudioSeq_UpdateActiveSequences") void update_volume()

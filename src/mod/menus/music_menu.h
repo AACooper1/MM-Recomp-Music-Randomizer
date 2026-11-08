@@ -1,3 +1,6 @@
+#ifndef MUSIC_MENU_H
+#define MUSIC_MENU_H
+
 #include "util/globals.h"
 
 #include "menu_textures.h"
@@ -45,6 +48,18 @@ typedef struct MusicMenu_Icon_Button_t {
     void (*callback)(RecompuiResource, const RecompuiEventData*, void*);
 } MusicMenu_Icon_Button;
 
+typedef struct MusicMenu_Toggle_Button_t {
+    MusicMenu_Resource _base;
+
+    RecompuiResource label;
+    RecompuiResource buttonContainer;
+    RecompuiResource button;
+    RecompuiResource icon;
+
+    bool enabled;
+    void (*callback)(RecompuiResource, const RecompuiEventData*, void*);
+} MusicMenu_Toggle_Button;
+
 
 
     typedef struct MusicMenu_Slot_Column_t {
@@ -59,6 +74,34 @@ typedef struct MusicMenu_Icon_Button_t {
         MusicMenu_Icon_Button settings;
         MusicMenu_Icon_Button selectTrack;
     } MusicMenu_Slot_Column;
+
+            typedef struct MusicMenu_Track_Settings_Categories_t {
+                MusicMenu_Resource _base;
+
+                RecompuiResource label;
+                MusicMenu_Toggle_Button categories[12];
+            } MusicMenu_Track_Settings_Categories;
+
+            typedef struct MusicMenu_Reroll_Chance_t {
+                MusicMenu_Resource _base;
+
+                RecompuiResource label;
+                RecompuiResource icon;
+                RecompuiResource slider;
+            } MusicMenu_Reroll_Chance;
+
+        typedef struct MusicMenu_Track_Settings_t {
+            MusicMenu_Resource _base;
+            MusicMenu_Resource cell;
+            RecompuiResource dummyCell;
+            
+            MusicMenu_Track_Settings_Categories categories;
+            /* Not Implemented - Song Slots */
+            MusicMenu_Toggle_Button songtest;
+            MusicMenu_Toggle_Button songforce;
+
+            bool visible;
+        } MusicMenu_Track_Settings;
 
         typedef struct MusicMenu_Album_Art_t {
             MusicMenu_Resource _base;
@@ -94,16 +137,17 @@ typedef struct MusicMenu_Icon_Button_t {
 
         RecompuiResource buttonsContainer;
         MusicMenu_Icon_Button rerollSlot;
-        MusicMenu_Icon_Button trackSettings;
+        MusicMenu_Icon_Button trackSettingsButton;
     } MusicMenu_Track_Column;
 
 typedef struct MusicMenu_Track_Element_t {
     MusicMenu_Resource _base;
-    MusicMenu_Resource row;
 
     cTrack* track;
     MusicMenu_Slot_Column slotCol;
     MusicMenu_Track_Column trackCol;
+    
+    MusicMenu_Track_Settings trackSettings;
 } MusicMenu_Track_Element;
 
 
@@ -143,6 +187,9 @@ cConfig config[NA_BGM_MAX];
 MusicMenu_Track_Element music_menu_create_row(cTrack* slot, RecompuiResource parent);
 MusicMenu_Slot_Column music_menu_create_slot_column(cTrack* slot, RecompuiResource parent);
 MusicMenu_Icon_Button music_menu_create_icon_button(RecompuiTextureHandle icon, RecompuiResource parent, unsigned long width, unsigned long height, void (*callback)(RecompuiResource, const RecompuiEventData*, void*));
+MusicMenu_Toggle_Button music_menu_create_toggle_button(RecompuiTextureHandle icon, RecompuiResource parent, const char* label, unsigned long width, unsigned long height, void (*callback)(RecompuiResource, const RecompuiEventData*, void*));
+
+MusicMenu_Track_Settings music_menu_create_track_settings(RecompuiResource parent, cTrack* track);
 MusicMenu_Volume music_menu_create_volume(RecompuiResource parent, cTrack* track);
 MusicMenu_Album_Art music_menu_create_album_art(RecompuiResource parent, cTrack* track);
 
@@ -235,3 +282,21 @@ typedef enum PauseMusicMenuState {
     /* 0x09 */ PAUSE_MUSICMENU_STATE_IDLE,
     /* 0x10 */ PAUSE_MUSICMENU_STATE_CLOSING
 };
+
+const char* CategoryNames[12] = 
+{
+    /* 0  */ "Field",
+    /* 1  */ "Towns",
+    /* 2  */ "Dungeon",
+    /* 3  */ "Indoors",
+    /* 4  */ "Minigame",
+    /* 5  */ "Action",
+    /* 6  */ "Calm",
+    /* 7  */ "Boss",
+    /* 8  */ "Fanfare",
+    /* 9  */ "Game Over",
+    /* 10 */ "Area Clear",
+    /* 16 */ "Special"
+};
+
+#endif
