@@ -128,7 +128,6 @@ void start_button_pressed(RecompuiResource resource, const RecompuiEventData* ev
         {
             recompui_hide_context(startMenu.context);
             startMenu.shown = false;
-            logger.dev("Hode context!\n");
         }
         game_started = true;
     }

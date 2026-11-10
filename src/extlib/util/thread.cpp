@@ -43,12 +43,12 @@ RECOMP_DLL_FUNC(music_rando_cleanup_thread)
     {
         jobs[jobId]->set_state(ThreadState::KILL);
         jobs.erase(jobId); // Calls the destructor so the thread is joined
-        logger.dev.disable_header();
-        logger.dev << "Tore down thread!" << std::endl;
-        logger.dev.enable_header();
+        logger.debug.disable_header();
+        logger.debug << "Tore down thread!" << std::endl;
+        logger.debug.enable_header();
     }
     else
     {
-        logger.dev << "Thread " << jobId << " did not exist!" << std::endl;
+        logger.error << "Thread " << jobId << " did not exist!" << std::endl;
     }
 }

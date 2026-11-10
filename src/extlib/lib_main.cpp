@@ -58,7 +58,7 @@ int _prepare_database(StatusMessage& msg, std::string modPath)
         }
         rc = db->update_from_music_dir();
         rc = db->load_all_tracks();
-        logger.dev << "Successfully loaded tracks!" << std::endl;
+        logger.debug << "Successfully loaded tracks!" << std::endl;
     }
     catch (std::exception& e)
     {
@@ -73,7 +73,7 @@ RECOMP_DLL_FUNC(prepare_database)
 {
     std::string modPath = RECOMP_ARG_STR(0);
     
-    logger.dev << "Extlib-side logger OK!" << std::endl;
+    logger.debug << "Extlib-side logger OK!" << std::endl;
 
     int jobID = music_rando_create_thread(_prepare_database, modPath);
     RECOMP_RETURN(int, 0);
@@ -216,11 +216,11 @@ RECOMP_DLL_FUNC(reroll_slot)
     int slotIdx = RECOMP_ARG(int, 0);
 
     seed->randomize_slot(slotIdx);
-    logger.dev << "Rerolling slot " << slotIdx << "!" << std::endl;
+    logger.debug << "Rerolling slot " << slotIdx << "!" << std::endl;
 
     int result = seed->randomized[slotIdx]->seedIdx;
 
-    logger.dev << "Result is " << result << "!" << std::endl;
+    logger.debug << "Result is " << result << "!" << std::endl;
     if (seed->randomized[slotIdx]->type != TrackType::VANILLA)
         db->prepare_track(result);
 
@@ -244,7 +244,7 @@ RECOMP_DLL_FUNC(save_config)
     extlibConfig->is_songforce = modConfig->pad1[2];
     extlibConfig->is_songtest = modConfig->pad2[2];
 
-    logger.dev << "Saving slot " << slotIdx << " config!" << std::endl;   
+    logger.debug << "Saving slot " << slotIdx << " config!" << std::endl;   
 
     int rc = db->tables->config->update(seed->randomized[slotIdx]->id, extlibConfig);
 
@@ -332,7 +332,6 @@ RECOMP_DLL_FUNC(fetch_randomized_track)
     {
         prepare_vanilla_track(extlibTrack, modTrack);
     }
-    logger.dev << "Sizeof cTrack (extlib): " << sizeof(cTrack) << std::endl;
 }
 
 RECOMP_DLL_FUNC(fetch_config)

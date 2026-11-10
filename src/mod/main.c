@@ -118,13 +118,10 @@ void prepare_tracks()
     for (int i = 2; i < NUM_SONG_SLOTS; i++)
     {
         fetch_randomized_track(i, &randomized[i]);
-        logger.dev("Sizeof cTrack (mod): %i\n", sizeof(cTrack));
         logger.debug("Preparing track %s...\n", randomized[i].name);
         if (randomized[i].type == VANILLA)
         {
-            logger.dev("seq.id = %x\n", randomized[i].seq.id);
             randomized[i].seq.id += 0x100;
-            logger.noheader.dev("seq.id = %x\n", randomized[i].seq.id);
             for (int i = 0; i < 16; i++) { randomized[i].formmask.states[i] = 0xFFFF; }
             randomized[i].formmask.cumulativeStates = 0xFFFF;
 
@@ -164,7 +161,6 @@ void populate_custom_track(cTrack* track)
     {
         track->image.data = recomp_alloc(64 * 32 * sizeof(u64));
         fetch_image(track->image.id, track->image.data, 64 * 32 * sizeof(u64));
-        logger.dev("Track %s has image. Allocating...\n", track->name);
     }
 }
 

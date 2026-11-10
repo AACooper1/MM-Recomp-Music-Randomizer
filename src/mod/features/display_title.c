@@ -8,7 +8,6 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void prepare_title_disp
 
     titleDispCtx.context = recompui_create_context();
     recompui_open_context(titleDispCtx.context);
-    logger.dev("Opened titleDispCtx\n");
     recompui_set_context_captures_input(titleDispCtx.context, false);
     recompui_set_context_captures_mouse(titleDispCtx.context, false);
 
@@ -68,7 +67,6 @@ void show_title_display()
 {
     if (!titleDispCtx.shown && recomp_get_config_u32("show_song_titles"))
     {
-        logger.dev("Showing title display context.\n");
         recompui_show_context(titleDispCtx.context);
         titleDispCtx.shown = true;
     }

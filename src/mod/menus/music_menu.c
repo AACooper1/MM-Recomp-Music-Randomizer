@@ -55,7 +55,7 @@ RECOMP_CALLBACK(".", music_menu_close) void save_on_close()
         recompui_close_context(musicMenuContext);
         if (volumeVals[i] != config[i].volume)
         {
-            logger.dev("Volume value for slot %i was %f (previously %f)!\n", i, volumeVals[i], config[i].volume);
+            logger.debug("Changed volume val for slot %i to %f (previously %f)!\n", i, volumeVals[i], config[i].volume);
             modified[i] = true;
             config[i].volume = volumeVals[i];
         }
@@ -63,7 +63,7 @@ RECOMP_CALLBACK(".", music_menu_close) void save_on_close()
         {
             save_config(i, &config[i]);
             modified[i] = false;
-            logger.debug("Saved new settings!\n");
+            logger.debug("Saved new settings for track %i!\n", i);
             for (int j = NA_BGM_TERMINA_FIELD; j < NA_BGM_MAX; j++)
             {
                 if (should_skip_song_title_display[j] || i == j) continue;
@@ -103,8 +103,10 @@ void replace_track_internal(int slotIdx, int trackId)
         }
     }
     Lib_MemSet(slot, 0, sizeof(cTrack));
+    Lib_MemSet(&config[slotIdx], 0, sizeof(cConfig));
 
     fetch_randomized_track(slotIdx, &randomized[slotIdx]);
+    fetch_config(slotIdx, &config[slotIdx]);
     logger.debug("Preparing track %s...\n", randomized[slotIdx].name);
 
     if (randomized[slotIdx].type == VANILLA)
@@ -212,15 +214,15 @@ void music_menu_reroll_slot(RecompuiResource resource, const RecompuiEventData* 
     if (event->type == UI_EVENT_CLICK)
     {
         int slotIdx = *(int*)userdata;
+        save_config(slotIdx, &config[slotIdx]);
+
         int newId = reroll_slot(slotIdx);
 
-        logger.dev("Called reroll_slot on slot %i and got %i!\n", slotIdx, newId);
+        logger.info("Rerolled slot %i and got %i!\n", slotIdx, newId);
 
         replace_track_internal(slotIdx, newId);
 
-        logger.dev("Setting text...\n");
         recompui_set_text(musicMenu.tracks[slotIdx]->trackCol.label, randomized[slotIdx].name);
-        logger.dev("Set text to %s!\n", randomized[slotIdx].name);
 
         if (randomized[slotIdx].hasImage)
         {
@@ -228,6 +230,23 @@ void music_menu_reroll_slot(RecompuiResource resource, const RecompuiEventData* 
             recompui_destroy_element(musicMenu.tracks[slotIdx]->trackCol.albumArt.imageContainer, musicMenu.tracks[slotIdx]->trackCol.albumArt.image);
             musicMenu.tracks[slotIdx]->trackCol.albumArt.imageHandle = recompui_create_texture_rgba32(randomized[slotIdx].image.data, 64, 64);
             musicMenu.tracks[slotIdx]->trackCol.albumArt.image = recompui_create_imageview(musicMenuContext, musicMenu.tracks[slotIdx]->trackCol.albumArt.imageContainer, musicMenu.tracks[slotIdx]->trackCol.albumArt.imageHandle);
+        }
+
+        MusicMenu_Track_Settings_Categories* categories = &musicMenu.tracks[slotIdx]->trackSettings.categories;
+        for (int i = 0; i < 12; i++)
+        {
+            int catIdx = i == 11 ? 16 : i;
+            
+            if (config[slotIdx].categories[catIdx])
+            {
+                categories->categories[i].enabled = true;
+                recompui_set_opacity(categories->categories[i].icon, 1.0f);
+            }
+            else
+            {
+                categories->categories[i].enabled = false;
+                recompui_set_opacity(categories->categories[i].icon, 0.0f);
+            }
         }
     }
 
@@ -243,30 +262,37 @@ void music_menu_toggle_button_on_click(RecompuiResource resource, const Recompui
         if (button->enabled)
         {
             recompui_set_opacity(button->icon, 0.0f);
+
+            button->enabled = false;
         }
         else
         {
             recompui_set_opacity(button->icon, 1.0f);
-        }
 
-        button->enabled = ~button->enabled;
+            button->enabled = true;
+        }
     }
 }
 
 void music_menu_toggle_category(RecompuiResource resource, const RecompuiEventData* event, void* userdata)
 {
-    cConfig* config = (cConfig*)userdata;
-    int catIdx = *(int*)userdata + 1;
+    MusicMenu_Toggle_Button* button = (MusicMenu_Toggle_Button*)userdata;
+    int slotIdx = button->_userdata[0];
+    int catIdx = button->_userdata[1];
+
     if (event->type == UI_EVENT_CLICK)
     {
-        if (config->categories[catIdx])
+        if (button->enabled)
         {
-            config->categories[catIdx] = false;
+            config[slotIdx].categories[catIdx] = true;
+
         }
         else
         {
-            config->categories[catIdx] = true;
+            config[slotIdx].categories[catIdx] = false;
         }
+
+        modified[slotIdx] = true;
     }
     return;
 }
@@ -320,7 +346,6 @@ void music_menu_open_or_close_track_settings(RecompuiResource resource, const Re
 {
     if (event->type == UI_EVENT_CLICK)
     {
-        logger.dev("Pressed track settings button!\n");
         int idx = *(int*)userdata;
 
         for (int i = 0; i < NA_BGM_MAX; i++)
@@ -395,10 +420,18 @@ MusicMenu_Track_Settings music_menu_create_track_settings(RecompuiResource paren
         int trackId = track->slotIdx;
         int catIdx = i == 11 ? 16 : i;
 
+        settings.categories.categories[i]._userdata[0] = trackId;
+        settings.categories.categories[i]._userdata[1] = catIdx;
+
         if (config[trackId].categories[catIdx])
         {
             settings.categories.categories[i].enabled = true;
             recompui_set_opacity(settings.categories.categories[i].icon, 1.0f);
+        }
+        else
+        {
+            settings.categories.categories[i].enabled = false;
+            recompui_set_opacity(settings.categories.categories[i].icon, 0.0f);
         }
     }
 
@@ -725,6 +758,7 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(
         for (int j = 0; j < 12; j++)
         {
             recompui_register_callback(musicMenu.tracks[i]->trackSettings.categories.categories[j].button, music_menu_toggle_button_on_click, &(musicMenu.tracks[i]->trackSettings.categories.categories[j]));
+            recompui_register_callback(musicMenu.tracks[i]->trackSettings.categories.categories[j].button, music_menu_toggle_category, &(musicMenu.tracks[i]->trackSettings.categories.categories[j]));
         }
     }
 

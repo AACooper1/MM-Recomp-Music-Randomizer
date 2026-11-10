@@ -67,9 +67,9 @@ class MusicRandoJob
             }
             else
             {
-                logger.dev.disable_header();
-                logger.dev << "Thread was not joinable!" << std::endl;
-                logger.dev.enable_header();
+                logger.error.disable_header();
+                logger.error << "Thread was not joinable!" << std::endl;
+                logger.error.enable_header();
             }
         }
 

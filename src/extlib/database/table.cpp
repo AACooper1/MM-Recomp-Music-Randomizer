@@ -212,7 +212,7 @@ template<typename T> void Table<T>::load_entry(int id)
     if (obj)
     {
         entries.emplace(id, obj);
-        logger.dev << "Successfully loaded " << name << " entry with id " << id << "." << std::endl;
+        logger.debug << "Successfully loaded " << name << " entry with id " << id << "." << std::endl;
     }
     else
     {

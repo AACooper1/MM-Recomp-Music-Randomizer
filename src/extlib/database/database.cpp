@@ -216,7 +216,7 @@ void Database::add_if_not_in_db()
             {
                 std::u8string u8filepath(entry.path().u8string());
                 std::string filepath(u8filepath.begin(), u8filepath.end());
-                logger.dev << "Entry " << filepath << " is a directory, continuing..." << std::endl;
+                logger.debug << "Entry " << filepath << " is a directory, continuing..." << std::endl;
                 continue;
         }
         else if (entry.path().extension().string().ends_with("_ignore"))
@@ -420,7 +420,7 @@ bool Database::add_song(std::shared_ptr<Track>& track)
     {
         if (!ootAudioHandler)
         {
-            logger.dev << "New OoTRS detected. Reading OoT audiobin..." << std::endl;
+            logger.info << "New OoTRS detected. Reading OoT audiobin..." << std::endl;
             ootAudioHandler = new OoTAudioHandler(get_db_dir() / "OOT.audiobin", threadMsg);
             ootAudioHandler->prepare_oot_audio();
             if (add_oot_banks(ootAudioHandler))

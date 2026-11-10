@@ -55,6 +55,7 @@ typedef struct MusicMenu_Toggle_Button_t {
     RecompuiResource buttonContainer;
     RecompuiResource button;
     RecompuiResource icon;
+    int _userdata[2];
 
     u32 enabled;
     void (*callback)(RecompuiResource, const RecompuiEventData*, void*);
