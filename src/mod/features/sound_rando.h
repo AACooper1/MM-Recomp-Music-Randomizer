@@ -3,8 +3,7 @@
 #include "recomputils.h"
 #include "recompconfig.h"
 
-#include "logging.h"
-#include "modtrackdefs.h"
+#include "util/globals.h"
 #include "audio_api/all.h"
 
 #define SOUND_SHORT 1 << 0
@@ -40,3 +39,4 @@ typedef struct SoundGroup_T
     int numSlots;
     SoundSlot* slots;
 } SoundGroup;
+
