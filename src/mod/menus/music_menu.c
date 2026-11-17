@@ -22,7 +22,7 @@ u16 seqArgs;
 float volumeVals[NA_BGM_MAX];
 
 bool is_music_menu_open = false;
-bool has_music_menu_been_opened = false;
+bool music_menu_ready = false;
 
 RECOMP_IMPORT("magemods_audio_api", s32 AudioApi_GetActiveSeqId(u8 seqPlayerIndex));
 RECOMP_IMPORT("magemods_audio_api", u16 AudioApi_GetActiveSeqArgs(u8 seqPlayerIndex));
@@ -259,6 +259,10 @@ void music_menu_toggle_button_on_click(RecompuiResource resource, const Recompui
 
     if (event->type == UI_EVENT_CLICK)
     {
+        if (!button->allow_enable)
+        {
+            return;
+        }
         if (button->enabled)
         {
             recompui_set_opacity(button->icon, 0.0f);
@@ -434,6 +438,23 @@ MusicMenu_Track_Settings music_menu_create_track_settings(RecompuiResource paren
             recompui_set_opacity(settings.categories.categories[i].icon, 0.0f);
         }
     }
+    
+    if (!ALLOW_FANFARE_AND_NOT_FANFARE)
+    {
+        for (int i = 0; i < 12; i++)
+        {
+            if (FANFARE_XNOR)
+            {
+                settings.categories.categories[i].allow_enable = true;
+            }
+            else
+            {
+                recompui_set_color(settings.categories.categories[i].label, &lightGrey);
+                recompui_set_border_color(settings.categories.categories[i].buttonContainer, &darkGrey);
+                settings.categories.categories[i].allow_enable = false;
+            }
+        }
+    }
 
     return settings;
 }
@@ -494,11 +515,11 @@ MusicMenu_Toggle_Button music_menu_create_toggle_button(RecompuiTextureHandle ic
     recompui_set_opacity(button.button, 0.0f);
     recompui_set_position(button.button, POSITION_ABSOLUTE);
 
-    recompui_set_min_width(button.buttonContainer, width + 2, UNIT_DP);
-    recompui_set_width(button.buttonContainer, width + 2, UNIT_DP);
+    recompui_set_min_width(button.buttonContainer, width + 4, UNIT_DP);
+    recompui_set_width(button.buttonContainer, width + 4, UNIT_DP);
 
-    recompui_set_height(button.buttonContainer, height + 2, UNIT_DP);
-    recompui_set_border_width(button.buttonContainer, 1.0f, UNIT_DP);
+    recompui_set_height(button.buttonContainer, height + 4, UNIT_DP);
+    recompui_set_border_width(button.buttonContainer, 2.0f, UNIT_DP);
     
     recompui_set_padding(button.button, 0.0f, UNIT_DP);
     recompui_set_width(button.button, width, UNIT_DP);
@@ -768,6 +789,7 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(
     // recompui_set_border_width(musicMenu.tracks[NA_BGM_TERMINA_FIELD]->_base.container, 10.0f, UNIT_DP);
 
     recompui_close_context(musicMenuContext);
+    music_menu_ready = true;
 
     // recompui_show_context(musicMenuContext);
 }
@@ -786,7 +808,7 @@ RECOMP_HOOK_RETURN("AudioSeq_UpdateActiveSequences") void update_volume()
                 volumeVals[seqId] = recompui_get_input_value_float(musicMenu.tracks[seqId]->trackCol.volume.slider) * 127.0f / 100.0f;
                 recompui_close_context(musicMenuContext);
             }
-            if (has_music_menu_been_opened)
+            if (music_menu_ready)
             {
                 f32 cur_volume = gActiveSeqs[playerIdx].volCur;
                 cur_volume *= volumeVals[gActiveSeqs[playerIdx].seqId] / 127.0f;
@@ -878,7 +900,6 @@ RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState
                     {
                         recompui_show_context(musicMenuContext);
                         is_music_menu_open = true;
-                        has_music_menu_been_opened = true;
                         music_menu_open(play);
                     }
 

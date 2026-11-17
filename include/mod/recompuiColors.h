@@ -14,6 +14,8 @@ static RecompuiColor container_color = {8, 7, 13, 1.0f * 255};
 
 static RecompuiColor white = {255, 255, 255, 1.0f * 255};
 static RecompuiColor black = {0, 0, 0, 1.0f * 255};
+static RecompuiColor darkGrey = {100, 100, 100, 1.0f * 255};
+static RecompuiColor lightGrey = {150, 150, 150, 1.0f * 255};
 
 static RecompuiColor red = {210, 0, 0, 255};
 static RecompuiColor bGreen = {0, 210, 0, 255};

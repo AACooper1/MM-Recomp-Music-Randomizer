@@ -27,6 +27,10 @@ extern void replace_vanilla(int i);
 
 #define TABLE_HEADER_SLOT "Slot"
 #define TABLE_HEADER_TRACK "Track"
+
+#define ALLOW_FANFARE_AND_NOT_FANFARE (*(u32*)(&config[track->slotIdx].categories[8]) && (*(u64*)(&config[track->slotIdx].categories[0]) || config[track->slotIdx].categories[16]))
+#define FANFARE_XNOR !((i >= 8 && i <= 10) ^ (settings.categories.categories[8].enabled || settings.categories.categories[9].enabled || settings.categories.categories[10].enabled))
+
 static const char headerText[2][16] = {TABLE_HEADER_SLOT, TABLE_HEADER_TRACK};
 
 extern Logger logger;
@@ -58,6 +62,7 @@ typedef struct MusicMenu_Toggle_Button_t {
     int _userdata[2];
 
     u32 enabled;
+    u32 allow_enable;
     void (*callback)(RecompuiResource, const RecompuiEventData*, void*);
 } MusicMenu_Toggle_Button;
 
