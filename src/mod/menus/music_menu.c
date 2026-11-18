@@ -42,6 +42,23 @@ RECOMP_DECLARE_EVENT(music_menu_close(PlayState* play));
 
 extern bool should_skip_song_title_display[0x7F];
 
+void music_menu_hover_callback(RecompuiResource resource, const RecompuiEventData* event, void* userdata)
+{
+    logger.noheader.dev("Event type: %i. Hover state: %i\n", event->type, event->data.hover.active);
+    int resourceId = (int)userdata;
+    if (event->type == UI_EVENT_HOVER)
+    {
+        if (event->data.hover.active)
+        {
+            recompui_set_background_color(resourceId, &hover_color);
+        }
+        else
+        {
+            recompui_set_background_color(resourceId, &black);
+        }
+    }
+}
+
 RECOMP_CALLBACK(".", music_menu_close) void save_on_close()
 {
     save_seed();
@@ -530,6 +547,7 @@ MusicMenu_Toggle_Button music_menu_create_toggle_button(RecompuiTextureHandle ic
     recompui_set_opacity(button.icon, 0.0f);
 
     button.callback = callback;
+    recompui_register_callback(button.button, music_menu_hover_callback, (void*)button.buttonContainer);
 
     return button;
 }
@@ -552,6 +570,7 @@ MusicMenu_Icon_Button music_menu_create_icon_button(RecompuiTextureHandle icon, 
     recompui_set_padding(button.icon, 2.0f, UNIT_DP);
 
     button.callback = callback;
+    recompui_register_callback(button.button, music_menu_hover_callback, (void*)button._base.container);
 
     return button;
 }

@@ -10,7 +10,7 @@
 static RecompuiColor bg_color = {255, 255, 255, 0.3f * 255};
 static RecompuiColor border_color = {255, 255, 255, 0.2f * 255};
 static RecompuiColor container_color = {8, 7, 13, 1.0f * 255};
-
+static RecompuiColor hover_color = {160, 172, 173, 0.5 * 255};
 
 static RecompuiColor white = {255, 255, 255, 1.0f * 255};
 static RecompuiColor black = {0, 0, 0, 1.0f * 255};

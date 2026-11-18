@@ -199,6 +199,8 @@ MusicMenu_Track_Settings music_menu_create_track_settings(RecompuiResource paren
 MusicMenu_Volume music_menu_create_volume(RecompuiResource parent, cTrack* track);
 MusicMenu_Album_Art music_menu_create_album_art(RecompuiResource parent, cTrack* track);
 
+void check_close();
+
 #include "overlays/kaleido_scope/ovl_kaleido_scope/z_kaleido_scope.h"
 
 extern const u64 gMusicMenuNameTex[];
