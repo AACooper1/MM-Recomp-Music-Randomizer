@@ -54,7 +54,7 @@ void music_menu_hover_callback(RecompuiResource resource, const RecompuiEventDat
         }
         else
         {
-            recompui_set_background_color(resourceId, &black);
+            recompui_set_background_color(resourceId, &transparent);
         }
     }
 }
@@ -611,10 +611,10 @@ MusicMenu_Slot_Column music_menu_create_slot_column(cTrack* slot, RecompuiResour
 
     column.buttonsContainer = recompui_create_element(musicMenuContext, column._base.container);
     recompui_set_height(column.buttonsContainer, 100.0f, UNIT_PERCENT);
-    recompui_set_width(column.buttonsContainer, 32.0f, UNIT_DP);
+    recompui_set_width(column.buttonsContainer, 38.0f, UNIT_DP);
     recompui_set_display(column.buttonsContainer, DISPLAY_BLOCK);
-    recompui_set_margin(column.buttonsContainer, 2.0f, UNIT_DP);
-    recompui_set_margin_right(column.buttonsContainer, 11.0f, UNIT_DP);
+    // recompui_set_margin(column.buttonsContainer, 2.0f, UNIT_DP);
+    recompui_set_margin_right(column.buttonsContainer, 10.0f, UNIT_DP);
 
     column.settings = music_menu_create_icon_button(settingsIcon, column.buttonsContainer, BUTTON_WIDTH, BUTTON_HEIGHT, music_menu_create_slot_settings);
     recompui_set_border_left_width(column.settings._base.container, 2.0f, UNIT_DP);
@@ -810,7 +810,7 @@ RECOMP_CALLBACK(".", music_rando_randomization_complete) void create_music_menu(
     recompui_close_context(musicMenuContext);
     music_menu_ready = true;
 
-    // recompui_show_context(musicMenuContext);
+    recompui_show_context(musicMenuContext);
 }
 
 RECOMP_HOOK_RETURN("AudioSeq_UpdateActiveSequences") void update_volume()
@@ -837,19 +837,19 @@ RECOMP_HOOK_RETURN("AudioSeq_UpdateActiveSequences") void update_volume()
     }
 }
 
-RECOMP_HOOK("KaleidoScope_UpdateQuestCursor") void check_music_menu_close(PlayState* play)
-{
-    if (is_music_menu_open)
-    {
-        if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->press.button, BTN_B))
-        {
-            Audio_PlaySfx(NA_SE_SY_DECIDE);
-            recompui_hide_context(musicMenuContext);
-            music_menu_close(play);
-            is_music_menu_open = false;
-        }
-    }
-}
+// RECOMP_HOOK("KaleidoScope_UpdateQuestCursor") void check_music_menu_close(PlayState* play)
+// {
+//     if (is_music_menu_open)
+//     {
+//         if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->press.button, BTN_B))
+//         {
+//             Audio_PlaySfx(NA_SE_SY_DECIDE);
+//             recompui_hide_context(musicMenuContext);
+//             music_menu_close(play);
+//             is_music_menu_open = false;
+//         }
+//     }
+// }
 
 RECOMP_CALLBACK(".", music_buttons_interact) void on_music_buttons_interact(u16 cursor, PlayState* play)
 {
@@ -926,6 +926,11 @@ RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState
                         Interface_SetAButtonDoAction(play, DO_ACTION_NONE);
                         pauseCtx->savePromptState = PAUSE_MUSICMENU_STATE_CLOSING;
                         D_8082B90C = pauseCtx->questPageRoll;
+
+                        Audio_PlaySfx(NA_SE_SY_DECIDE);
+                        recompui_hide_context(musicMenuContext);
+                        music_menu_close(play);
+                        is_music_menu_open = false;
                     }
                     else if (CHECK_BTN_ALL(input->press.button, BTN_START))
                     {
@@ -940,13 +945,14 @@ RECOMP_HOOK("KaleidoScope_Update") void Pre_KaleidoScope_OpenMusicMenu(PlayState
                     }
                     break;
                 case PAUSE_MUSICMENU_STATE_CLOSING:
-                        Audio_SetPauseState(true);
                         pauseCtx->questPageRoll += 78.5f;
                         sPauseCursorLeftX += TRUNCF_BINANG(sPauseCursorLeftMoveOffsetX / 4);
                         sPauseCursorRightX += TRUNCF_BINANG(sPauseCursorRightMoveOffsetX / 4);
                         if (pauseCtx->questPageRoll >= 0.0f) {
                             pauseCtx->questPageRoll = 0.0f;
                             pauseCtx->state = PAUSE_STATE_MAIN;
+                            if (pauseCtx->state < PAUSE_STATE_UNPAUSE_SETUP)
+                                Audio_SetPauseState(true);
                         }
                     break;
             }
